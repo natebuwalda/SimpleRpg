@@ -108,7 +108,7 @@ export function mountUi(root: HTMLElement): Ui {
       if (state.kind === 'exploring') root.querySelector('#screen')!.innerHTML = `
         <div class="eyebrow">THE FIRST CLEARING</div><h1>Find your way.</h1>
         <div class="stats"><span>HERO <strong aria-label="Hero health">${state.checkpoint.hp} / 12 HP</strong></span><span>POSITION <strong aria-label="Position">${state.checkpoint.position.x}, ${state.checkpoint.position.y}</strong></span><span>WORLD <strong aria-label="World size">${state.checkpoint.world.width} × ${state.checkpoint.world.height} tiles</strong></span></div>
-        <p class="description"><span aria-label="Slimes remaining">${remainingText}</span><br>${remaining === 0 ? 'The clearing is peaceful.' : 'Explore the clearing. Find the green slimes.'}</p>
+        <p class="description"><span aria-label="Slimes remaining">${remainingText}</span><br>${remaining === 0 ? 'The clearing is peaceful.' : 'Explore the clearing.'}</p>
         <nav class="dpad" aria-label="Movement"><button data-direction="up" aria-label="Move up">↑</button><button data-direction="left" aria-label="Move left">←</button><button data-direction="down" aria-label="Move down">↓</button><button data-direction="right" aria-label="Move right">→</button></nav>`;
       if (state.kind === 'battle') root.querySelector('#screen')!.innerHTML = `
         <div class="eyebrow">A WILD ENCOUNTER</div><h1>Meadow slime</h1>

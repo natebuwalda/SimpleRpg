@@ -5,6 +5,13 @@ declare global { interface Window { __saveAttempts: string[] } }
 const threeWorld={...checkpoint.world,slimes:[
   {id:'slime-1',position:{x:5,y:3}}, {id:'slime-2',position:{x:8,y:6}}, {id:'slime-3',position:{x:15,y:15}},
 ]};
+test('short portrait controls fit with wider fallback text metrics',async({page})=>{
+ await page.setViewportSize({width:320,height:568});
+ await seed(page,{...checkpoint,world:threeWorld});
+ await page.addStyleTag({content:'.description { font-family: monospace; font-size: 18px; }'});
+ const down=(await page.getByRole('button',{name:'Move down',exact:true}).boundingBox())!;
+ expect(down.y+down.height).toBeLessThanOrEqual(568);
+});
 async function win(page:import('@playwright/test').Page){
  await page.getByRole('button',{name:'Attack',exact:true}).tap();
  await page.getByRole('button',{name:'Attack',exact:true}).tap();

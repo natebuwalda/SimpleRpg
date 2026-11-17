@@ -1,6 +1,6 @@
 # Iteration 2 implementation status
 
-Implemented natively on `codex/iteration-2`, based on accepted Iteration1 main `6057b5d`. Owner approved the design and implementation plan on November17,2026. Independent review is complete with no actionable findings; no merge or public deployment has been performed.
+Implemented natively on `codex/iteration-2`, based on accepted Iteration1 main `6057b5d`. Owner approved the design and implementation plan on November17,2026. Independent review is complete with no actionable findings. [Draft PR #3](https://github.com/natebuwalda/SimpleRpg/pull/3) contains the implementation; no merge or public deployment has been performed.
 
 ## Delivered behavior
 
@@ -15,7 +15,7 @@ Implemented natively on `codex/iteration-2`, based on accepted Iteration1 main `
 
 - `npm run typecheck`: PASS.
 - `npm test`:125/125 PASS across8 files.
-- `npm run test:e2e`: production build and39/39 browser scenarios PASS, retaining all30 accepted scenarios with schema/fixture adaptations.
+- `npm run test:e2e`: production build and40/40 browser scenarios PASS, retaining all30 accepted scenarios with schema/fixture adaptations.
 - `git diff --check`: PASS.
 - Phone screenshots before/after defeating slime2 inspected: only slime2 disappears, slime1 remains, and count3→2 matches state. Full playthrough kills2/1/3, preserves partial progress on reload, and reaches zero. Existing320x568,390x844,844x390 layout/rotation checks pass.
 
@@ -40,6 +40,10 @@ No feature-contract deviations or deferred minors.
 ## Independent review
 
 One fresh-context whole-branch reviewer examined `6057b5d..accdde4` against the approved spec/plan and all five Review Focus cases. No critical, important, or minor findings warranted changes. The reviewer independently passed typecheck/range diff-check, inspected source, tests and screenshots, and did not repeat the already reported unit/browser suites. No fixes were needed. The three matters set aside by the reviewer and the executor's decisions are recorded above.
+
+## CI layout regression
+
+Initial GitHub Ubuntu26 checks passed typecheck,125 unit tests and the build, but two320x568 layout cases placed the bottom controls at y572. The new two-part helper text wrapped differently with Linux fallback-font metrics. A native regression with18px monospace description text reproduced an overflow to y583. Shortening the helper copy to `Explore the clearing.` kept the remaining count visible and made that regression pass. The full native suite then passed125 unit and40 browser tests, typecheck, build and diff-check. This small follow-up is covered by that regression and CI rather than another independent review. Current remote CI status is available on the draft PR.
 
 ## Release and acceptance boundary
 
