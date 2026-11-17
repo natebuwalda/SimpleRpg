@@ -4,6 +4,8 @@ A small browser RPG built with TypeScript, Phaser, and Vite. Iteration 3 adds a 
 
 **[Play SimpleRpg](https://natebuwalda.github.io/SimpleRpg/)** — the published game follows accepted releases on main. Iteration 3 awaits owner acceptance and deployment.
 
+**[Acceptance game](https://natebuwalda.github.io/SimpleRpg/acceptance/)** — the latest candidate for phone acceptance. It uses separate browser saves from the main game.
+
 ## Development
 
 Use Node 24.21.0 (see `.nvmrc`), then `npm ci` and `npm run dev`. Open the printed URL with `/SimpleRpg/` appended.
@@ -41,6 +43,8 @@ Browser checks cover touch and keyboard, battle/reload/Continue, storage failure
 GitHub Pages serves this project's production build at base path `/SimpleRpg/`. Checks run on pushes and pull requests. The Publish game workflow repeats checks, builds, and deploys only after success. Pages must use **GitHub Actions** as its source.
 
 Releases deploy from `main` or a manually selected workflow ref permitted by the Pages environment. The temporary Iteration 0 feature-branch preview trigger has been removed. The public preview uses browser-local saves; no account data is sent to a server.
+
+Publish game packages the main build at `/SimpleRpg/` and a pinned acceptance build at `/SimpleRpg/acceptance/`. The `ACCEPTANCE_REF` repository variable stores its full commit SHA; a manual `acceptance_ref` input overrides it for one deployment. See [acceptance hosting](docs/superpowers/acceptance-hosting.md) for the deployment procedure and the transitional behavior before this workflow is merged. With Playwright Chromium installed, verify both deployed paths and save isolation using `node scripts/verify-deployment.mjs https://natebuwalda.github.io/SimpleRpg/`.
 
 The initial Actions deployment succeeded and the hosted game passed an automated touch exploration → battle → victory → refresh → Continue check with no failed asset requests or runtime errors. The owner also completed and accepted all physical-phone acceptance checks; see [implementation status](docs/superpowers/iteration-0-status.md).
 

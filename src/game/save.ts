@@ -3,11 +3,13 @@ import { getLandmarks, placeSlimes } from './world';
 import { decodeRecord } from './save-validation';
 import { parseOlderSave, parsePlacedProgress, parseV3Save } from './legacy-save';
 import { createStarterCharacter, deriveStats, isStarterCharacter } from './character';
+import { getSaveKeys } from './save-keys';
 
-export const SAVE_KEY = 'simple-rpg.save.v4';
-export const V3_SAVE_KEY = 'simple-rpg.save.v3';
-export const PREVIOUS_SAVE_KEY = 'simple-rpg.save.v2';
-export const LEGACY_SAVE_KEY = 'simple-rpg.save.v1';
+const keys = getSaveKeys(import.meta.env.BASE_URL);
+export const SAVE_KEY = keys.current;
+export const V3_SAVE_KEY = keys.v3;
+export const PREVIOUS_SAVE_KEY = keys.v2;
+export const LEGACY_SAVE_KEY = keys.v1;
 export type MigrationSource = { key: string; raw: string };
 export type MigrationResolver = (source: MigrationSource, create: () => Checkpoint | null) => Checkpoint | null;
 export function parseSave(raw: string | null): Checkpoint | null {
