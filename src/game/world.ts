@@ -2,7 +2,8 @@ import type { Checkpoint, Direction, Position, WorldDefinition } from './types';
 
 export const MAX_HP = 12;
 export const ENCOUNTER_ID = 'slime-1';
-export const FOREST_BORDER = 3;
+import { SIGHT_BUFFER } from './viewport';
+export const FOREST_BORDER = SIGHT_BUFFER;
 export function generateWorld(random: () => number = Math.random): WorldDefinition {
   return { version: 1, layout: 'woodland', width: 20 + Math.floor(random() * 21), height: 20 + Math.floor(random() * 21) };
 }
