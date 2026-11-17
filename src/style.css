@@ -1,0 +1,37 @@
+:root { font-family: 'DM Sans', system-ui, sans-serif; color: #e8ebd9; background: #111f22; font-synthesis: none; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100svh; background: radial-gradient(ellipse at 50% 20%, #253d39 0%, #111f22 70%); }
+button { font: inherit; cursor: pointer; min-width: 48px; min-height: 48px; color: inherit; background: #243938; border: 1px solid #52605a; border-radius: 8px; padding: 12px 18px; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+button:hover:not(:disabled) { background: #354d45; }
+button:focus-visible { outline: 3px solid #f0d69a; outline-offset: 3px; }
+button:disabled { opacity: .4; cursor: default; }
+.game-shell { width: min(100%, 560px); margin: auto; padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); }
+header, footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+header { margin-bottom: 22px; }
+.wordmark { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 2px; }
+.edition, footer, .eyebrow { color: #9cafa1; font-size: 10px; letter-spacing: 1.5px; }
+.edition { border: 1px solid #40564d; border-radius: 20px; padding: 6px 10px; white-space: nowrap; }
+.world-frame { border: 1px solid #59725b; padding: 8px; border-radius: 12px; background: #1d332e; box-shadow: 0 15px 50px #060f1744; }
+#canvas { aspect-ratio: 1; width: min(100%, 340px); margin: auto; overflow: hidden; border-radius: 5px; background: #294b3b; }
+#canvas canvas { display: block; width: 100% !important; height: 100% !important; image-rendering: pixelated; }
+.panel { padding: 24px 0 8px; }
+h1, h2 { font-family: 'Space Grotesk', sans-serif; margin: 8px 0; font-size: clamp(28px, 7vw, 38px); font-weight: 500; letter-spacing: -1.4px; }
+p { line-height: 1.5; }
+.description { color: #b2c1b4; margin: 10px 0 20px; font-size: 14px; }
+.actions { display: flex; gap: 10px; }
+.actions button { flex: 1; }
+button.primary { background: #d5dfaa; color: #203329; border-color: #d5dfaa; font-weight: 700; }
+button.primary:hover:not(:disabled) { background: #e3eac6; }
+.primary span { float: right; }
+.save-status { font-size: 11px; color: #a3b3a6; min-height: 17px; margin: 12px 0; }
+footer { border-top: 1px solid #344a43; padding-top: 14px; font-size: 8px; }
+.stats { display: flex; gap: 24px; margin: 16px 0; color: #9cafa1; font-size: 10px; letter-spacing: 1px; }
+.stats strong { display: block; color: #e8ebd9; font-size: 15px; margin-top: 4px; letter-spacing: 0; }
+.dpad { display: grid; grid-template-columns: repeat(3, 52px); grid-template-rows: repeat(2, 48px); gap: 6px; justify-content: center; }
+.dpad button { padding: 0; font-size: 22px; user-select: none; }
+.dpad button:first-child { grid-column: 2; }
+.dpad button:nth-child(2) { grid-column: 1; grid-row: 2; }
+.dpad button:nth-child(3), .dpad button:nth-child(4) { grid-row: 2; }
+@media (max-width: 360px) { .game-shell { padding: 14px 16px; } header { margin-bottom: 14px; } #canvas { max-width: 220px; } .panel { padding-top: 16px; } .description { margin: 8px 0 14px; } }
+@media (orientation: portrait) and (max-height: 650px) { #canvas { max-width: 180px; } .stats { margin: 12px 0; } }
+@media (orientation: landscape) and (max-height: 550px) { .game-shell { width: min(100%, 900px); padding-top: 12px; } header { margin-bottom: 10px; } .play-area { display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, 1fr); gap: 24px; align-items: center; } #canvas { max-width: min(240px, 65svh); } .panel { padding: 0; } footer { margin-top: 12px; } }
