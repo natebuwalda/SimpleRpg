@@ -210,3 +210,20 @@ test('battle ignores commands while hidden and resumes cleanly', async ({ page }
   await page.getByRole('button', { name: 'Attack', exact: true }).tap();
   await expect(page.getByLabel('Slime health')).toHaveText('2 / 6 HP');
 });
+
+test('production base path loads assets and survives refresh', async ({ page }) => {
+  const failures: string[] = [];
+  page.on('pageerror', error => failures.push(error.message));
+  page.on('response', response => { if (response.status() >= 400) failures.push(`${response.status()} ${response.url()}`); });
+  page.on('requestfailed', request => failures.push(request.url()));
+  await page.goto('./');
+  await expect(page.locator('canvas')).toBeVisible();
+  await page.screenshot({ path: 'test-results/phone-title.png', fullPage: true });
+  await page.getByRole('button', { name: 'New Game', exact: true }).tap();
+  await expect(page.getByLabel('Position')).toHaveText('2, 2');
+  await page.screenshot({ path: 'test-results/phone-exploration.png', fullPage: true });
+  await page.reload();
+  await page.getByRole('button', { name: 'Continue', exact: true }).tap();
+  await expect(page.locator('canvas')).toBeVisible();
+  expect(failures).toEqual([]);
+});
