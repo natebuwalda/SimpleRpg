@@ -4,6 +4,7 @@ import { mountUi } from './view/ui';
 import type { UiAction, Direction } from './game/types';
 import { createSession, transition } from './game/session';
 import { loadSave, saveGame } from './game/save';
+import { VIEWPORT_TILES, TILE_SIZE } from './game/viewport';
 import { generateWorld } from './game/world';
 import './style.css';
 
@@ -48,6 +49,7 @@ function dispatch(action: UiAction) {
   if (!active || (busy && (action.type === 'attack' || action.type === 'run'))) return;
   const resolving = state.kind === 'battle' && (action.type === 'attack' || action.type === 'run');
   if (resolving) busy = true;
+  if (action.type === 'newGame' || action.type === 'continue' || action.type === 'restart') scene.resetViewport();
   const previous = state;
   state = transition(state, action.type === 'newGame' ? { type: 'newGame', world: generateWorld() } : action);
   if (state !== previous && (state.kind === 'exploring' || state.kind === 'victory') && action.type !== 'continue' && action.type !== 'acknowledgeVictory') {
@@ -82,8 +84,8 @@ window.addEventListener('keydown', event => {
 new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'canvas',
-  width: 160,
-  height: 160,
+  width: VIEWPORT_TILES * TILE_SIZE,
+  height: VIEWPORT_TILES * TILE_SIZE,
   pixelArt: true,
   backgroundColor: '#223f35',
   banner: false,
