@@ -9,11 +9,19 @@ const ui = mountUi(document.querySelector<HTMLElement>('#app')!);
 let state = createSession();
 const scene = new GameScene();
 let active = true;
+let busy = false;
 function dispatch(action: Action) {
-  if (!active) return;
+  if (!active || (busy && (action.type === 'attack' || action.type === 'run'))) return;
+  const resolving = state.kind === 'battle' && (action.type === 'attack' || action.type === 'run');
+  if (resolving) busy = true;
   state = transition(state, action);
   ui.render(state, state.kind === 'title' ? 'No saved adventure yet.' : 'One step at a time.');
   scene.renderState(state);
+  ui.setBusy(busy);
+  if (resolving) {
+    ui.setBusy(true);
+    window.setTimeout(() => { busy = false; ui.setBusy(false); }, 300);
+  }
 }
 ui.onAction(dispatch);
 ui.render(state, 'No saved adventure yet.');

@@ -1,4 +1,43 @@
 import { test, expect } from '@playwright/test';
+import type { Page } from '@playwright/test';
+
+async function enterBattle(page: Page) {
+  await page.goto('./');
+  await page.getByRole('button', { name: 'New Game', exact: true }).tap();
+  for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Move right' }).tap();
+  await page.getByRole('button', { name: 'Move down' }).tap();
+  await page.getByRole('button', { name: 'Move down' }).tap();
+  await expect(page.getByRole('button', { name: 'Attack', exact: true })).toBeVisible();
+}
+
+test('attack resolves one turn per activation', async ({ page }) => {
+  await enterBattle(page);
+  await page.evaluate(() => {
+    document.querySelector<HTMLButtonElement>('[data-action="attack"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-action="attack"]')!.click();
+  });
+  await expect(page.getByLabel('Hero health')).toHaveText('10 / 12 HP');
+  await expect(page.getByLabel('Slime health')).toHaveText('2 / 6 HP');
+});
+
+test('win and return', async ({ page }) => {
+  await enterBattle(page);
+  await page.getByRole('button', { name: 'Attack', exact: true }).tap();
+  await page.getByRole('button', { name: 'Attack', exact: true }).tap();
+  await expect(page.getByRole('heading', { name: 'Victory!' })).toBeVisible();
+  await page.getByRole('button', { name: 'Back to clearing' }).tap();
+  await expect(page.getByLabel('Position')).toHaveText('6, 3');
+  await page.getByRole('button', { name: 'Move down' }).tap();
+  await expect(page.getByLabel('Position')).toHaveText('6, 4');
+});
+
+test('run returns to safe tile', async ({ page }) => {
+  await enterBattle(page);
+  await page.getByRole('button', { name: 'Run', exact: true }).tap();
+  await expect(page.getByLabel('Position')).toHaveText('6, 3');
+  await page.getByRole('button', { name: 'Move down' }).tap();
+  await expect(page.getByRole('button', { name: 'Attack', exact: true })).toBeVisible();
+});
 
 test('title fits phone', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });

@@ -3,6 +3,7 @@ import type { Action, GameState } from '../game/types';
 export interface Ui {
   render(state: GameState, saveStatus: string): void;
   onAction(handler: (action: Action) => void): void;
+  setBusy(busy: boolean): void;
 }
 
 export function mountUi(root: HTMLElement): Ui {
@@ -28,17 +29,30 @@ export function mountUi(root: HTMLElement): Ui {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button');
     if (!button || button.disabled) return;
     if (button.dataset.direction) handler({ type: 'move', direction: button.dataset.direction as import('../game/types').Direction });
-    else if (button.dataset.action === 'newGame') handler({ type: 'newGame' });
+    else if (button.dataset.action) handler({ type: button.dataset.action } as Action);
   });
   return {
     onAction(next) { handler = next; },
+    setBusy(busy) {
+      root.querySelectorAll<HTMLButtonElement>('[data-action="attack"], [data-action="run"]').forEach(button => { button.disabled = busy; });
+      root.querySelector('#screen')!.setAttribute('aria-busy', String(busy));
+    },
     render(state, saveStatus) {
       root.querySelector('.save-status')!.textContent = saveStatus;
       if (state.kind === 'exploring') root.querySelector('#screen')!.innerHTML = `
         <div class="eyebrow">THE FIRST CLEARING</div><h1>Find your way.</h1>
-        <div class="stats"><span>HERO <strong>${state.checkpoint.hp} / 12 HP</strong></span><span>POSITION <strong aria-label="Position">${state.checkpoint.position.x}, ${state.checkpoint.position.y}</strong></span></div>
-        <p class="description">Follow the path. Find the little green slime.</p>
+        <div class="stats"><span>HERO <strong aria-label="Hero health">${state.checkpoint.hp} / 12 HP</strong></span><span>POSITION <strong aria-label="Position">${state.checkpoint.position.x}, ${state.checkpoint.position.y}</strong></span></div>
+        <p class="description">${state.checkpoint.completedEncounterIds.length ? 'The clearing is peaceful. Take a little wander.' : 'Follow the path. Find the little green slime.'}</p>
         <nav class="dpad" aria-label="Movement"><button data-direction="up" aria-label="Move up">↑</button><button data-direction="left" aria-label="Move left">←</button><button data-direction="down" aria-label="Move down">↓</button><button data-direction="right" aria-label="Move right">→</button></nav>`;
+      if (state.kind === 'battle') root.querySelector('#screen')!.innerHTML = `
+        <div class="eyebrow">A WILD ENCOUNTER</div><h1>Meadow slime</h1>
+        <div class="stats"><span>HERO <strong aria-label="Hero health">${state.battle.heroHp} / 12 HP</strong></span><span>SLIME <strong aria-label="Slime health">${state.battle.enemyHp} / 6 HP</strong></span></div>
+        <p class="description">${state.battle.enemyHp === 6 ? 'A little slime blocks your path. Your move.' : 'You deal 4 damage. The slime hits back for 2.'}</p>
+        <div class="actions"><button class="primary" data-action="attack">Attack</button><button data-action="run">Run</button></div>`;
+      if (state.kind === 'victory' || state.kind === 'defeat') {
+        const won = state.kind === 'victory';
+        root.querySelector('#screen')!.innerHTML = `<div class="eyebrow">${won ? 'CLEARING COMPLETE' : 'ADVENTURE INTERRUPTED'}</div><h1>${won ? 'Victory!' : 'Defeated'}</h1><p class="description">${won ? 'The slime slips away. Health restored.<br>The clearing is yours to explore.' : 'Even small adventures take practice.<br>Take a breath and begin again.'}</p><div class="actions"><button class="primary" data-action="${won ? 'acknowledgeVictory' : 'restart'}">${won ? 'Back to clearing' : 'Restart'}</button></div>`;
+      }
     },
   };
 }
