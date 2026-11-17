@@ -4,12 +4,13 @@ import { createBattle, resolveTurn } from './battle';
 
 export function createSession(): GameState { return { kind: 'title' }; }
 export function transition(state: GameState, action: Action): GameState {
-  if ((action.type === 'newGame' && state.kind === 'title') || (action.type === 'restart' && state.kind === 'defeat')) return { kind: 'exploring', checkpoint: createCheckpoint() };
+  if (action.type === 'newGame' && state.kind === 'title') return { kind: 'exploring', checkpoint: createCheckpoint(action.world) };
+  if (action.type === 'restart' && state.kind === 'defeat') return { kind: 'exploring', checkpoint: createCheckpoint(state.checkpoint.world) };
   if (action.type === 'continue' && state.kind === 'title') return { kind: 'exploring', checkpoint: action.checkpoint };
   if (action.type === 'move' && state.kind === 'exploring') {
-    const position = move(state.checkpoint.position, action.direction);
+    const position = move(state.checkpoint.world, state.checkpoint.position, action.direction);
     if (position === state.checkpoint.position) return state;
-    if (atEncounter(position) && !state.checkpoint.completedEncounterIds.includes(ENCOUNTER_ID)) {
+    if (atEncounter(state.checkpoint.world, position) && !state.checkpoint.completedEncounterIds.includes(ENCOUNTER_ID)) {
       return { kind: 'battle', checkpoint: state.checkpoint, returnPosition: state.checkpoint.position, battle: createBattle(state.checkpoint.hp) };
     }
     return { kind: 'exploring', checkpoint: { ...state.checkpoint, position } };
