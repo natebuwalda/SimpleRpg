@@ -2,7 +2,7 @@
 
 A small browser RPG built with TypeScript, Phaser, and Vite. Iteration 3 adds a fixed starter character and opposed d10 combat to the three-slime adventure and buffered scrolling.
 
-**[Play SimpleRpg](https://natebuwalda.github.io/SimpleRpg/)** — the published game follows accepted releases on main. Iteration 3 is deployed at the acceptance URL below and awaits owner acceptance.
+**[Play SimpleRpg](https://natebuwalda.github.io/SimpleRpg/)** — the published game follows accepted releases on main. The owner has accepted Iteration 3, delivered through [PR #4](https://github.com/natebuwalda/SimpleRpg/pull/4).
 
 **[Acceptance game](https://natebuwalda.github.io/SimpleRpg/acceptance/)** — the latest candidate for phone acceptance. It uses separate browser saves from the main game.
 

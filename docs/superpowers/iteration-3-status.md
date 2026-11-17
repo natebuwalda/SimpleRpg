@@ -2,7 +2,7 @@
 
 Branch: `codex/iteration-3`, based on accepted Iteration 2 main `ba10362`.
 
-The approved fixed starter build, opposed nonchaining d10 pools, variable melee damage, checkpoint v4 upgrades, character details, and original/bonus roll feedback are implemented. No new dependencies or workflow changes were introduced. Resources are derived read-only; spending, classes, specializations, progression and initiative scheduling remain deferred.
+The approved fixed starter build, opposed nonchaining d10 pools, variable melee damage, checkpoint v4 upgrades, character details, and original/bonus roll feedback are implemented. No new dependencies were introduced. The Pages workflow now publishes the main and isolated acceptance builds together. Resources are derived read-only; spending, classes, specializations, progression and initiative scheduling remain deferred.
 
 ## Verification
 
@@ -13,7 +13,7 @@ The approved fixed starter build, opposed nonchaining d10 pools, variable melee 
 - Screenshot inspection: 320px battle commands fit with 18px monospace description text; expanded maximum bonus results wrap without horizontal overflow. Browser layout checks also cover 390×844 and 844×390.
 - Browser regression coverage includes dice results, final victory/defeat feedback, Run damage, input locks and focus, three independent slimes, camera movement, historical saves, v3 exact-placement upgrades, newest-key precedence, and blocked-write cache stability.
 - Independent whole-branch review: two Important accessibility findings fixed in one pass, each with failing-then-passing browser regressions. Arrow keys now read focused details without moving the hero or replacing the disclosure; a persistent combat live region announces every turn, including identical consecutive results, without repeating unchanged save messages. No Critical or Minor findings were reported.
-- Draft [PR #4](https://github.com/natebuwalda/SimpleRpg/pull/4) is open. Branch, PR and publication checks passed for deployed commit `5ebafc3`.
+- Integration: [PR #4](https://github.com/natebuwalda/SimpleRpg/pull/4). Branch, PR and publication checks passed for acceptance deployment commit `5ebafc3`.
 
 ## Execution decisions
 
@@ -25,6 +25,6 @@ The approved fixed starter build, opposed nonchaining d10 pools, variable melee 
 
 ## Owner acceptance and release
 
-Native implementation and independent review fixes are complete. Local preview servers are stopped. The owner authorized acceptance deployment, now live at [the acceptance URL](https://natebuwalda.github.io/SimpleRpg/acceptance/). The main game remains the accepted Iteration 2 release, with its original entry script and saves unchanged. Combined-artifact and live browser checks verified separate save/Continue behavior and no asset/runtime errors. See [hosting details](acceptance-hosting.md) for the pinned revision and successful deployment run.
+Native implementation and independent review fixes are complete. Local preview servers are stopped. The owner authorized acceptance deployment at [the acceptance URL](https://natebuwalda.github.io/SimpleRpg/acceptance/). During that deployment the main game remained the accepted Iteration 2 release, with its original entry script and saves unchanged. Combined-artifact and live browser checks verified separate save/Continue behavior and no asset/runtime errors. See [hosting details](acceptance-hosting.md) for the pinned revision and successful deployment run.
 
-Physical-phone acceptance and merge remain pending. Follow the Iteration 3 manual acceptance checklist in [README](../../README.md).
+The owner accepted Iteration 3 and explicitly authorized merging PR #4 on 2026-11-17. The [README](../../README.md) retains the manual acceptance checklist for future regressions. Main deployments retain the separately pinned acceptance build and its isolated saves.

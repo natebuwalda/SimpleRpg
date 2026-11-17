@@ -1,6 +1,6 @@
 # Iteration 3: Attributes, skills, and opposed d10 pools
 
-Status: approved by the owner; implemented on codex/iteration-3, pending owner acceptance and release.
+Status: implemented on codex/iteration-3; owner acceptance passed and release via PR #4 authorized on 2026-11-17.
 
 ## Intent and agreed scope
 

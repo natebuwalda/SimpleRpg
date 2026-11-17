@@ -110,4 +110,4 @@
 
 ## Plan self-review
 
-The five tasks cover the approved fixed build, dice rules, opposed turn flow, feedback, persistence, and regression acceptance. Historical and current Health validation are separated; all cross-task names above agree. Each Review Focus item has explicit tests in its owning task. The owner approved this plan; native implementation, independent review fixes, and local verification are complete. Draft PR #4 is open; owner phone acceptance and release remain pending.
+The five tasks cover the approved fixed build, dice rules, opposed turn flow, feedback, persistence, and regression acceptance. Historical and current Health validation are separated; all cross-task names above agree. Each Review Focus item has explicit tests in its owning task. The owner approved this plan; native implementation, independent review fixes, and verification are complete. The owner accepted the separately deployed Iteration 3 candidate and authorized integration through PR #4 on 2026-11-17.
