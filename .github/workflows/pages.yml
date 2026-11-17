@@ -3,7 +3,7 @@ name: Publish game
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, codex/iteration-1]
 
 permissions:
   contents: read
