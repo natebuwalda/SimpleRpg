@@ -1,9 +1,11 @@
 import { expect, type Page } from '@playwright/test';
-export const world = {version:1,layout:'woodland',width:20,height:20};
-export const checkpoint = {version:2,world,position:{x:3,y:3},hp:12,completedEncounterIds:[]};
+export const world = {version:2,layout:'woodland',width:20,height:20,slimes:[
+  {id:'slime-1',position:{x:15,y:15}}, {id:'slime-2',position:{x:8,y:8}}, {id:'slime-3',position:{x:10,y:10}},
+]};
+export const checkpoint = {version:3,world,position:{x:3,y:3},hp:12,completedEncounterIds:[] as string[]};
 export async function seed(page:Page, value = checkpoint) {
   await page.goto('./');
-  await page.evaluate(value => localStorage.setItem('simple-rpg.save.v2',JSON.stringify(value)), value);
+  await page.evaluate(value => localStorage.setItem('simple-rpg.save.v3',JSON.stringify(value)), value);
   await page.reload();
   await page.getByRole('button',{name:'Continue',exact:true}).tap();
 }

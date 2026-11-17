@@ -1,4 +1,5 @@
 import type { UiAction, Checkpoint, Direction, GameState } from '../game/types';
+import { getRemainingSlimeCount } from '../game/world';
 
 export interface Ui {
   render(state: GameState, saveStatus: string): void;
@@ -11,14 +12,14 @@ export interface Ui {
 export function mountUi(root: HTMLElement): Ui {
   root.innerHTML = `
     <main class="game-shell">
-      <header><span class="wordmark">SIMPLE RPG</span><span class="edition">ITERATION 01</span></header>
+      <header><span class="wordmark">SIMPLE RPG</span><span class="edition">ITERATION 02</span></header>
       <section class="play-area">
         <div class="world-frame"><div id="canvas" role="img" aria-label="A tiny woodland adventure"></div></div>
         <section class="panel" aria-label="Game controls">
           <div id="screen">
           <div class="eyebrow">A LITTLE ADVENTURE</div>
           <h1>Simple RPG</h1>
-          <p class="description">A quiet clearing. A small slime.<br>A journey begins with one step.</p>
+          <p class="description">A quiet clearing. Three little slimes.<br>A journey begins with one step.</p>
           <div class="actions"><button data-action="newGame" class="primary">New Game <span aria-hidden="true">↗</span></button><button disabled>Continue</button></div>
           </div>
           <p class="save-status" role="status">No saved adventure yet.</p>
@@ -95,17 +96,19 @@ export function mountUi(root: HTMLElement): Ui {
       }
     },
     render(state, saveStatus) {
+      const remaining = state.kind === 'title' ? 3 : getRemainingSlimeCount(state.checkpoint);
+      const remainingText = `${remaining} ${remaining === 1 ? 'slime remains' : 'slimes remain'}.`;
       currentState = state;
       currentStatus = saveStatus;
       const focused = document.activeElement instanceof HTMLButtonElement && root.contains(document.activeElement) ? { action: document.activeElement.dataset.action, direction: document.activeElement.dataset.direction } : null;
       root.querySelector('.save-status')!.textContent = saveStatus;
       if (state.kind === 'title') root.querySelector('#screen')!.innerHTML = confirming ? `
         <div class="eyebrow">A FRESH START</div><h1>Begin again?</h1><p class="description">Starting over will replace your saved adventure.</p><div class="actions"><button data-action="cancel">Cancel</button><button data-action="confirm" class="primary">Start Over</button></div>` : `
-        <div class="eyebrow">A LITTLE ADVENTURE</div><h1>Simple RPG</h1><p class="description">A quiet clearing. A small slime.<br>A journey begins with one step.</p><div class="actions"><button data-action="newGame" class="primary">New Game <span aria-hidden="true">↗</span></button><button data-action="continue" ${saved ? '' : 'disabled'}>Continue</button></div>`;
+        <div class="eyebrow">A LITTLE ADVENTURE</div><h1>Simple RPG</h1><p class="description">A quiet clearing. Three little slimes.<br>A journey begins with one step.</p><div class="actions"><button data-action="newGame" class="primary">New Game <span aria-hidden="true">↗</span></button><button data-action="continue" ${saved ? '' : 'disabled'}>Continue</button></div>`;
       if (state.kind === 'exploring') root.querySelector('#screen')!.innerHTML = `
         <div class="eyebrow">THE FIRST CLEARING</div><h1>Find your way.</h1>
         <div class="stats"><span>HERO <strong aria-label="Hero health">${state.checkpoint.hp} / 12 HP</strong></span><span>POSITION <strong aria-label="Position">${state.checkpoint.position.x}, ${state.checkpoint.position.y}</strong></span><span>WORLD <strong aria-label="World size">${state.checkpoint.world.width} × ${state.checkpoint.world.height} tiles</strong></span></div>
-        <p class="description">${state.checkpoint.completedEncounterIds.length ? 'The clearing is peaceful. Take a little wander.' : 'Follow the path. Find the little green slime.'}</p>
+        <p class="description"><span aria-label="Slimes remaining">${remainingText}</span><br>${remaining === 0 ? 'The clearing is peaceful.' : 'Explore the clearing.'}</p>
         <nav class="dpad" aria-label="Movement"><button data-direction="up" aria-label="Move up">↑</button><button data-direction="left" aria-label="Move left">←</button><button data-direction="down" aria-label="Move down">↓</button><button data-direction="right" aria-label="Move right">→</button></nav>`;
       if (state.kind === 'battle') root.querySelector('#screen')!.innerHTML = `
         <div class="eyebrow">A WILD ENCOUNTER</div><h1>Meadow slime</h1>
@@ -114,7 +117,7 @@ export function mountUi(root: HTMLElement): Ui {
         <div class="actions"><button class="primary" data-action="attack">Attack</button><button data-action="run">Run</button></div>`;
       if (state.kind === 'victory' || state.kind === 'defeat') {
         const won = state.kind === 'victory';
-        root.querySelector('#screen')!.innerHTML = `<div class="eyebrow">${won ? 'CLEARING COMPLETE' : 'ADVENTURE INTERRUPTED'}</div><h1>${won ? 'Victory!' : 'Defeated'}</h1><p class="description">${won ? 'The slime slips away. Health restored.<br>The clearing is yours to explore.' : 'Even small adventures take practice.<br>Take a breath and begin again.'}</p><div class="actions"><button class="primary" data-action="${won ? 'acknowledgeVictory' : 'restart'}">${won ? 'Back to clearing' : 'Restart'}</button></div>`;
+        root.querySelector('#screen')!.innerHTML = `<div class="eyebrow">${won ? remaining === 0 ? 'CLEARING COMPLETE' : 'SLIME DEFEATED' : 'ADVENTURE INTERRUPTED'}</div><h1>${won ? 'Victory!' : 'Defeated'}</h1><p class="description">${won ? `The slime slips away. Health restored.<br>${remainingText}` : 'Even small adventures take practice.<br>Take a breath and begin again.'}</p><div class="actions"><button class="primary" data-action="${won ? 'acknowledgeVictory' : 'restart'}">${won ? 'Back to clearing' : 'Restart'}</button></div>`;
       }
       if (focused) {
         const selector = focused.direction ? `[data-direction="${focused.direction}"]` : `[data-action="${focused.action}"]`;

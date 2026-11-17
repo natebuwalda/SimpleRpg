@@ -1,4 +1,4 @@
-import type { Position, WorldDefinition } from './types';
+import type { Position, WorldGeometry } from './types';
 export const VIEWPORT_TILES = 10;
 export const TILE_SIZE = 16;
 export const SIGHT_BUFFER = 3;
@@ -10,7 +10,7 @@ function axis(size: number, hero: number, previous: number): number {
   if (hero - origin > VIEWPORT_TILES - SIGHT_BUFFER - 1) return clamp(hero - (VIEWPORT_TILES - SIGHT_BUFFER - 1));
   return origin;
 }
-export function updateViewport(world: WorldDefinition, hero: Position, previous: Position): Position {
+export function updateViewport(world: WorldGeometry, hero: Position, previous: Position): Position {
   return { x: axis(world.width, hero.x, previous.x), y: axis(world.height, hero.y, previous.y) };
 }
 export function worldToScreen(position: Position, viewport: Position): Position {

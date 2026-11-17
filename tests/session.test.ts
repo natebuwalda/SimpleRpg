@@ -1,17 +1,18 @@
 import { expect, it } from 'vitest';
 import { createSession, transition } from '../src/game/session';
 import type { GameState } from '../src/game/types';
+import { makeWorld } from './fixtures';
 
-const world = { version: 1 as const, layout: 'woodland' as const, width: 20, height: 20 };
+const world = makeWorld();
 
 it('new game starts exploration', () => {
   expect(transition(createSession(), { type: 'newGame', world })).toEqual({
-    kind: 'exploring', checkpoint: { version: 2, world, position: { x: 3, y: 3 }, hp: 12, completedEncounterIds: [] },
+    kind: 'exploring', checkpoint: { version: 3, world, position: { x: 3, y: 3 }, hp: 12, completedEncounterIds: [] },
   });
 });
 
 function encounter(hp = 12): GameState {
-  return transition({ kind: 'exploring', checkpoint: { version: 2, world, position: { x: 14, y: 15 }, hp, completedEncounterIds: [] } }, { type: 'move', direction: 'right' });
+  return transition({ kind: 'exploring', checkpoint: { version: 3, world, position: { x: 14, y: 15 }, hp, completedEncounterIds: [] } }, { type: 'move', direction: 'right' });
 }
 it('entering an encounter blocks movement until battle ends', () => {
   const battle = encounter();
@@ -32,7 +33,7 @@ it('escape keeps the encounter available', () => {
 it('defeat preserves checkpoint and restart creates a fresh game', () => {
   const defeat = transition(encounter(2), { type: 'attack' });
   expect(defeat).toMatchObject({ kind: 'defeat', checkpoint: { hp: 2 } });
-  expect(transition(defeat, { type: 'restart' })).toEqual({ kind: 'exploring', checkpoint: { version: 2, world, position: { x: 3, y: 3 }, hp: 12, completedEncounterIds: [] } });
+  expect(transition(defeat, { type: 'restart' })).toEqual({ kind: 'exploring', checkpoint: { version: 3, world, position: { x: 3, y: 3 }, hp: 12, completedEncounterIds: [] } });
 });
 it('exploration updates position without mutating the old checkpoint', () => {
   const initial = transition(createSession(), { type: 'newGame', world });
@@ -41,7 +42,7 @@ it('exploration updates position without mutating the old checkpoint', () => {
 });
 
 it('restart preserves a rectangular world definition', () => {
- const checkpoint = {version:2 as const,world:{...world,width:40,height:30},position:{x:35,y:24},hp:2,completedEncounterIds:[]};
+ const checkpoint = {version:3 as const,world:makeWorld(40,30),position:{x:35,y:24},hp:2,completedEncounterIds:[]};
  const defeat:GameState = {kind:'defeat',checkpoint};
  expect(transition(defeat,{type:'restart'})).toEqual({kind:'exploring',checkpoint:{...checkpoint,position:{x:3,y:3},hp:12}});
 });
