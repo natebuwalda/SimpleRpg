@@ -1,4 +1,5 @@
 import type { UiAction, Checkpoint, Direction, GameState } from '../game/types';
+import { deriveStats } from '../game/character';
 import { getRemainingSlimeCount } from '../game/world';
 
 export interface Ui {
@@ -107,12 +108,12 @@ export function mountUi(root: HTMLElement): Ui {
         <div class="eyebrow">A LITTLE ADVENTURE</div><h1>Simple RPG</h1><p class="description">A quiet clearing. Three little slimes.<br>A journey begins with one step.</p><div class="actions"><button data-action="newGame" class="primary">New Game <span aria-hidden="true">↗</span></button><button data-action="continue" ${saved ? '' : 'disabled'}>Continue</button></div>`;
       if (state.kind === 'exploring') root.querySelector('#screen')!.innerHTML = `
         <div class="eyebrow">THE FIRST CLEARING</div><h1>Find your way.</h1>
-        <div class="stats"><span>HERO <strong aria-label="Hero health">${state.checkpoint.hp} / 12 HP</strong></span><span>POSITION <strong aria-label="Position">${state.checkpoint.position.x}, ${state.checkpoint.position.y}</strong></span><span>WORLD <strong aria-label="World size">${state.checkpoint.world.width} × ${state.checkpoint.world.height} tiles</strong></span></div>
+        <div class="stats"><span>HERO <strong aria-label="Hero health">${state.checkpoint.hp} / ${deriveStats(state.checkpoint.character).maxHp} HP</strong></span><span>POSITION <strong aria-label="Position">${state.checkpoint.position.x}, ${state.checkpoint.position.y}</strong></span><span>WORLD <strong aria-label="World size">${state.checkpoint.world.width} × ${state.checkpoint.world.height} tiles</strong></span></div>
         <p class="description"><span aria-label="Slimes remaining">${remainingText}</span><br>${remaining === 0 ? 'The clearing is peaceful.' : 'Explore the clearing.'}</p>
         <nav class="dpad" aria-label="Movement"><button data-direction="up" aria-label="Move up">↑</button><button data-direction="left" aria-label="Move left">←</button><button data-direction="down" aria-label="Move down">↓</button><button data-direction="right" aria-label="Move right">→</button></nav>`;
       if (state.kind === 'battle') root.querySelector('#screen')!.innerHTML = `
         <div class="eyebrow">A WILD ENCOUNTER</div><h1>Meadow slime</h1>
-        <div class="stats"><span>HERO <strong aria-label="Hero health">${state.battle.heroHp} / 12 HP</strong></span><span>SLIME <strong aria-label="Slime health">${state.battle.enemyHp} / 6 HP</strong></span></div>
+        <div class="stats"><span>HERO <strong aria-label="Hero health">${state.battle.heroHp} / ${deriveStats(state.checkpoint.character).maxHp} HP</strong></span><span>SLIME <strong aria-label="Slime health">${state.battle.enemyHp} / 6 HP</strong></span></div>
         <p class="description">${state.battle.enemyHp === 6 ? 'A little slime blocks your path. Your move.' : 'You deal 4 damage. The slime hits back for 2.'}</p>
         <div class="actions"><button class="primary" data-action="attack">Attack</button><button data-action="run">Run</button></div>`;
       if (state.kind === 'victory' || state.kind === 'defeat') {

@@ -1,5 +1,6 @@
 import type { Action, GameState } from './types';
-import { createCheckpoint, getLivingEncounterAt, MAX_HP, move } from './world';
+import { createCheckpoint, getLivingEncounterAt, move } from './world';
+import { deriveStats } from './character';
 import { createBattle, resolveTurn } from './battle';
 
 export function createSession(): GameState { return { kind: 'title' }; }
@@ -19,7 +20,7 @@ export function transition(state: GameState, action: Action): GameState {
   if (state.kind === 'battle' && (action.type === 'attack' || action.type === 'run')) {
     const battle = resolveTurn(state.battle, action.type);
     if (battle.result === 'escaped') return { kind: 'exploring', checkpoint: { ...state.checkpoint, position: state.returnPosition, hp: battle.heroHp } };
-    if (battle.result === 'victory') return { kind: 'victory', checkpoint: { ...state.checkpoint, position: state.returnPosition, hp: MAX_HP, completedEncounterIds: [...new Set([...state.checkpoint.completedEncounterIds, state.encounterId])] } };
+    if (battle.result === 'victory') return { kind: 'victory', checkpoint: { ...state.checkpoint, position: state.returnPosition, hp: deriveStats(state.checkpoint.character).maxHp, completedEncounterIds: [...new Set([...state.checkpoint.completedEncounterIds, state.encounterId])] } };
     if (battle.result === 'defeat') return { kind: 'defeat', checkpoint: state.checkpoint };
     return { ...state, battle };
   }

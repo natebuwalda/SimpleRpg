@@ -1,18 +1,18 @@
 import { expect, it } from 'vitest';
 import { createSession, transition } from '../src/game/session';
 import type { GameState } from '../src/game/types';
-import { makeWorld } from './fixtures';
+import { makeCheckpoint, makeWorld } from './fixtures';
 
 const world = makeWorld();
 
 it('new game starts exploration', () => {
   expect(transition(createSession(), { type: 'newGame', world })).toEqual({
-    kind: 'exploring', checkpoint: { version: 3, world, position: { x: 3, y: 3 }, hp: 12, completedEncounterIds: [] },
+    kind: 'exploring', checkpoint: makeCheckpoint(world),
   });
 });
 
-function encounter(hp = 12): GameState {
-  return transition({ kind: 'exploring', checkpoint: { version: 3, world, position: { x: 14, y: 15 }, hp, completedEncounterIds: [] } }, { type: 'move', direction: 'right' });
+function encounter(hp = 5): GameState {
+  return transition({ kind: 'exploring', checkpoint: { ...makeCheckpoint(world), position: { x: 14, y: 15 }, hp } }, { type: 'move', direction: 'right' });
 }
 it('entering an encounter blocks movement until battle ends', () => {
   const battle = encounter();
@@ -21,7 +21,7 @@ it('entering an encounter blocks movement until battle ends', () => {
 });
 it('victory heals and clears the encounter once', () => {
   const victory = transition(transition(encounter(), { type: 'attack' }), { type: 'attack' });
-  expect(victory).toMatchObject({ kind: 'victory', checkpoint: { hp: 12, position: { x: 14, y: 15 }, completedEncounterIds: ['slime-1'] } });
+  expect(victory).toMatchObject({ kind: 'victory', checkpoint: { hp: 5, position: { x: 14, y: 15 }, completedEncounterIds: ['slime-1'] } });
   const exploring = transition(victory, { type: 'acknowledgeVictory' });
   expect(transition(exploring, { type: 'move', direction: 'right' })).toMatchObject({ kind: 'exploring', checkpoint: { position: { x: 15, y: 15 } } });
 });
@@ -33,7 +33,7 @@ it('escape keeps the encounter available', () => {
 it('defeat preserves checkpoint and restart creates a fresh game', () => {
   const defeat = transition(encounter(2), { type: 'attack' });
   expect(defeat).toMatchObject({ kind: 'defeat', checkpoint: { hp: 2 } });
-  expect(transition(defeat, { type: 'restart' })).toEqual({ kind: 'exploring', checkpoint: { version: 3, world, position: { x: 3, y: 3 }, hp: 12, completedEncounterIds: [] } });
+  expect(transition(defeat, { type: 'restart' })).toEqual({ kind: 'exploring', checkpoint: makeCheckpoint(world) });
 });
 it('exploration updates position without mutating the old checkpoint', () => {
   const initial = transition(createSession(), { type: 'newGame', world });
@@ -42,7 +42,7 @@ it('exploration updates position without mutating the old checkpoint', () => {
 });
 
 it('restart preserves a rectangular world definition', () => {
- const checkpoint = {version:3 as const,world:makeWorld(40,30),position:{x:35,y:24},hp:2,completedEncounterIds:[]};
+ const checkpoint = {...makeCheckpoint(makeWorld(40,30)),position:{x:35,y:24},hp:2};
  const defeat:GameState = {kind:'defeat',checkpoint};
- expect(transition(defeat,{type:'restart'})).toEqual({kind:'exploring',checkpoint:{...checkpoint,position:{x:3,y:3},hp:12}});
+ expect(transition(defeat,{type:'restart'})).toEqual({kind:'exploring',checkpoint:{...checkpoint,position:{x:3,y:3},hp:5}});
 });

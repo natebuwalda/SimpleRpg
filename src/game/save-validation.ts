@@ -1,5 +1,4 @@
 import type { WorldGeometry } from './types';
-import { MAX_HP } from './world';
 
 export function decodeRecord(raw: string | null): Record<string, unknown> | null {
   try {
@@ -7,8 +6,8 @@ export function decodeRecord(raw: string | null): Record<string, unknown> | null
     return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
   } catch { return null; }
 }
-export function validProgress(value: Record<string, unknown>, allowedIds: readonly string[]): boolean {
-  return typeof value.hp === 'number' && Number.isInteger(value.hp) && value.hp >= 1 && value.hp <= MAX_HP
+export function validProgress(value: Record<string, unknown>, allowedIds: readonly string[], maxHp: number): boolean {
+  return typeof value.hp === 'number' && Number.isInteger(value.hp) && value.hp >= 1 && value.hp <= maxHp
     && Array.isArray(value.completedEncounterIds) && value.completedEncounterIds.every(id => allowedIds.includes(id))
     && new Set(value.completedEncounterIds).size === value.completedEncounterIds.length;
 }

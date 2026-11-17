@@ -13,7 +13,7 @@ it('binds battle to slime2 and defeats only that identity',()=>{
  expect(battle).toMatchObject({kind:'battle',encounterId:'slime-2'});
  expect(transition(battle,{type:'move',direction:'down'})).toEqual(battle);
  const victory=transition(transition(battle,{type:'attack'}),{type:'attack'});
- expect(victory).toMatchObject({kind:'victory',checkpoint:{completedEncounterIds:['slime-2'],hp:12,position:{x:7,y:6}}});
+ expect(victory).toMatchObject({kind:'victory',checkpoint:{completedEncounterIds:['slime-2'],hp:5,position:{x:7,y:6}}});
  if(victory.kind!=='victory')throw Error('Expected victory');
  expect(victory.checkpoint.world).toEqual(world);expect(getRemainingSlimeCount(victory.checkpoint)).toBe(2);
  expect(getLivingEncounterAt(victory.checkpoint,{x:5,y:3})?.id).toBe('slime-1');
@@ -36,7 +36,7 @@ it('clears all three in a different order without duplicate completions',()=>{
 it('Run retains damage and all independent placements/completions',()=>{
  const cp={...makeCheckpoint(world),completedEncounterIds:['slime-2' as const]};
  const escaped=transition(transition(enter(cp,'slime-3'),{type:'attack'}),{type:'run'});
- expect(escaped).toEqual({kind:'exploring',checkpoint:{...cp,position:{x:14,y:15},hp:10}});
+ expect(escaped).toEqual({kind:'exploring',checkpoint:{...cp,position:{x:14,y:15},hp:3}});
  expect(enter((escaped as Extract<GameState,{kind:'exploring'}>).checkpoint,'slime-3').kind).toBe('battle');
 });
 it('Restart after partial progress and defeat restores the exact three placements',()=>{

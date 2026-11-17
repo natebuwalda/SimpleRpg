@@ -1,6 +1,6 @@
 import { SLIME_IDS, type Checkpoint, type Direction, type Position, type WorldDefinition, type WorldGeometry, type SlimePlacement } from './types';
 
-export const MAX_HP = 12;
+import { createStarterCharacter, deriveStats } from './character';
 import { SIGHT_BUFFER } from './viewport';
 export const FOREST_BORDER = SIGHT_BUFFER;
 export function generateWorld(random: () => number = Math.random): WorldDefinition {
@@ -23,7 +23,8 @@ export function move(world: WorldGeometry, position: Position, direction: Direct
   return isWalkable(world, next) ? next : position;
 }
 export function createCheckpoint(world: WorldDefinition): Checkpoint {
-  return { version: 3, world, position: getLandmarks(world).spawn, hp: MAX_HP, completedEncounterIds: [] };
+  const character = createStarterCharacter();
+  return { version: 4, character, world, position: getLandmarks(world).spawn, hp: deriveStats(character).maxHp, completedEncounterIds: [] };
 }
 
 export function placeSlimes(world: WorldGeometry, preserved: SlimePlacement[] = [], excluded: Position[] = [], random: () => number = Math.random): SlimePlacement[] {
@@ -40,7 +41,7 @@ export function placeSlimes(world: WorldGeometry, preserved: SlimePlacement[] = 
   return [...preserved.map(s => ({ id: s.id, position: { ...s.position } })), ...added];
 }
 
-export function getLivingEncounterAt(checkpoint: Checkpoint, position: Position): SlimePlacement | null {
+export function getLivingEncounterAt(checkpoint: Pick<Checkpoint, 'world' | 'completedEncounterIds'>, position: Position): SlimePlacement | null {
   return checkpoint.world.slimes.find(slime => slime.position.x === position.x && slime.position.y === position.y && !checkpoint.completedEncounterIds.includes(slime.id)) ?? null;
 }
 export function getRemainingSlimeCount(checkpoint: Checkpoint): number {
