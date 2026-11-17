@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
 import { GameScene } from './view/GameScene';
 import { mountUi } from './view/ui';
-import type { Action, Direction } from './game/types';
+import type { UiAction, Direction } from './game/types';
 import { createSession, transition } from './game/session';
 import { loadSave, saveGame } from './game/save';
+import { generateWorld } from './game/world';
 import './style.css';
 
 const ui = mountUi(document.querySelector<HTMLElement>('#app')!);
@@ -11,7 +12,11 @@ let state = createSession();
 const scene = new GameScene();
 let storage: Storage | null = null;
 try { storage = window.localStorage; } catch { /* Play without persistent storage. */ }
-function readSave() { return storage ? loadSave(storage) : { checkpoint: null, status: 'unavailable' as const }; }
+function readSave() {
+  const result = storage ? loadSave(storage) : { checkpoint: null, status: 'unavailable' as const, migrated: false };
+  if (result.migrated && result.checkpoint && storage && !saveGame(storage, result.checkpoint)) return { ...result, status: 'unavailable' as const };
+  return result;
+}
 const loaded = readSave();
 let saved = loaded.checkpoint;
 let saveStatus = {
@@ -39,12 +44,12 @@ window.addEventListener('storage', refreshTitleSave);
 window.addEventListener('focus', refreshTitleSave);
 let active = true;
 let busy = false;
-function dispatch(action: Action) {
+function dispatch(action: UiAction) {
   if (!active || (busy && (action.type === 'attack' || action.type === 'run'))) return;
   const resolving = state.kind === 'battle' && (action.type === 'attack' || action.type === 'run');
   if (resolving) busy = true;
   const previous = state;
-  state = transition(state, action);
+  state = transition(state, action.type === 'newGame' ? { type: 'newGame', world: generateWorld() } : action);
   if (state !== previous && (state.kind === 'exploring' || state.kind === 'victory') && action.type !== 'continue' && action.type !== 'acknowledgeVictory') {
     if (storage && saveGame(storage, state.checkpoint)) {
       saved = state.checkpoint;

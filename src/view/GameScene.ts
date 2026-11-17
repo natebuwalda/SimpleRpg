@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import type { GameState } from '../game/types';
-import { ENCOUNTER_ID, isWalkable } from '../game/world';
+import { ENCOUNTER_ID, isWalkable, getLandmarks } from '../game/world';
 
 export class GameScene extends Phaser.Scene {
   private drawing?: Phaser.GameObjects.Graphics;
@@ -36,7 +36,7 @@ export class GameScene extends Phaser.Scene {
     for (let y = 0; y < 10; y++) for (let x = 0; x < 10; x++) {
       g.fillStyle((x + y) % 2 ? 0x294b3b : 0x2d503e).fillRect(x * 16, y * 16, 16, 16);
       g.fillStyle(0x41634a).fillRect(x * 16 + 4, y * 16 + 5, 2, 1);
-      if (!isWalkable({ x, y })) {
+      if (!isWalkable(state.kind === 'title' ? {version:1,layout:'woodland',width:20,height:20} : state.checkpoint.world, { x, y })) {
         g.fillStyle(0x142f2d).fillRect(x * 16 + 1, y * 16 + 3, 14, 12);
         g.fillStyle(0x3e6248).fillRect(x * 16 + 3, y * 16 + 1, 10, 8);
       }

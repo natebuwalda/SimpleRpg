@@ -1,8 +1,8 @@
-import type { Action, Checkpoint, Direction, GameState } from '../game/types';
+import type { UiAction, Checkpoint, Direction, GameState } from '../game/types';
 
 export interface Ui {
   render(state: GameState, saveStatus: string): void;
-  onAction(handler: (action: Action) => void): void;
+  onAction(handler: (action: UiAction) => void): void;
   setBusy(busy: boolean): void;
   setSaved(checkpoint: Checkpoint | null): void;
   onTitleAction(handler: () => void): void;
@@ -26,7 +26,7 @@ export function mountUi(root: HTMLElement): Ui {
       </section>
       <footer><span>A WORLD IN YOUR POCKET</span><span>TOUCH · KEYBOARD</span></footer>
     </main>`;
-  let handler: (action: Action) => void = () => {};
+  let handler: (action: UiAction) => void = () => {};
   let saved: Checkpoint | null = null;
   let confirming = false;
   let currentState: GameState = { kind: 'title' };
@@ -76,7 +76,7 @@ export function mountUi(root: HTMLElement): Ui {
     } else if (button.dataset.action === 'confirm') {
       confirming = false;
       handler({ type: 'newGame' });
-    } else if (button.dataset.action) handler({ type: button.dataset.action } as Action);
+    } else if (button.dataset.action) handler({ type: button.dataset.action } as UiAction);
   });
   const api: Ui = {
     setSaved(checkpoint) { saved = checkpoint; },
