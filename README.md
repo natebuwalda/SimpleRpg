@@ -2,6 +2,8 @@
 
 A small browser RPG built with TypeScript, Phaser, and Vite. Iteration 0 establishes a phone-friendly exploration and battle loop.
 
+**[Play the browser preview](https://natebuwalda.github.io/SimpleRpg/)** · [Draft pull request](https://github.com/natebuwalda/SimpleRpg/pull/1)
+
 ## Development
 
 Use Node 24.21.0 (see `.nvmrc`), then `npm ci` and `npm run dev`. Open the printed URL with `/SimpleRpg/` appended.
@@ -24,4 +26,4 @@ GitHub Pages serves this project's production build at base path `/SimpleRpg/`. 
 
 For the first preview, pushes to `codex/iteration-0` also deploy, so reviewing the game does not require merging it first. After merging Iteration 0, remove that branch from `.github/workflows/pages.yml`; future releases deploy from `main` or a manually selected workflow ref. The public preview uses browser-local saves; no account data is sent to a server.
 
-Deployment verification and the actual play URL will be recorded here after publishing succeeds.
+The initial Actions deployment succeeded and the hosted game passed an automated touch exploration → battle → victory → refresh → Continue check with no failed asset requests or runtime errors. Physical-phone acceptance is pending; see [implementation status](docs/superpowers/iteration-0-status.md).
