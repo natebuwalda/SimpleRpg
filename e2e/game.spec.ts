@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-import { enterBattle, world } from './helpers';
+import { enterBattle } from './helpers';
 
 test('attack resolves one turn per activation', async ({ page }) => {
   await enterBattle(page);
@@ -222,12 +222,17 @@ test('production base path loads assets and survives refresh', async ({ page }) 
 
 test('a press begun during resolution cannot queue an attack', async ({ page }) => {
   await enterBattle(page);
+  const now = new Date();
+  await page.clock.install({ time: now });
+  await page.clock.pauseAt(new Date(now.getTime() + 60_000));
   await page.getByRole('button', { name: 'Attack', exact: true }).tap();
   const button = page.getByRole('button', { name: 'Attack', exact: true });
   const box = (await button.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
   // Deliberately span the resolution window while holding the pointer.
+  await expect(button).toBeDisabled();
+  await page.clock.runFor(300);
   await expect(button).toBeEnabled();
   await page.mouse.up();
   await expect(page.getByLabel('Slime health')).toHaveText('2 / 6 HP');
@@ -262,9 +267,14 @@ test('another tab saving requires confirmation before new game', async ({ page, 
 test('space held during resolution cannot queue an attack', async ({ page }) => {
   await enterBattle(page);
   const attack = page.getByRole('button', { name: 'Attack', exact: true });
+  const now = new Date();
+  await page.clock.install({ time: now });
+  await page.clock.pauseAt(new Date(now.getTime() + 60_000));
   await attack.focus();
   await page.keyboard.press('Enter');
   await page.keyboard.down(' ');
+  await expect(attack).toBeDisabled();
+  await page.clock.runFor(300);
   await expect(attack).toBeEnabled();
   await page.keyboard.up(' ');
   await expect(page.getByLabel('Slime health')).toHaveText('2 / 6 HP');
