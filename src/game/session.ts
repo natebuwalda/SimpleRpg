@@ -1,5 +1,5 @@
 import type { Action, GameState } from './types';
-import { atEncounter, createCheckpoint, ENCOUNTER_ID, MAX_HP, move } from './world';
+import { createCheckpoint, getLivingEncounterAt, MAX_HP, move } from './world';
 import { createBattle, resolveTurn } from './battle';
 
 export function createSession(): GameState { return { kind: 'title' }; }
@@ -10,15 +10,16 @@ export function transition(state: GameState, action: Action): GameState {
   if (action.type === 'move' && state.kind === 'exploring') {
     const position = move(state.checkpoint.world, state.checkpoint.position, action.direction);
     if (position === state.checkpoint.position) return state;
-    if (atEncounter(state.checkpoint.world, position) && !state.checkpoint.completedEncounterIds.includes(ENCOUNTER_ID)) {
-      return { kind: 'battle', checkpoint: state.checkpoint, returnPosition: state.checkpoint.position, battle: createBattle(state.checkpoint.hp) };
+    const encounter = getLivingEncounterAt(state.checkpoint, position);
+    if (encounter) {
+      return { kind: 'battle', checkpoint: state.checkpoint, returnPosition: state.checkpoint.position, battle: createBattle(state.checkpoint.hp), encounterId: encounter.id };
     }
     return { kind: 'exploring', checkpoint: { ...state.checkpoint, position } };
   }
   if (state.kind === 'battle' && (action.type === 'attack' || action.type === 'run')) {
     const battle = resolveTurn(state.battle, action.type);
     if (battle.result === 'escaped') return { kind: 'exploring', checkpoint: { ...state.checkpoint, position: state.returnPosition, hp: battle.heroHp } };
-    if (battle.result === 'victory') return { kind: 'victory', checkpoint: { ...state.checkpoint, position: state.returnPosition, hp: MAX_HP, completedEncounterIds: [...new Set([...state.checkpoint.completedEncounterIds, ENCOUNTER_ID])] } };
+    if (battle.result === 'victory') return { kind: 'victory', checkpoint: { ...state.checkpoint, position: state.returnPosition, hp: MAX_HP, completedEncounterIds: [...new Set([...state.checkpoint.completedEncounterIds, state.encounterId])] } };
     if (battle.result === 'defeat') return { kind: 'defeat', checkpoint: state.checkpoint };
     return { ...state, battle };
   }

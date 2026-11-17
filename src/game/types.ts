@@ -10,7 +10,7 @@ export type BattleState = { heroHp: number; enemyHp: number; result: 'active' | 
 export type GameState =
   | { kind: 'title' }
   | { kind: 'exploring'; checkpoint: Checkpoint }
-  | { kind: 'battle'; checkpoint: Checkpoint; returnPosition: Position; battle: BattleState }
+  | { kind: 'battle'; checkpoint: Checkpoint; returnPosition: Position; battle: BattleState; encounterId: SlimeId }
   | { kind: 'victory'; checkpoint: Checkpoint }
   | { kind: 'defeat'; checkpoint: Checkpoint };
 export type Action =
