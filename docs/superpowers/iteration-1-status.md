@@ -48,3 +48,10 @@ One fresh-context whole-branch review of `f8d8677..9ee70b8` checked the full app
 5. Used a controlled resolution clock for held-input browser tests to remove the automation-latency race. Tradeoff: these cases exercise virtual timer advancement rather than real wall-clock duration; input events remain real.
 
 Deferred minors: none. No feature contract deviations.
+
+
+## Exploratory deployment request — November 17, 2026
+
+The owner authorized deploying the feature branch for exploratory testing. Manual dispatch was unavailable through the connector/CLI/browser, so a temporary feature-branch publish trigger started run44092235623 at commitd8a0b24. Its checks (including all browser tests) and production artifact build succeeded. GitHub rejected the deploy job before execution: `Branch "codex/iteration-1" is not allowed to deploy to github-pages due to environment protection rules.` The temporary trigger was removed again; automatic publishing remains main-only.
+
+Public Pages remains Iteration0. To continue, the repository owner must permit `codex/iteration-1` under Settings → Environments → github-pages → Deployment branches and tags. The existing failed deployment job can then be rerun; no merge is required. The connector lacks environment-administration capability, CLI authentication is unavailable, and the cloud browser could not open the workflow UI. Direct hosted verification is also blocked by the cloud network policy for github.io.
