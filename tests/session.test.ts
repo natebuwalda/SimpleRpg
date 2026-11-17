@@ -1,8 +1,10 @@
 import { expect, it } from 'vitest';
-import { createSession, transition } from '../src/game/session';
+import { createSession, transition as reduce } from '../src/game/session';
 import type { GameState } from '../src/game/types';
 import { makeCheckpoint, makeWorld } from './fixtures';
 
+import { scriptedFaces, losingFaces } from './rolls';
+const transition: typeof reduce = (state, action, rng = () => .7) => reduce(state, action, rng);
 const world = makeWorld();
 
 it('new game starts exploration', () => {
@@ -20,8 +22,11 @@ it('entering an encounter blocks movement until battle ends', () => {
   expect(transition(battle, { type: 'move', direction: 'right' })).toEqual(battle);
 });
 it('victory heals and clears the encounter once', () => {
-  const victory = transition(transition(encounter(), { type: 'attack' }), { type: 'attack' });
+  const victory = transition(transition(encounter(2), { type: 'attack' }), { type: 'attack' });
   expect(victory).toMatchObject({ kind: 'victory', checkpoint: { hp: 5, position: { x: 14, y: 15 }, completedEncounterIds: ['slime-1'] } });
+  expect(victory).toMatchObject({ lastTurn: { hero: { damage: 2 }, slime: null } });
+  if (victory.kind !== 'victory') throw Error('Expected victory');
+  expect(victory.checkpoint).not.toHaveProperty('lastTurn');
   const exploring = transition(victory, { type: 'acknowledgeVictory' });
   expect(transition(exploring, { type: 'move', direction: 'right' })).toMatchObject({ kind: 'exploring', checkpoint: { position: { x: 15, y: 15 } } });
 });
@@ -31,7 +36,7 @@ it('escape keeps the encounter available', () => {
   expect(transition(escaped, { type: 'move', direction: 'right' }).kind).toBe('battle');
 });
 it('defeat preserves checkpoint and restart creates a fresh game', () => {
-  const defeat = transition(encounter(2), { type: 'attack' });
+  const defeat = transition(encounter(2), { type: 'attack' }, scriptedFaces(...losingFaces));
   expect(defeat).toMatchObject({ kind: 'defeat', checkpoint: { hp: 2 } });
   expect(transition(defeat, { type: 'restart' })).toEqual({ kind: 'exploring', checkpoint: makeCheckpoint(world) });
 });

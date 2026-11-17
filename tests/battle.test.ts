@@ -1,17 +1,33 @@
 import { expect, it } from 'vitest';
 import { createBattle, resolveTurn } from '../src/game/battle';
+import { createStarterCharacter } from '../src/game/character';
+import { scriptedFaces, losingFaces } from './rolls';
 
-it('retaliates only while the enemy survives', () => {
-  const first = resolveTurn(createBattle(12), 'attack');
-  expect(first).toEqual({ heroHp: 10, enemyHp: 2, result: 'active' });
-  expect(resolveTurn(first, 'attack')).toEqual({ heroHp: 10, enemyHp: 0, result: 'victory' });
+const battle = (hp = 5) => createBattle(hp, createStarterCharacter());
+const noRoll = () => { throw Error('Unexpected roll'); };
+it('uses hero 5/4 and slime 3/3 pools and records each opposed margin', () => {
+  const first = resolveTurn(battle(), 'attack', scriptedFaces(8,8,8,1,1, 8,1,1, 8,8,8, 1,1,1,1));
+  expect(first).toMatchObject({ heroHp: 2, enemyHp: 1, result: 'active', heroPools: { attack: 5, defense: 4 } });
+  expect(first.lastTurn?.hero).toEqual({ attack: { original: [8,8,8,1,1], bonus: [], successes: 3 }, defense: { original: [8,1,1], bonus: [], successes: 1 }, damage: 2 });
+  expect(first.lastTurn?.slime).toMatchObject({ attack: { original: [8,8,8], successes: 3 }, defense: { original: [1,1,1,1], successes: 0 }, damage: 3 });
 });
-it('run succeeds without retaliation', () => expect(resolveTurn(createBattle(12), 'run')).toEqual({ heroHp: 12, enemyHp: 6, result: 'escaped' }));
-it('defeat clamps HP and terminal states ignore commands', () => {
-  const defeated = resolveTurn(createBattle(1), 'attack');
-  expect(defeated).toEqual({ heroHp: 0, enemyHp: 2, result: 'defeat' });
-  expect(resolveTurn(defeated, 'attack')).toEqual(defeated);
-  const victory = resolveTurn({ heroHp: 2, enemyHp: 2, result: 'active' }, 'attack');
-  expect(victory).toEqual({ heroHp: 2, enemyHp: 0, result: 'victory' });
-  expect(resolveTurn(victory, 'run')).toEqual(victory);
+it('lethal attacks clamp slime Health and never roll a counterattack', () => {
+  const victory = resolveTurn(battle(2), 'attack', scriptedFaces(8,8,8,8,8, 1,1,1));
+  expect(victory).toMatchObject({ heroHp: 2, enemyHp: 0, result: 'victory', lastTurn: { slime: null } });
+  expect(resolveTurn(victory, 'run', noRoll)).toBe(victory);
+  expect(resolveTurn(victory, 'attack', noRoll)).toBe(victory);
+});
+it('run succeeds without rolling', () => {
+  expect(resolveTurn(battle(), 'run', noRoll)).toMatchObject({ heroHp: 5, enemyHp: 3, result: 'escaped', lastTurn: null });
+});
+it('defeat clamps hero Health and terminal states consume no dice', () => {
+  const defeated = resolveTurn(battle(1), 'attack', scriptedFaces(...losingFaces));
+  expect(defeated).toMatchObject({ heroHp: 0, enemyHp: 3, result: 'defeat' });
+  expect(resolveTurn(defeated, 'attack', noRoll)).toBe(defeated);
+});
+it('ties, misses and winning defenses never deal damage', () => {
+  const tied = resolveTurn(battle(), 'attack', scriptedFaces(...Array(15).fill(1)));
+  expect(tied).toMatchObject({ heroHp: 5, enemyHp: 3, result: 'active' });
+  const defended = resolveTurn(battle(), 'attack', scriptedFaces(1,1,1,1,1, 8,8,8, 1,1,1, 8,8,8,8));
+  expect(defended).toMatchObject({ heroHp: 5, enemyHp: 3, result: 'active' });
 });

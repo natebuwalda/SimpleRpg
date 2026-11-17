@@ -1,8 +1,10 @@
 import {expect,it} from 'vitest';
-import {transition} from '../src/game/session';
+import {transition as reduce} from '../src/game/session';
 import {getLivingEncounterAt,getRemainingSlimeCount} from '../src/game/world';
 import type {Checkpoint,GameState,SlimeId} from '../src/game/types';
 import {makeCheckpoint,makeWorld} from './fixtures';
+import {scriptedFaces, losingFaces, tradingFaces} from './rolls';
+const transition: typeof reduce = (state, action, rng = () => .7) => reduce(state, action, rng);
 const world={...makeWorld(),slimes:[{id:'slime-1' as const,position:{x:5,y:3}},{id:'slime-2' as const,position:{x:8,y:6}},{id:'slime-3' as const,position:{x:15,y:15}}]};
 function enter(cp:Checkpoint,id:SlimeId):GameState{
  const p=cp.world.slimes.find(s=>s.id===id)!.position;
@@ -35,13 +37,13 @@ it('clears all three in a different order without duplicate completions',()=>{
 });
 it('Run retains damage and all independent placements/completions',()=>{
  const cp={...makeCheckpoint(world),completedEncounterIds:['slime-2' as const]};
- const escaped=transition(transition(enter(cp,'slime-3'),{type:'attack'}),{type:'run'});
+ const escaped=transition(transition(enter(cp,'slime-3'),{type:'attack'},scriptedFaces(...tradingFaces)),{type:'run'});
  expect(escaped).toEqual({kind:'exploring',checkpoint:{...cp,position:{x:14,y:15},hp:3}});
  expect(enter((escaped as Extract<GameState,{kind:'exploring'}>).checkpoint,'slime-3').kind).toBe('battle');
 });
 it('Restart after partial progress and defeat restores the exact three placements',()=>{
  const cp={...makeCheckpoint(world),completedEncounterIds:['slime-1' as const],hp:2};
- const defeat=transition(enter(cp,'slime-2'),{type:'attack'});
+ const defeat=transition(enter(cp,'slime-2'),{type:'attack'},scriptedFaces(...losingFaces));
  expect(defeat).toMatchObject({kind:'defeat',checkpoint:{hp:2,completedEncounterIds:['slime-1']}});
  expect(transition(defeat,{type:'restart'})).toEqual({kind:'exploring',checkpoint:makeCheckpoint(world)});
 });
