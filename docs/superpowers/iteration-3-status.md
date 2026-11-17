@@ -13,7 +13,7 @@ The approved fixed starter build, opposed nonchaining d10 pools, variable melee 
 - Screenshot inspection: 320px battle commands fit with 18px monospace description text; expanded maximum bonus results wrap without horizontal overflow. Browser layout checks also cover 390×844 and 844×390.
 - Browser regression coverage includes dice results, final victory/defeat feedback, Run damage, input locks and focus, three independent slimes, camera movement, historical saves, v3 exact-placement upgrades, newest-key precedence, and blocked-write cache stability.
 - Independent whole-branch review: two Important accessibility findings fixed in one pass, each with failing-then-passing browser regressions. Arrow keys now read focused details without moving the hero or replacing the disclosure; a persistent combat live region announces every turn, including identical consecutive results, without repeating unchanged save messages. No Critical or Minor findings were reported.
-- GitHub checks: pending.
+- Draft [PR #4](https://github.com/natebuwalda/SimpleRpg/pull/4) is open. GitHub checks are running; current results are available on the PR.
 
 ## Execution decisions
 
@@ -25,4 +25,4 @@ The approved fixed starter build, opposed nonchaining d10 pools, variable melee 
 
 ## Owner acceptance and release
 
-Physical-phone acceptance, deployment and merge are pending. Follow the Iteration 3 manual acceptance checklist in [README](../../README.md). The existing public game remains the accepted Iteration 2 release until a deployment is authorized.
+Native implementation and independent review fixes are complete. The local preview server is stopped. Physical-phone acceptance, deployment and merge are pending. Follow the Iteration 3 manual acceptance checklist in [README](../../README.md). The existing public game remains the accepted Iteration 2 release until a deployment is authorized.

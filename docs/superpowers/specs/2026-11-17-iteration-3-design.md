@@ -1,6 +1,6 @@
 # Iteration 3: Attributes, skills, and opposed d10 pools
 
-Status: approved by the owner. No implementation started.
+Status: approved by the owner; implemented on codex/iteration-3, pending owner acceptance and release.
 
 ## Intent and agreed scope
 

@@ -1,6 +1,6 @@
 # Iteration 3: Attributes and dice Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. The owner has selected native execution; preserve that choice.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking. The owner has selected native execution; preserve that choice.
 
 **Goal:** Replace fixed damage with understandable opposed d10 combat using the agreed fixed starter character, while preserving the existing adventure and saves.
 
@@ -49,12 +49,12 @@
 
 **Interfaces:** Produces the character and dice contracts above; consumes no renderer or storage APIs.
 
-- [ ] Write character tests asserting exact attributes/skills, `{ maxHp: 5, initiative: 6, resourceCapacity: 5 }`, `{ attack: 5, defense: 4 }`, independent factory objects, and rejection of missing, fractional, nonfinite, or altered starter values.
-- [ ] Write dice tests using scripted faces: `[1,7,8,9]` yields 2 successes; original `[10,8,3]` plus bonus `[10]` yields 3; original `[10,10]` plus bonus `[1,10]` yields 3 and exactly 4 RNG calls. A zero pool consumes no RNG; invalid sizes -1, 1.5, NaN, and Infinity throw RangeError.
-- [ ] Write opposed tests proving attacker 3 successes versus defender 1 gives damage 2; ties and defender wins give 0; all misses give 0. Assert original/bonus arrays and attack-before-defense RNG order.
-- [ ] Run `npm test -- tests/character.test.ts tests/dice.test.ts`; expect failure because the modules do not exist.
-- [ ] Implement only the declared pure interfaces and fixed values.
-- [ ] Rerun the targeted tests and `npm run typecheck`; expect all pass. Commit as `feat: add starter character and opposed d10 rules`.
+- [x] Write character tests asserting exact attributes/skills, `{ maxHp: 5, initiative: 6, resourceCapacity: 5 }`, `{ attack: 5, defense: 4 }`, independent factory objects, and rejection of missing, fractional, nonfinite, or altered starter values.
+- [x] Write dice tests using scripted faces: `[1,7,8,9]` yields 2 successes; original `[10,8,3]` plus bonus `[10]` yields 3; original `[10,10]` plus bonus `[1,10]` yields 3 and exactly 4 RNG calls. A zero pool consumes no RNG; invalid sizes -1, 1.5, NaN, and Infinity throw RangeError.
+- [x] Write opposed tests proving attacker 3 successes versus defender 1 gives damage 2; ties and defender wins give 0; all misses give 0. Assert original/bonus arrays and attack-before-defense RNG order.
+- [x] Run `npm test -- tests/character.test.ts tests/dice.test.ts`; expect failure because the modules do not exist.
+- [x] Implement only the declared pure interfaces and fixed values.
+- [x] Rerun the targeted tests and `npm run typecheck`; expect all pass. Commit as `feat: add starter character and opposed d10 rules`.
 
 ### Task 2: Checkpoint v4 and lossless save upgrades
 
@@ -62,12 +62,12 @@
 
 **Interfaces:** Consumes Task 1's character functions. Produces `Checkpoint { version: 4; character: Character; world; position; hp; completedEncounterIds }`. Keep existing `parseSave`, `loadSave`, and `saveGame` signatures; current key becomes `simple-rpg.save.v4` using the existing key naming pattern verified in `save.ts`, and retain literal v3/v2/v1 keys. Expose a separate old-v3 decoder in `legacy-save.ts` with the old checkpoint shape; do not cast old data to current `Checkpoint`.
 
-- [ ] Write v4 round-trip tests asserting character, world, position, and completion equality. Reject missing/altered character data and HP outside integer 1–5. Assert New Game/Restart checkpoint construction starts at 5 and stores independent starter data.
-- [ ] Write historical migration tests: valid v3 HP 12 and 6 become 5; HP 2 remains 2; HP 0, 13, and fractional values remain invalid. Preserve exact v3 placements and completion without calling RNG. Layer existing v2/v1 migrations, retaining legacy terrain and original encounter progress before adding character data.
-- [ ] Write precedence tests covering absence-only fallback v4→v3→v2→v1, mismatched key/schema versions, malformed newest values, and unchanged older recovery keys. Write blocked-write tests asserting repeated migration resolution for the same source retains placements and HP; changing source invalidates the cached result.
-- [ ] Run `npm test -- tests/character-save.test.ts tests/save.test.ts tests/slime-save.test.ts`; expect new assertions to fail.
-- [ ] Parameterize progress validation with an explicit Health cap: historical formats use 12; current format uses derived maxHp. Add v3 decoding and v4 migration, preserving the existing storage result/status contract and migration resolver. Update shared checkpoint construction and fixtures; retain explicitly historical fixtures as their original schemas. Replace `MAX_HP` imports and hardcoded hero Health in session/UI with `deriveStats(checkpoint.character).maxHp` so this task compiles independently. Mechanically update current Health expectations to 5; opposed combat and battle-state extensions belong to Task 3.
-- [ ] Run `npm test` and `npm run typecheck`; expect all unit tests and compilation to pass. Commit as `feat: persist starter characters and migrate earlier saves`.
+- [x] Write v4 round-trip tests asserting character, world, position, and completion equality. Reject missing/altered character data and HP outside integer 1–5. Assert New Game/Restart checkpoint construction starts at 5 and stores independent starter data.
+- [x] Write historical migration tests: valid v3 HP 12 and 6 become 5; HP 2 remains 2; HP 0, 13, and fractional values remain invalid. Preserve exact v3 placements and completion without calling RNG. Layer existing v2/v1 migrations, retaining legacy terrain and original encounter progress before adding character data.
+- [x] Write precedence tests covering absence-only fallback v4→v3→v2→v1, mismatched key/schema versions, malformed newest values, and unchanged older recovery keys. Write blocked-write tests asserting repeated migration resolution for the same source retains placements and HP; changing source invalidates the cached result.
+- [x] Run `npm test -- tests/character-save.test.ts tests/save.test.ts tests/slime-save.test.ts`; expect new assertions to fail.
+- [x] Parameterize progress validation with an explicit Health cap: historical formats use 12; current format uses derived maxHp. Add v3 decoding and v4 migration, preserving the existing storage result/status contract and migration resolver. Update shared checkpoint construction and fixtures; retain explicitly historical fixtures as their original schemas. Replace `MAX_HP` imports and hardcoded hero Health in session/UI with `deriveStats(checkpoint.character).maxHp` so this task compiles independently. Mechanically update current Health expectations to 5; opposed combat and battle-state extensions belong to Task 3.
+- [x] Run `npm test` and `npm run typecheck`; expect all unit tests and compilation to pass. Commit as `feat: persist starter characters and migrate earlier saves`.
 
 ### Task 3: Opposed melee in the session loop
 
@@ -75,12 +75,12 @@
 
 **Interfaces:** Consumes `getMeleePools`, `deriveStats`, and `rollOpposed`. Produces `createBattle(heroHp: number, character: Character): BattleState`, `resolveTurn(state: BattleState, command: 'attack' | 'run', rng?: RandomSource): BattleState`, and `transition(state: GameState, action: Action, rng?: RandomSource): GameState`. Slime Health/Attack/Defense constants are 3/3/3 in `battle.ts`. Preserve the existing two-argument transition call in production by defaulting RNG.
 
-- [ ] Replace fixed-damage tests with exact scripted exchanges: hero margin 2 takes slime 3→1; slime margin 3 takes hero 5→2; ties/misses and defender wins preserve HP. Assert the hero uses 5/4 dice and slime 3/3, including complete roll records.
-- [ ] Add lethal-hit tests with a finite script that throws on any counterattack call; assert victory, enemy HP 0, and `lastTurn.slime === null`. Add lethal slime counterattack, Health clamping, Run and terminal-state tests that use a throwing RNG to prove no rolls occur.
-- [ ] Add session assertions for full healing to 5 on victory, only the encountered slime completing, safe return position, damage retained after Run, full 5-Health Restart with the same map/placements, and no checkpoint dice history. Assert victory retains its finishing exchange for the UI.
-- [ ] Run `npm test -- tests/battle.test.ts tests/session.test.ts tests/encounters.test.ts`; expect failures against deterministic combat.
-- [ ] Implement the declared interfaces and the approved attack/counterattack sequence, preserving existing action/state guards. Do not force progress on misses or introduce initiative scheduling.
-- [ ] Run `npm test` and `npm run typecheck`; expect all pass. Commit as `feat: resolve melee combat with opposed success pools`.
+- [x] Replace fixed-damage tests with exact scripted exchanges: hero margin 2 takes slime 3→1; slime margin 3 takes hero 5→2; ties/misses and defender wins preserve HP. Assert the hero uses 5/4 dice and slime 3/3, including complete roll records.
+- [x] Add lethal-hit tests with a finite script that throws on any counterattack call; assert victory, enemy HP 0, and `lastTurn.slime === null`. Add lethal slime counterattack, Health clamping, Run and terminal-state tests that use a throwing RNG to prove no rolls occur.
+- [x] Add session assertions for full healing to 5 on victory, only the encountered slime completing, safe return position, damage retained after Run, full 5-Health Restart with the same map/placements, and no checkpoint dice history. Assert victory retains its finishing exchange for the UI.
+- [x] Run `npm test -- tests/battle.test.ts tests/session.test.ts tests/encounters.test.ts`; expect failures against deterministic combat.
+- [x] Implement the declared interfaces and the approved attack/counterattack sequence, preserving existing action/state guards. Do not force progress on misses or introduce initiative scheduling.
+- [x] Run `npm test` and `npm run typecheck`; expect all pass. Commit as `feat: resolve melee combat with opposed success pools`.
 
 ### Task 4: Phone feedback and deterministic browser coverage
 
@@ -88,13 +88,13 @@
 
 **Interfaces:** Consumes checkpoint character data, derived stats, and battle/victory `lastTurn`. Produces accessible visible summaries and a test-only Playwright helper `setCombatFaces(page, faces: number[]): Promise<void>` in `e2e/helpers.ts`; no production debug controls or URL switches.
 
-- [ ] Add browser assertions for hero Health 5/5, slime 3/3, fixed character attributes/skills, derived values, and effective 5d10/4d10 pools. Add exact-roll scenarios for ties, bonus-10 nonchaining, damaging counterattacks, lethal victory, Run, defeat/Restart, and completion of all three independent slimes.
-- [ ] Adapt existing battle/input tests to scripted outcomes instead of assuming fixed damage. Implement the browser helper by replacing `window.Math.random` immediately before an Attack with a finite face sequence, translating face n to `(n - 0.5) / 10`; restore the original function when the last supplied value is consumed. Keep map generation outside the override. Assert expected HP/results so incidental consumption fails the test rather than silently masking it.
-- [ ] Run `npm run test:e2e -- e2e/combat.spec.ts`; expect failures for missing feedback and old UI values.
-- [ ] Render a short outcome per exchange (success totals and damage, including no damage), with original/bonus faces in expandable “Roll details”. Keep Attack/Run and victory acknowledgment above details. Add read-only “Character” details after primary commands containing attributes, skills, derived stats, and melee pools; no resource controls. Escape/format only numeric roll data, use derived Health caps, and update iteration label to 03. Do not change the existing busy/focus/pointer gates.
-- [ ] Extend mobile tests at 320×568, 390×844, and 844×390, including the accepted 18px monospace regression. Assert closed primary commands fit and remain at least 48×48; open the maximum bonus-dice details and assert text is reachable, no horizontal document overflow occurs, and commands remain usable. Retain screen-reader status feedback without repeatedly announcing the full dice list.
-- [ ] Exercise rapid taps, held pointer/Space across the command lock, blur/focus, source-changing storage events, and blocked v4 migration writes with deterministic rolls. Keep existing camera, map, placement, and legacy-save regressions; update only format/rule expectations.
-- [ ] Run `npm run typecheck`, `npm test`, and the complete `npm run test:e2e`; expect all pass. When Windows server teardown requires it, start a tracked local preview session first, reuse it in Playwright, then stop that owned session. Commit as `feat: show character and combat roll feedback on phones`.
+- [x] Add browser assertions for hero Health 5/5, slime 3/3, fixed character attributes/skills, derived values, and effective 5d10/4d10 pools. Add exact-roll scenarios for ties, bonus-10 nonchaining, damaging counterattacks, lethal victory, Run, defeat/Restart, and completion of all three independent slimes.
+- [x] Adapt existing battle/input tests to scripted outcomes instead of assuming fixed damage. Implement the browser helper by replacing `window.Math.random` immediately before an Attack with a finite face sequence, translating face n to `(n - 0.5) / 10`; restore the original function when the last supplied value is consumed. Keep map generation outside the override. Assert expected HP/results so incidental consumption fails the test rather than silently masking it.
+- [x] Run `npm run test:e2e -- e2e/combat.spec.ts`; expect failures for missing feedback and old UI values.
+- [x] Render a short outcome per exchange (success totals and damage, including no damage), with original/bonus faces in expandable “Roll details”. Keep Attack/Run and victory acknowledgment above details. Add read-only “Character” details after primary commands containing attributes, skills, derived stats, and melee pools; no resource controls. Escape/format only numeric roll data, use derived Health caps, and update iteration label to 03. Do not change the existing busy/focus/pointer gates.
+- [x] Extend mobile tests at 320×568, 390×844, and 844×390, including the accepted 18px monospace regression. Assert closed primary commands fit and remain at least 48×48; open the maximum bonus-dice details and assert text is reachable, no horizontal document overflow occurs, and commands remain usable. Retain screen-reader status feedback without repeatedly announcing the full dice list.
+- [x] Exercise rapid taps, held pointer/Space across the command lock, blur/focus, source-changing storage events, and blocked v4 migration writes with deterministic rolls. Keep existing camera, map, placement, and legacy-save regressions; update only format/rule expectations.
+- [x] Run `npm run typecheck`, `npm test`, and the complete `npm run test:e2e`; expect all pass. When Windows server teardown requires it, start a tracked local preview session first, reuse it in Playwright, then stop that owned session. Commit as `feat: show character and combat roll feedback on phones`.
 
 ### Task 5: Verify, review, and hand off
 
@@ -102,12 +102,12 @@
 
 **Interfaces:** Consumes all preceding deliverables and the approved design; produces a verified native branch and draft PR for owner acceptance.
 
-- [ ] Document fixed starter values, nonchaining bonus dice, ties/margin damage, deferred resource spending/progression, v4 upgrades, and manual acceptance: inspect character; observe misses/damage/bonus dice; win/flee/lose/restart; Continue; verify phone controls.
-- [ ] Run `npm run typecheck`, `npm test`, and `npm run test:e2e` against the final code; record actual results. Inspect the diff for unrelated changes, persisted transient state, new dependencies, and remaining old Health/damage copy.
-- [ ] Use the executing-plans/requesting-code-review workflow for one fresh independent whole-branch reviewer, providing the approved spec, this plan, base revision, and exact test evidence. Fix actionable findings and rerun affected checks; rerun the full suite only if changes warrant it.
-- [ ] Commit documentation, push a `codex/iteration-3` branch, and create/attach a draft PR with rules, migration behavior, validation evidence, and owner acceptance steps. Do not deploy or merge without owner direction.
-- [ ] Stop owned preview/test servers and report the PR plus any remaining manual acceptance work. Preserve both planning documents in the branch.
+- [x] Document fixed starter values, nonchaining bonus dice, ties/margin damage, deferred resource spending/progression, v4 upgrades, and manual acceptance: inspect character; observe misses/damage/bonus dice; win/flee/lose/restart; Continue; verify phone controls.
+- [x] Run `npm run typecheck`, `npm test`, and `npm run test:e2e` against the final code; record actual results. Inspect the diff for unrelated changes, persisted transient state, new dependencies, and remaining old Health/damage copy.
+- [x] Use the executing-plans/requesting-code-review workflow for one fresh independent whole-branch reviewer, providing the approved spec, this plan, base revision, and exact test evidence. Fix actionable findings and rerun affected checks; rerun the full suite only if changes warrant it.
+- [x] Commit documentation, push a `codex/iteration-3` branch, and create/attach a draft PR with rules, migration behavior, validation evidence, and owner acceptance steps. Do not deploy or merge without owner direction.
+- [x] Stop owned preview/test servers and report the PR plus any remaining manual acceptance work. Preserve both planning documents in the branch.
 
 ## Plan self-review
 
-The five tasks cover the approved fixed build, dice rules, opposed turn flow, feedback, persistence, and regression acceptance. Historical and current Health validation are separated; all cross-task names above agree. Each Review Focus item has explicit tests in its owning task. Native execution remains selected, and implementation waits for owner review of this plan.
+The five tasks cover the approved fixed build, dice rules, opposed turn flow, feedback, persistence, and regression acceptance. Historical and current Health validation are separated; all cross-task names above agree. Each Review Focus item has explicit tests in its owning task. The owner approved this plan; native implementation, independent review fixes, and local verification are complete. Draft PR #4 is open; owner phone acceptance and release remain pending.
