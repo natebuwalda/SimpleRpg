@@ -1,6 +1,6 @@
 # Iteration 2 implementation status
 
-Implemented natively on `codex/iteration-2`, based on accepted Iteration1 main `6057b5d`. Owner approved the design and implementation plan on November17,2026. Implementation is ready for final independent review; no merge or public deployment has been performed.
+Implemented natively on `codex/iteration-2`, based on accepted Iteration1 main `6057b5d`. Owner approved the design and implementation plan on November17,2026. Independent review is complete with no actionable findings; no merge or public deployment has been performed.
 
 ## Delivered behavior
 
@@ -31,7 +31,15 @@ Two native runs encountered Windows/OneDrive EBUSY only while closing Playwright
 4. Random New Game verification checks generation/reload at spawn; deterministic fixtures verify navigation/scrolling. Random adjacent slimes make assumed safe routes invalid. Cost: the random-world test no longer walks an arbitrary hard-coded enemy-free route.
 5. Moved Playwright traces/results to OS temporary storage after repeated OneDrive locks. Cost: trace paths are outside the checkout; screenshots stay under test-results and location is configurable.
 
-No feature-contract deviations. Final review findings and any fixes will be recorded before the draft-PR handoff.
+6. The reviewer set invalid injected RNG values/malformed internal preserved arguments aside because they are outside the helper contract. Kept that boundary: production uses Math.random and validated old saves. Cost: a future internal caller must honor those contracts.
+7. The reviewer set identical migration placements across full reloads with blocked writes aside as explicitly excluded by the plan. Kept the documented session-only guarantee. Cost: an unpersisted upgrade may choose different added placements after reload.
+8. The reviewer could not judge hosted deployment or physical-phone acceptance. Kept both as explicit owner-directed release steps. Cost: local/CI verification alone is not owner acceptance of the public game.
+
+No feature-contract deviations or deferred minors.
+
+## Independent review
+
+One fresh-context whole-branch reviewer examined `6057b5d..accdde4` against the approved spec/plan and all five Review Focus cases. No critical, important, or minor findings warranted changes. The reviewer independently passed typecheck/range diff-check, inspected source, tests and screenshots, and did not repeat the already reported unit/browser suites. No fixes were needed. The three matters set aside by the reviewer and the executor's decisions are recorded above.
 
 ## Release and acceptance boundary
 
