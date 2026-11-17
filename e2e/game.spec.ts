@@ -227,3 +227,53 @@ test('production base path loads assets and survives refresh', async ({ page }) 
   await expect(page.locator('canvas')).toBeVisible();
   expect(failures).toEqual([]);
 });
+
+test('a press begun during resolution cannot queue an attack', async ({ page }) => {
+  await enterBattle(page);
+  await page.getByRole('button', { name: 'Attack', exact: true }).tap();
+  const button = page.getByRole('button', { name: 'Attack', exact: true });
+  const box = (await button.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  // Deliberately span the resolution window while holding the pointer.
+  await expect(button).toBeEnabled();
+  await page.mouse.up();
+  await expect(page.getByLabel('Slime health')).toHaveText('2 / 6 HP');
+});
+
+test('keyboard focus survives battle resolution', async ({ page }) => {
+  await enterBattle(page);
+  const attack = page.getByRole('button', { name: 'Attack', exact: true });
+  await attack.focus();
+  await page.keyboard.press('Enter');
+  await expect(attack).toBeEnabled();
+  await expect(attack).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading', { name: 'Victory!' })).toBeVisible();
+});
+
+test('another tab saving requires confirmation before new game', async ({ page, context }) => {
+  await page.goto('./');
+  const other = await context.newPage();
+  await other.goto('./');
+  await page.bringToFront();
+  await page.getByRole('button', { name: 'New Game', exact: true }).click();
+  await page.getByRole('button', { name: 'Move right' }).click();
+  await other.bringToFront();
+  await other.getByRole('button', { name: 'New Game', exact: true }).click();
+  await expect(other.getByRole('button', { name: 'Cancel', exact: true })).toBeVisible();
+  await other.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await other.getByRole('button', { name: 'Continue', exact: true }).click();
+  await expect(other.getByLabel('Position')).toHaveText('3, 2');
+});
+
+test('space held during resolution cannot queue an attack', async ({ page }) => {
+  await enterBattle(page);
+  const attack = page.getByRole('button', { name: 'Attack', exact: true });
+  await attack.focus();
+  await page.keyboard.press('Enter');
+  await page.keyboard.down(' ');
+  await expect(attack).toBeEnabled();
+  await page.keyboard.up(' ');
+  await expect(page.getByLabel('Slime health')).toHaveText('2 / 6 HP');
+});

@@ -11,7 +11,8 @@ let state = createSession();
 const scene = new GameScene();
 let storage: Storage | null = null;
 try { storage = window.localStorage; } catch { /* Play without persistent storage. */ }
-const loaded = storage ? loadSave(storage) : { checkpoint: null, status: 'unavailable' as const };
+function readSave() { return storage ? loadSave(storage) : { checkpoint: null, status: 'unavailable' as const }; }
+const loaded = readSave();
 let saved = loaded.checkpoint;
 let saveStatus = {
   ready: 'Your adventure is ready to continue.',
@@ -20,6 +21,22 @@ let saveStatus = {
   unavailable: 'Progress cannot be saved in this browser. You can still play.',
 }[loaded.status];
 ui.setSaved(saved);
+function refreshTitleSave() {
+  if (state.kind !== 'title') return;
+  const current = readSave();
+  saved = current.checkpoint;
+  saveStatus = {
+    ready: 'Your adventure is ready to continue.',
+    empty: 'No saved adventure yet.',
+    invalid: 'Your saved adventure could not be read. Start a new game.',
+    unavailable: 'Progress cannot be saved in this browser. You can still play.',
+  }[current.status];
+  ui.setSaved(saved);
+  ui.render(state, saveStatus);
+}
+ui.onTitleAction(refreshTitleSave);
+window.addEventListener('storage', refreshTitleSave);
+window.addEventListener('focus', refreshTitleSave);
 let active = true;
 let busy = false;
 function dispatch(action: Action) {

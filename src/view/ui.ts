@@ -5,6 +5,7 @@ export interface Ui {
   onAction(handler: (action: Action) => void): void;
   setBusy(busy: boolean): void;
   setSaved(checkpoint: Checkpoint | null): void;
+  onTitleAction(handler: () => void): void;
 }
 
 export function mountUi(root: HTMLElement): Ui {
@@ -30,9 +31,37 @@ export function mountUi(root: HTMLElement): Ui {
   let confirming = false;
   let currentState: GameState = { kind: 'title' };
   let currentStatus = '';
+  let beforeTitleAction = () => {};
+  let busy = false;
+  let active = true;
+  let pointerAllowed = false;
+  let pendingFocus: string | null = null;
+  const blockedKeys = new Set<string>();
+  window.addEventListener('blur', () => { active = false; pointerAllowed = false; pendingFocus = null; });
+  window.addEventListener('focus', () => { active = true; });
+  document.addEventListener('visibilitychange', () => {
+    active = !document.hidden;
+    if (!active) { pointerAllowed = false; pendingFocus = null; }
+  });
+  const isBattleCommand = (target: EventTarget | null) => target instanceof Element && !!target.closest('[data-action="attack"], [data-action="run"]');
+  root.addEventListener('pointerdown', event => { pointerAllowed = active && (!busy || !isBattleCommand(event.target)); }, true);
+  root.addEventListener('pointercancel', () => { pointerAllowed = false; }, true);
+  root.addEventListener('keydown', event => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    if ((busy && isBattleCommand(event.target)) || !active || event.repeat || blockedKeys.has(event.key)) {
+      blockedKeys.add(event.key);
+      event.preventDefault();
+    }
+  }, true);
+  window.addEventListener('keyup', event => {
+    if (blockedKeys.has(event.key)) { event.preventDefault(); blockedKeys.delete(event.key); }
+  }, true);
   root.addEventListener('click', (event) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button');
     if (!button || button.disabled) return;
+    if (!active || (event.detail > 0 && !pointerAllowed)) return;
+    pointerAllowed = false;
+    if (button.dataset.action === 'newGame' || button.dataset.action === 'continue') beforeTitleAction();
     if (button.dataset.direction) handler({ type: 'move', direction: button.dataset.direction as Direction });
     else if (button.dataset.action === 'continue') {
       if (saved) handler({ type: 'continue', checkpoint: saved });
@@ -51,10 +80,19 @@ export function mountUi(root: HTMLElement): Ui {
   });
   const api: Ui = {
     setSaved(checkpoint) { saved = checkpoint; },
+    onTitleAction(next) { beforeTitleAction = next; },
     onAction(next) { handler = next; },
-    setBusy(busy) {
-      root.querySelectorAll<HTMLButtonElement>('[data-action="attack"], [data-action="run"]').forEach(button => { button.disabled = busy; });
+    setBusy(nextBusy) {
+      busy = nextBusy;
+      root.querySelectorAll<HTMLButtonElement>('[data-action="attack"], [data-action="run"]').forEach(button => {
+        if (busy && document.activeElement === button) pendingFocus = button.dataset.action!;
+        button.disabled = busy;
+      });
       root.querySelector('#screen')!.setAttribute('aria-busy', String(busy));
+      if (!busy && pendingFocus) {
+        if (active && document.activeElement === document.body) root.querySelector<HTMLButtonElement>(`[data-action="${pendingFocus}"]`)?.focus({ preventScroll: true });
+        pendingFocus = null;
+      }
     },
     render(state, saveStatus) {
       currentState = state;
