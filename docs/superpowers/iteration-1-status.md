@@ -34,3 +34,17 @@ After authorization: merge/release, verify hosted assets and large-world play/re
 - `git diff --check` — PASS.
 
 The build retains the pre-existing Phaser bundle-size warning; no additional packages or deployment workflow changes were introduced.
+
+## Independent review
+
+One fresh-context whole-branch review of `f8d8677..9ee70b8` checked the full approved spec/plan and all five Review Focus cases. Result: no critical, important, or minor findings; nothing declined to judge. No implementer subagents or per-task reviews were used.
+
+## Implementation rulings
+
+1. Used the dedicated cloud checkout and requested feature branch for isolation. Tradeoff: less directory isolation inside this cloud instance than an extra worktree.
+2. Used installed Chromium through a temporary cloud config when the bundled download was blocked. Tradeoff: a different Chromium version from CI.
+3. Added the optional executable-path override so the normal browser-test npm script works here. Tradeoff: users opting into it may run a different Chromium; default CI remains unchanged.
+4. Allowed60s per browser scenario and120s for the full edge walk, based on traces showing correct movement exhausting the previous budget. Tradeoff: a stalled scenario can take30–90s longer to fail.
+5. Used a controlled resolution clock for held-input browser tests to remove the automation-latency race. Tradeoff: these cases exercise virtual timer advancement rather than real wall-clock duration; input events remain real.
+
+Deferred minors: none. No feature contract deviations.
