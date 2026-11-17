@@ -22,9 +22,9 @@ Phone screenshots at spawn and far corner were inspected: correct hero/slime til
 
 ## Release boundary
 
-Public Pages remains accepted Iteration 0 until an authorized release. Work stops at feature commits and a draft PR. Main-only automatic Pages trigger and `/SimpleRpg/` base remain unchanged. No merge, feature deployment, or production change is authorized by this implementation handoff.
+The owner subsequently authorized an exploratory feature-branch deployment, now completed from the native environment as recorded below. Public Pages hosts the Iteration 1 preview; PR #2 remains a draft and main is unchanged. Main-only automatic Pages trigger and `/SimpleRpg/` base remain unchanged.
 
-After authorization: merge/release, verify hosted assets and large-world play/reload, then owner phone acceptance of scrolling and all four edges. Iteration 1 is implemented for review; it is not yet released or owner-accepted.
+Hosted assets and large-world play/reload have been verified. Owner phone acceptance of scrolling and all four edges, followed by separate merge authorization, remains pending. Iteration 1 is deployed for exploratory review and is not yet owner-accepted.
 
 ## Final local checks
 
@@ -55,3 +55,15 @@ Deferred minors: none. No feature contract deviations.
 The owner authorized deploying the feature branch for exploratory testing. Manual dispatch was unavailable through the connector/CLI/browser, so a temporary feature-branch publish trigger started run44092235623 at commitd8a0b24. Its checks (including all browser tests) and production artifact build succeeded. GitHub rejected the deploy job before execution: `Branch "codex/iteration-1" is not allowed to deploy to github-pages due to environment protection rules.` The temporary trigger was removed again; automatic publishing remains main-only.
 
 Public Pages remains Iteration0. To continue, the repository owner must permit `codex/iteration-1` under Settings → Environments → github-pages → Deployment branches and tags. The existing failed deployment job can then be rerun; no merge is required. The connector lacks environment-administration capability, CLI authentication is unavailable, and the cloud browser could not open the workflow UI. Direct hosted verification is also blocked by the cloud network policy for github.io.
+
+## Native deployment recovery — November 17, 2026
+
+The owner requested completing the exploratory deployment from the native environment. Native GitHub credentials permitted repository environment administration. Added a deployment-branch policy for `codex/iteration-1`, preserving the existing main policy, then manually dispatched the existing `pages.yml` workflow at current branch commit `562b33346da53590dd5a24654422aa12dee61227`. No workflow edits or merge were needed. The earlier rejection above is resolved.
+
+- Successful checks, build and Pages deployment: https://github.com/natebuwalda/SimpleRpg/actions/runs/44094256949
+- Exploratory play URL: https://natebuwalda.github.io/SimpleRpg/
+- PR remains draft: https://github.com/natebuwalda/SimpleRpg/pull/2
+
+A native Chromium check against the actual hosted URL generated a31x30 world, verified the three-tile camera scroll after ten rightward moves, refreshed and continued with the exact saved world, reached the far-world slime, escaped, re-entered, won, and stepped onto the cleared encounter tile. No failed requests or runtime errors occurred. The phone-sized hosted screenshot was also inspected.
+
+Automatic publishing remains main-only. The feature branch is temporarily permitted for manual preview deployments; remove that environment policy when Iteration 1 is merged. The public preview now shows Iteration 1 while main remains Iteration 0.
