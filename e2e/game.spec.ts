@@ -73,3 +73,48 @@ test('blur and repeated keys do not add movement', async ({ page }) => {
   await page.keyboard.press('ArrowRight');
   await expect(page.getByLabel('Position')).toHaveText('4, 2');
 });
+
+test('refresh continues exploration', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: 'New Game', exact: true }).tap();
+  await page.getByRole('button', { name: 'Move right' }).tap();
+  await page.reload();
+  await page.getByRole('button', { name: 'Continue', exact: true }).tap();
+  await expect(page.getByLabel('Position')).toHaveText('3, 2');
+});
+
+test('refresh during battle restores safe checkpoint', async ({ page }) => {
+  await enterBattle(page);
+  await page.getByRole('button', { name: 'Attack', exact: true }).tap();
+  await page.reload();
+  await page.getByRole('button', { name: 'Continue', exact: true }).tap();
+  await expect(page.getByLabel('Position')).toHaveText('6, 3');
+  await expect(page.getByLabel('Hero health')).toHaveText('12 / 12 HP');
+});
+
+test('new game cancel preserves save', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: 'New Game', exact: true }).tap();
+  await page.getByRole('button', { name: 'Move right' }).tap();
+  await page.reload();
+  await page.getByRole('button', { name: 'New Game', exact: true }).tap();
+  await page.getByRole('button', { name: 'Cancel', exact: true }).tap();
+  await page.getByRole('button', { name: 'Continue', exact: true }).tap();
+  await expect(page.getByLabel('Position')).toHaveText('3, 2');
+});
+
+test('invalid save disables continue', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('simple-rpg.save.v1', '{broken'));
+  await page.goto('./');
+  await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled();
+  await expect(page.getByRole('status')).toContainText('could not be read');
+});
+
+test('storage unavailable still permits play', async ({ page }) => {
+  await page.addInitScript(() => Object.defineProperty(window, 'localStorage', { get() { throw new Error('blocked'); } }));
+  await page.goto('./');
+  await page.getByRole('button', { name: 'New Game', exact: true }).tap();
+  await page.getByRole('button', { name: 'Move right' }).tap();
+  await expect(page.getByLabel('Position')).toHaveText('3, 2');
+  await expect(page.getByRole('status')).toContainText('cannot be saved');
+});
