@@ -118,3 +118,95 @@ test('storage unavailable still permits play', async ({ page }) => {
   await expect(page.getByLabel('Position')).toHaveText('3, 2');
   await expect(page.getByRole('status')).toContainText('cannot be saved');
 });
+
+test('victory persists across refresh and cleared tile remains walkable', async ({ page }) => {
+  await enterBattle(page);
+  await page.getByRole('button', { name: 'Attack', exact: true }).tap();
+  await page.getByRole('button', { name: 'Attack', exact: true }).tap();
+  await expect(page.getByRole('heading', { name: 'Victory!' })).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: 'Continue', exact: true }).tap();
+  await expect(page.getByLabel('Hero health')).toHaveText('12 / 12 HP');
+  await page.getByRole('button', { name: 'Move down' }).tap();
+  await expect(page.getByLabel('Position')).toHaveText('6, 4');
+  await page.reload();
+  await page.getByRole('button', { name: 'Continue', exact: true }).tap();
+  await expect(page.getByLabel('Position')).toHaveText('6, 4');
+});
+
+test('defeat refresh preserves checkpoint and restart replaces it', async ({ page }) => {
+  await page.goto('./');
+  await page.evaluate(() => localStorage.setItem('simple-rpg.save.v1', JSON.stringify({ version: 1, position: { x: 6, y: 3 }, hp: 2, completedEncounterIds: [] })));
+  await page.reload();
+  await page.getByRole('button', { name: 'Continue', exact: true }).tap();
+  await page.getByRole('button', { name: 'Move down' }).tap();
+  await page.getByRole('button', { name: 'Attack', exact: true }).tap();
+  await expect(page.getByRole('heading', { name: 'Defeated', exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: 'Continue', exact: true }).tap();
+  await expect(page.getByLabel('Hero health')).toHaveText('2 / 12 HP');
+  await page.getByRole('button', { name: 'Move down' }).tap();
+  await page.getByRole('button', { name: 'Attack', exact: true }).tap();
+  await page.getByRole('button', { name: 'Restart', exact: true }).tap();
+  await expect(page.getByLabel('Position')).toHaveText('2, 2');
+  await expect(page.getByLabel('Hero health')).toHaveText('12 / 12 HP');
+  await page.reload();
+  await page.getByRole('button', { name: 'Continue', exact: true }).tap();
+  await expect(page.getByLabel('Position')).toHaveText('2, 2');
+});
+
+test('confirm new game replaces the old save', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: 'New Game', exact: true }).tap();
+  await page.getByRole('button', { name: 'Move right' }).tap();
+  await page.reload();
+  await page.getByRole('button', { name: 'New Game', exact: true }).tap();
+  await page.getByRole('button', { name: 'Start Over', exact: true }).tap();
+  await expect(page.getByLabel('Position')).toHaveText('2, 2');
+  await page.reload();
+  await page.getByRole('button', { name: 'Continue', exact: true }).tap();
+  await expect(page.getByLabel('Position')).toHaveText('2, 2');
+});
+
+test('storage quota failure keeps play available', async ({ page }) => {
+  await page.addInitScript(() => { Storage.prototype.setItem = () => { throw new Error('quota'); }; });
+  await page.goto('./');
+  await page.getByRole('button', { name: 'New Game', exact: true }).tap();
+  await page.getByRole('button', { name: 'Move right' }).tap();
+  await expect(page.getByLabel('Position')).toHaveText('3, 2');
+  await expect(page.getByRole('status')).toContainText('cannot be saved');
+});
+
+test('mobile controls fit through portrait and landscape rotation', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: 'New Game', exact: true }).tap();
+  for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(viewport);
+    for (const button of await page.getByRole('button').all()) {
+      const box = await button.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.width).toBeGreaterThanOrEqual(48);
+      expect(box!.height).toBeGreaterThanOrEqual(48);
+      expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await expect(page.getByLabel('Position')).toHaveText('2, 2');
+  }
+});
+
+test('battle ignores commands while hidden and resumes cleanly', async ({ page }) => {
+  await enterBattle(page);
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    document.querySelector<HTMLButtonElement>('[data-action="attack"]')!.click();
+  });
+  await expect(page.getByLabel('Slime health')).toHaveText('6 / 6 HP');
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await page.getByRole('button', { name: 'Attack', exact: true }).tap();
+  await expect(page.getByLabel('Slime health')).toHaveText('2 / 6 HP');
+});
