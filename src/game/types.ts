@@ -16,7 +16,7 @@ export type GameState =
   | { kind: 'exploring'; checkpoint: Checkpoint }
   | { kind: 'battle'; checkpoint: Checkpoint; returnPosition: Position; battle: BattleState; encounterId: SlimeId }
   | { kind: 'victory'; checkpoint: Checkpoint; lastTurn?: TurnRolls | null }
-  | { kind: 'defeat'; checkpoint: Checkpoint };
+  | { kind: 'defeat'; checkpoint: Checkpoint; lastTurn?: TurnRolls | null };
 export type Action =
   | { type: 'newGame'; world: WorldDefinition }
   | { type: 'attack' | 'run' | 'acknowledgeVictory' | 'restart' }

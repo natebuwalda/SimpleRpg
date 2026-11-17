@@ -24,6 +24,11 @@ button.primary { background: #d5dfaa; color: #203329; border-color: #d5dfaa; fon
 button.primary:hover:not(:disabled) { background: #e3eac6; }
 .primary span { float: right; }
 .save-status { font-size: 11px; color: #a3b3a6; min-height: 17px; margin: 12px 0; }
+.game-details { margin-top: 10px; border-top: 1px solid #40564d; color: #b2c1b4; font-size: 13px; }
+.game-details summary { cursor: pointer; min-height: 48px; padding: 15px 4px; touch-action: manipulation; }
+.game-details summary:focus-visible { outline: 3px solid #f0d69a; outline-offset: 2px; }
+.detail-content { overflow-wrap: anywhere; padding: 0 4px 4px; }
+.detail-content p { margin: 0 0 12px; }
 footer { border-top: 1px solid #344a43; padding-top: 14px; font-size: 8px; }
 .stats { display: flex; gap: 24px; margin: 16px 0; color: #9cafa1; font-size: 10px; letter-spacing: 1px; }
 .stats strong { display: block; color: #e8ebd9; font-size: 15px; margin-top: 4px; letter-spacing: 0; }

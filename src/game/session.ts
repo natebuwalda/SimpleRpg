@@ -22,7 +22,7 @@ export function transition(state: GameState, action: Action, rng: RandomSource =
     const battle = resolveTurn(state.battle, action.type, rng);
     if (battle.result === 'escaped') return { kind: 'exploring', checkpoint: { ...state.checkpoint, position: state.returnPosition, hp: battle.heroHp } };
     if (battle.result === 'victory') return { kind: 'victory', lastTurn: battle.lastTurn, checkpoint: { ...state.checkpoint, position: state.returnPosition, hp: deriveStats(state.checkpoint.character).maxHp, completedEncounterIds: [...new Set([...state.checkpoint.completedEncounterIds, state.encounterId])] } };
-    if (battle.result === 'defeat') return { kind: 'defeat', checkpoint: state.checkpoint };
+    if (battle.result === 'defeat') return { kind: 'defeat', checkpoint: state.checkpoint, lastTurn: battle.lastTurn };
     return { ...state, battle };
   }
   if (state.kind === 'victory' && action.type === 'acknowledgeVictory') return { kind: 'exploring', checkpoint: state.checkpoint };
