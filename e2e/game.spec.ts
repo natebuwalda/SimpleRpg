@@ -95,7 +95,7 @@ test('invalid save disables continue', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('simple-rpg.save.v4', '{broken'));
   await page.goto('./');
   await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled();
-  await expect(page.getByRole('status')).toContainText('could not be read');
+  await expect(page.getByRole('status',{name:'Save status'})).toContainText('could not be read');
 });
 
 test('storage unavailable still permits play', async ({ page }) => {
@@ -104,7 +104,7 @@ test('storage unavailable still permits play', async ({ page }) => {
   await page.getByRole('button', { name: 'New Game', exact: true }).tap();
   await page.getByRole('button', { name: 'Move right' }).tap();
   await expect(page.getByLabel('Position')).toHaveText('4, 3');
-  await expect(page.getByRole('status')).toContainText('cannot be saved');
+  await expect(page.getByRole('status',{name:'Save status'})).toContainText('cannot be saved');
 });
 
 test('victory persists across refresh and cleared tile remains walkable', async ({ page }) => {
@@ -161,7 +161,7 @@ test('storage quota failure keeps play available', async ({ page }) => {
   await page.getByRole('button', { name: 'New Game', exact: true }).tap();
   await page.getByRole('button', { name: 'Move right' }).tap();
   await expect(page.getByLabel('Position')).toHaveText('4, 3');
-  await expect(page.getByRole('status')).toContainText('cannot be saved');
+  await expect(page.getByRole('status',{name:'Save status'})).toContainText('cannot be saved');
 });
 
 test('mobile controls fit through portrait and landscape rotation', async ({ page }) => {

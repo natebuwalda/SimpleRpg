@@ -40,6 +40,7 @@ export function mountUi(root: HTMLElement): Ui {
   root.innerHTML = `
     <main class="game-shell">
       <header><span class="wordmark">SIMPLE RPG</span><span class="edition">ITERATION 03</span></header>
+      <p id="combat-announcement" class="sr-only" role="status" aria-label="Combat result" aria-atomic="true"></p>
       <section class="play-area">
         <div class="world-frame"><div id="canvas" role="img" aria-label="A tiny woodland adventure"></div></div>
         <section class="panel" aria-label="Game controls">
@@ -49,7 +50,7 @@ export function mountUi(root: HTMLElement): Ui {
           <p class="description">A quiet clearing. Three little slimes.<br>A journey begins with one step.</p>
           <div class="actions"><button data-action="newGame" class="primary">New Game <span aria-hidden="true">↗</span></button><button disabled>Continue</button></div>
           </div>
-          <p class="save-status" role="status">No saved adventure yet.</p>
+          <p class="save-status" role="status" aria-label="Save status">No saved adventure yet.</p>
         </section>
       </section>
       <footer><span>A WORLD IN YOUR POCKET</span><span>TOUCH · KEYBOARD</span></footer>
@@ -64,6 +65,8 @@ export function mountUi(root: HTMLElement): Ui {
   let active = true;
   let pointerAllowed = false;
   let pendingFocus: string | null = null;
+  let announcedTurn: TurnRolls | null = null;
+  let turnNumber = 0;
   const blockedKeys = new Set<string>();
   window.addEventListener('blur', () => { active = false; pointerAllowed = false; pendingFocus = null; });
   window.addEventListener('focus', () => { active = true; });
@@ -128,7 +131,8 @@ export function mountUi(root: HTMLElement): Ui {
       currentState = state;
       currentStatus = saveStatus;
       const focused = document.activeElement instanceof HTMLButtonElement && root.contains(document.activeElement) ? { action: document.activeElement.dataset.action, direction: document.activeElement.dataset.direction } : null;
-      root.querySelector('.save-status')!.textContent = saveStatus;
+      const saveMessage = root.querySelector('.save-status')!;
+      if (saveMessage.textContent !== saveStatus) saveMessage.textContent = saveStatus;
       if (state.kind === 'title') root.querySelector('#screen')!.innerHTML = confirming ? `
         <div class="eyebrow">A FRESH START</div><h1>Begin again?</h1><p class="description">Starting over will replace your saved adventure.</p><div class="actions"><button data-action="cancel">Cancel</button><button data-action="confirm" class="primary">Start Over</button></div>` : `
         <div class="eyebrow">A LITTLE ADVENTURE</div><h1>Simple RPG</h1><p class="description">A quiet clearing. Three little slimes.<br>A journey begins with one step.</p><div class="actions"><button data-action="newGame" class="primary">New Game <span aria-hidden="true">↗</span></button><button data-action="continue" ${saved ? '' : 'disabled'}>Continue</button></div>`;
@@ -140,7 +144,7 @@ export function mountUi(root: HTMLElement): Ui {
       if (state.kind === 'battle') root.querySelector('#screen')!.innerHTML = `
         <div class="eyebrow">A WILD ENCOUNTER</div><h1>Meadow slime</h1>
         <div class="stats"><span>HERO <strong aria-label="Hero health">${state.battle.heroHp} / ${deriveStats(state.checkpoint.character).maxHp} HP</strong></span><span>SLIME <strong aria-label="Slime health">${state.battle.enemyHp} / ${SLIME.maxHp} HP</strong></span></div>
-        <p class="description combat-result" role="status" aria-label="Combat result">${turnSummary(state.battle.lastTurn)}</p>
+        <p class="description combat-result">${turnSummary(state.battle.lastTurn)}</p>
         <div class="actions"><button class="primary" data-action="attack">Attack</button><button data-action="run">Run</button></div>`;
       if (state.kind === 'victory' || state.kind === 'defeat') {
         const won = state.kind === 'victory';
@@ -149,8 +153,18 @@ export function mountUi(root: HTMLElement): Ui {
       if (state.kind !== 'title') {
         const turn = state.kind === 'battle' ? state.battle.lastTurn : state.kind === 'victory' || state.kind === 'defeat' ? state.lastTurn : null;
         const screen = root.querySelector('#screen')!;
-        if ((state.kind === 'victory' || state.kind === 'defeat') && turn) screen.insertAdjacentHTML('beforeend', `<p class="description combat-result" role="status" aria-label="Combat result">${turnSummary(turn)}</p>`);
+        if ((state.kind === 'victory' || state.kind === 'defeat') && turn) screen.insertAdjacentHTML('beforeend', `<p class="description combat-result">${turnSummary(turn)}</p>`);
         screen.insertAdjacentHTML('beforeend', rollDetails(turn) + characterDetails(state.checkpoint.character));
+        const announcement = root.querySelector('#combat-announcement')!;
+        if (turn && turn !== announcedTurn) {
+          announcedTurn = turn;
+          turnNumber++;
+          announcement.textContent = `Turn ${turnNumber}. ${turnSummary(turn).replace('<br>', ' ')}`;
+        } else if (!turn) {
+          announcedTurn = null;
+          turnNumber = 0;
+          if (announcement.textContent) announcement.textContent = '';
+        }
       }
       if (focused) {
         const selector = focused.direction ? `[data-direction="${focused.direction}"]` : `[data-action="${focused.action}"]`;

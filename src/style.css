@@ -1,5 +1,6 @@
 :root { font-family: 'DM Sans', system-ui, sans-serif; color: #e8ebd9; background: #111f22; font-synthesis: none; }
 * { box-sizing: border-box; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 body { margin: 0; min-width: 320px; min-height: 100svh; background: radial-gradient(ellipse at 50% 20%, #253d39 0%, #111f22 70%); }
 button { font: inherit; cursor: pointer; min-width: 48px; min-height: 48px; color: inherit; background: #243938; border: 1px solid #52605a; border-radius: 8px; padding: 12px 18px; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 button:hover:not(:disabled) { background: #354d45; }

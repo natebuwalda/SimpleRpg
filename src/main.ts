@@ -82,7 +82,8 @@ const directions: Record<string, Direction> = { ArrowUp: 'up', w: 'up', ArrowDow
 window.addEventListener('keydown', event => {
   if (event.repeat && (event.key === 'Enter' || event.key === ' ')) event.preventDefault();
   const direction = directions[event.key];
-  if (direction) {
+  const readingDetails = event.target instanceof Element && event.target.closest('details');
+  if (direction && state.kind === 'exploring' && !readingDetails) {
     event.preventDefault();
     if (!event.repeat) dispatch({ type: 'move', direction });
   }

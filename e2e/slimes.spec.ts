@@ -67,7 +67,7 @@ test('failed migration writes keep placements stable until the source changes', 
     };
   });
   await page.reload();
-  await expect(page.getByRole('status')).toContainText('cannot be saved');
+  await expect(page.getByRole('status',{name:'Save status'})).toContainText('cannot be saved');
   await page.getByRole('button',{name:'New Game',exact:true}).tap();
   await page.getByRole('button',{name:'Cancel',exact:true}).tap();
   const attempts=await page.evaluate(()=>(window as Window & {__saveAttempts:string[]}).__saveAttempts);
@@ -142,5 +142,5 @@ test('invalid v4 never resurrects valid older saves in the browser',async({page}
   localStorage.setItem('simple-rpg.save.v2',JSON.stringify({version:2,world:{version:1,layout:'woodland',width:20,height:20},position:{x:3,y:3},hp:12,completedEncounterIds:[]}));
   localStorage.setItem('simple-rpg.save.v1',JSON.stringify({version:1,position:{x:2,y:2},hp:12,completedEncounterIds:[]}));
  });
- await page.goto('./');await expect(page.getByRole('button',{name:'Continue',exact:true})).toBeDisabled();await expect(page.getByRole('status')).toContainText('could not be read');
+ await page.goto('./');await expect(page.getByRole('button',{name:'Continue',exact:true})).toBeDisabled();await expect(page.getByRole('status',{name:'Save status'})).toContainText('could not be read');
 });

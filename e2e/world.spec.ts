@@ -87,12 +87,12 @@ test('v1 upgrade writes v4, retains recovery copy and translates only once',asyn
 });
 test('migration write failure keeps in-memory Continue and warns',async({page})=>{
  await page.addInitScript(v=>{localStorage.setItem('simple-rpg.save.v1',JSON.stringify(v));Storage.prototype.setItem=()=>{throw Error('quota');};},oldSave);
- await page.goto('./');await expect(page.getByRole('status')).toContainText('cannot be saved');
- await page.getByRole('button',{name:'Continue',exact:true}).tap();await expect(page.getByLabel('Position')).toHaveText('7, 6');await expect(page.getByRole('status')).toContainText('cannot be saved');
+ await page.goto('./');await expect(page.getByRole('status',{name:'Save status'})).toContainText('cannot be saved');
+ await page.getByRole('button',{name:'Continue',exact:true}).tap();await expect(page.getByLabel('Position')).toHaveText('7, 6');await expect(page.getByRole('status',{name:'Save status'})).toContainText('cannot be saved');
  expect(await page.evaluate(()=>localStorage.getItem('simple-rpg.save.v4'))).toBeNull();
  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v1')!))).toEqual(oldSave);
 });
 test('corrupt v2 never resurrects stale v1',async({page})=>{
  await page.addInitScript(v=>{localStorage.setItem('simple-rpg.save.v1',JSON.stringify(v));localStorage.setItem('simple-rpg.save.v2','{broken');},oldSave);
- await page.goto('./');await expect(page.getByRole('button',{name:'Continue',exact:true})).toBeDisabled();await expect(page.getByRole('status')).toContainText('could not be read');
+ await page.goto('./');await expect(page.getByRole('button',{name:'Continue',exact:true})).toBeDisabled();await expect(page.getByRole('status',{name:'Save status'})).toContainText('could not be read');
 });

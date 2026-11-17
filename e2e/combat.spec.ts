@@ -51,6 +51,46 @@ test('defeat explains the finishing counterattack', async ({ page }) => {
   await expect(page.getByLabel('Slime attack dice')).toContainText('Successes: 3');
 });
 
+test('arrow keys read open battle details without replacing the disclosure or focus', async ({ page }) => {
+  await page.setViewportSize({width:320,height:568});
+  await seed(page,{...checkpoint,position:{x:15,y:14}}); await steps(page,'down');
+  await attack(page,Array(15).fill(1));
+  const summary=page.locator('summary').filter({hasText:'Roll details'});
+  await summary.focus();await page.keyboard.press('Enter');
+  await expect(summary.locator('..')).toHaveAttribute('open','');
+  await page.keyboard.press('ArrowDown');
+  await expect(summary.locator('..')).toHaveAttribute('open','');
+  await expect(summary).toBeFocused();
+});
+
+test('arrow keys read character details without moving the exploring hero', async ({ page }) => {
+  await seed(page);
+  const summary=page.locator('summary').filter({hasText:'Character'});
+  await summary.focus();await page.keyboard.press('Enter');
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByLabel('Position')).toHaveText('3, 3');
+  await expect(summary.locator('..')).toHaveAttribute('open','');
+  await expect(summary).toBeFocused();
+});
+
+test('combat announcements retain their live region and distinguish identical turns without repeating save status', async ({ page }) => {
+  await seed(page,{...checkpoint,position:{x:15,y:14}});await steps(page,'down');
+  const live=await page.getByRole('status',{name:'Combat result'}).elementHandle();
+  const save=page.locator('.save-status');
+  await save.evaluate(node=>{
+    let mutations=0;
+    new MutationObserver(()=>mutations++).observe(node,{childList:true,characterData:true,subtree:true});
+    Object.defineProperty(node,'__mutations',{get:()=>mutations});
+  });
+  await attack(page,Array(15).fill(1));
+  expect(await live!.evaluate(node=>node.isConnected)).toBe(true);
+  await expect(page.getByRole('status',{name:'Combat result'})).toContainText('Turn 1.');
+  await attack(page,Array(15).fill(1));
+  expect(await live!.evaluate(node=>node.isConnected)).toBe(true);
+  await expect(page.getByRole('status',{name:'Combat result'})).toContainText('Turn 2.');
+  expect(await save.evaluate(node=>(node as HTMLElement & {__mutations:number}).__mutations)).toBe(0);
+});
+
 test('v3 upgrade preserves placements, progress and recovery copy through focus and reload', async ({ page }) => {
   const old = {version:3,world:checkpoint.world,position:{x:8,y:8},hp:2,completedEncounterIds:['slime-2']};
   await page.goto('./');
