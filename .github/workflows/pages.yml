@@ -3,9 +3,7 @@ name: Publish game
 on:
   workflow_dispatch:
   push:
-    # The initial implementation branch supplies the first phone preview
-    # without merging main. Remove its entry when Iteration 0 is merged.
-    branches: [main, codex/iteration-0]
+    branches: [main]
 
 permissions:
   contents: read

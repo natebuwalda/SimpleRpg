@@ -3,8 +3,8 @@
 Implemented natively from the approved design and plan on November 16, 2026.
 
 - Preview: https://natebuwalda.github.io/SimpleRpg/
-- Draft PR: https://github.com/natebuwalda/SimpleRpg/pull/1
-- Implementation branch: `codex/iteration-0`; `main` remains at the supplied baseline.
+- PR: https://github.com/natebuwalda/SimpleRpg/pull/1
+- Implementation branch: `codex/iteration-0`; merge into `main` authorized by the owner.
 - Tested implementation commit: `b0378086107812d9a4ec84d902291430abf4109f`.
 - Initial successful deployment: https://github.com/natebuwalda/SimpleRpg/actions/runs/44017294204
 
@@ -15,7 +15,7 @@ Implemented natively from the approved design and plan on November 16, 2026.
 3. Attack/Run, retaliation, victory/defeat, return/restart: implemented.
 4. Versioned validated saves, Continue, overwrite confirmation, storage failure recovery: implemented.
 5. Mobile layouts and whole-loop browser verification: implemented and verified in emulation.
-6. CI and public Pages preview: deployed and verified. Physical-phone acceptance is still pending.
+6. CI and public Pages preview: deployed and verified. The owner completed all physical-phone acceptance checks and accepted Iteration 0.
 
 ## Evidence
 
@@ -35,10 +35,10 @@ The Phaser bundle is approximately 362 KB compressed. Vite reports its standard 
 - Used `/SimpleRpg/` from the start and tested built output rather than the development server. Cost: one small production build per browser suite; catches hosting-path errors.
 - Enabled a temporary deployment trigger and Pages environment allowance for `codex/iteration-0` alongside `main`. This supplies a preview without a merge. Cost: the branch controls the single preview until its trigger/policy is removed when merged. Pages uses GitHub Actions; visibility and main contents were not changed.
 - Treated lost keyboard focus as an important control failure rather than deferring it as cosmetic. Cost: small focus-restoration logic and a regression test; keyboard play now continues after turn resolution.
-- The reviewer could not judge live deployment or physical-phone acceptance. Deployment was subsequently verified independently. Cost: physical-device behavior remains an owner acceptance check.
+- The reviewer could not judge live deployment or physical-phone acceptance. Deployment was subsequently verified independently, and the owner subsequently reported all physical-phone checks passed. Both acceptance requirements are now satisfied.
 
 ## Physical-phone acceptance
 
 Open the preview in the browser you intend to use. Tap New Game, move right four times and down twice, Attack twice, return to the clearing, refresh, and Continue. Confirm that health is restored and you can move onto the cleared slime tile. Also rotate the phone and check that controls remain accessible. Browser saves belong to that browser/device; offline loading and cross-device syncing are outside Iteration 0.
 
-Merge is not performed. The PR is a draft until the owner accepts the phone preview. On merge, remove the temporary feature-branch Pages trigger/policy and use main for releases.
+The owner accepted the work and explicitly authorized merging PR #1. The temporary feature-branch Pages trigger is removed as part of merge preparation; releases use main. Remove the temporary feature-branch Pages environment policy during merge handoff, preserving the main policy.

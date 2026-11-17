@@ -2,7 +2,7 @@
 
 A small browser RPG built with TypeScript, Phaser, and Vite. Iteration 0 establishes a phone-friendly exploration and battle loop.
 
-**[Play the browser preview](https://natebuwalda.github.io/SimpleRpg/)** · [Draft pull request](https://github.com/natebuwalda/SimpleRpg/pull/1)
+**[Play the browser game](https://natebuwalda.github.io/SimpleRpg/)** · [Iteration 0 pull request](https://github.com/natebuwalda/SimpleRpg/pull/1)
 
 ## Development
 
@@ -18,12 +18,12 @@ Tap the directional buttons or press arrows/WASD to move one tile per press. Fin
 
 Progress saves automatically on this browser/device. Refresh returns to the title; Continue resumes the last exploration checkpoint. Refreshing during battle or defeat restores the checkpoint before that encounter. Saves do not sync across devices and may be lost if browser data is cleared. Blocked or full browser storage allows play with a warning. Network access is required to load the game; offline play is not guaranteed.
 
-Browser checks cover touch and keyboard, battle/reload/Continue, storage failures, and 320x568, 390x844, and 844x390 layouts. A physical-phone check is still required before accepting Iteration 0.
+Browser checks cover touch and keyboard, battle/reload/Continue, storage failures, and 320x568, 390x844, and 844x390 layouts. The owner also passed the physical-phone test plan and accepted Iteration 0.
 
 ## Hosting
 
 GitHub Pages serves this project's production build at base path `/SimpleRpg/`. Checks run on pushes and pull requests. The Publish game workflow repeats checks, builds, and deploys only after success. Pages must use **GitHub Actions** as its source.
 
-For the first preview, pushes to `codex/iteration-0` also deploy, so reviewing the game does not require merging it first. After merging Iteration 0, remove that branch from `.github/workflows/pages.yml`; future releases deploy from `main` or a manually selected workflow ref. The public preview uses browser-local saves; no account data is sent to a server.
+Releases deploy from `main` or a manually selected workflow ref permitted by the Pages environment. The temporary Iteration 0 feature-branch preview trigger has been removed. The public preview uses browser-local saves; no account data is sent to a server.
 
-The initial Actions deployment succeeded and the hosted game passed an automated touch exploration → battle → victory → refresh → Continue check with no failed asset requests or runtime errors. Physical-phone acceptance is pending; see [implementation status](docs/superpowers/iteration-0-status.md).
+The initial Actions deployment succeeded and the hosted game passed an automated touch exploration → battle → victory → refresh → Continue check with no failed asset requests or runtime errors. The owner also completed and accepted all physical-phone acceptance checks; see [implementation status](docs/superpowers/iteration-0-status.md).
