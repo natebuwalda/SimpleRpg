@@ -6,20 +6,20 @@ const old={version:2,world:{version:1,layout:'woodland',width:20,height:20},posi
 const v1={version:1,position:{x:5,y:4},hp:10,completedEncounterIds:[]};
 it('round trips a v3 world with exact placements and partial completion',()=>{
  const partial={...cp,completedEncounterIds:['slime-2' as const]};let value:string|null=null;
- expect(saveGame({setItem(key,v){expect(key).toBe('simple-rpg.save.v3');value=v;}},partial)).toBe(true);
+ expect(saveGame({setItem(key,v){expect(key).toBe('simple-rpg.save.v4');value=v;}},partial)).toBe(true);
  expect(parseSave(value)).toEqual(partial);
  expect(loadSave({getItem:()=>value})).toEqual({checkpoint:partial,status:'ready',migrated:false,source:null});
 });
 it('keeps the v2 original slime, progress and geometry and adds two',()=>{
  const done=migrateOlderSave(raw({...old,completedEncounterIds:['slime-1']}),()=>0)!;
- expect(done).toEqual({version:3,world:{...old.world,version:2,slimes:[{id:'slime-1',position:{x:15,y:15}},{id:'slime-2',position:{x:4,y:3}},{id:'slime-3',position:{x:5,y:3}}]},position:old.position,hp:10,completedEncounterIds:['slime-1']});
+ expect(done).toEqual({version:4,character:cp.character,world:{...old.world,version:2,slimes:[{id:'slime-1',position:{x:15,y:15}},{id:'slime-2',position:{x:4,y:3}},{id:'slime-3',position:{x:5,y:3}}]},position:old.position,hp:5,completedEncounterIds:['slime-1']});
  expect(parseSave(raw(done))).toEqual(done);
  const underHero=migrateOlderSave(raw({...old,position:{x:4,y:3}}),()=>0)!;
  expect(underHero.world.slimes.some(s=>s.position.x===4&&s.position.y===3)).toBe(false);
 });
 it('translates v1 once and preserves a defeated slime beneath the hero',()=>{
  const migrated=migrateOlderSave(raw(v1),()=>0)!;
- expect(migrated).toMatchObject({version:3,position:{x:7,y:6},hp:10,world:{version:2,layout:'legacy-expanded',width:20,height:20,slimes:[{id:'slime-1',position:{x:8,y:6}},{id:'slime-2',position:{x:3,y:3}},{id:'slime-3',position:{x:4,y:3}}]}});
+ expect(migrated).toMatchObject({version:4,position:{x:7,y:6},hp:5,world:{version:2,layout:'legacy-expanded',width:20,height:20,slimes:[{id:'slime-1',position:{x:8,y:6}},{id:'slime-2',position:{x:3,y:3}},{id:'slime-3',position:{x:4,y:3}}]}});
  const done=migrateOlderSave(raw({...v1,position:{x:6,y:4},completedEncounterIds:['slime-1']}),()=>0)!;
  expect(done.position).toEqual({x:8,y:6});expect(parseSave(raw(done))).toEqual(done);
 });
@@ -29,9 +29,9 @@ it('rejects invalid progress and permits standing only on a defeated slime',()=>
  expect(parseSave(raw({...cp,position:{x:8,y:8}}))).toBeNull();expect(parseSave(raw({...cp,position:{x:8,y:8},completedEncounterIds:['slime-2']}))).not.toBeNull();
 });
 it('never falls back past a present invalid newer save',()=>{
- const reads:string[]=[];expect(loadSave({getItem(key){reads.push(key);return raw(cp);}}).checkpoint).toEqual(cp);expect(reads).toEqual(['simple-rpg.save.v3']);
- expect(loadSave({getItem:key=>key.endsWith('v3')?'bad':raw(old)})).toMatchObject({status:'invalid',checkpoint:null,migrated:false});
- expect(loadSave({getItem:key=>key.endsWith('v3')?null:key.endsWith('v2')?'bad':raw(v1)})).toMatchObject({status:'invalid',checkpoint:null});
+ const reads:string[]=[];expect(loadSave({getItem(key){reads.push(key);return raw(cp);}}).checkpoint).toEqual(cp);expect(reads).toEqual(['simple-rpg.save.v4']);
+ expect(loadSave({getItem:key=>key.endsWith('v4')?'bad':raw(old)})).toMatchObject({status:'invalid',checkpoint:null,migrated:false});
+ expect(loadSave({getItem:key=>(key.endsWith('v4')||key.endsWith('v3'))?null:key.endsWith('v2')?'bad':raw(v1)})).toMatchObject({status:'invalid',checkpoint:null});
  expect(loadSave({getItem:key=>key.endsWith('v2')?raw(old):null},()=>0)).toMatchObject({status:'ready',migrated:true,checkpoint:{position:old.position}});
  expect(loadSave({getItem:key=>key.endsWith('v1')?raw(v1):null},()=>0)).toMatchObject({status:'ready',migrated:true,checkpoint:{position:{x:7,y:6}}});
 });

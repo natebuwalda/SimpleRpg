@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-import { enterBattle, seed, checkpoint } from './helpers';
+import { enterBattle, seed, checkpoint, attack, losingFaces, setCombatFaces } from './helpers';
 
 test('attack resolves one turn per activation', async ({ page }) => {
   await enterBattle(page);
@@ -8,14 +8,14 @@ test('attack resolves one turn per activation', async ({ page }) => {
     document.querySelector<HTMLButtonElement>('[data-action="attack"]')!.click();
     document.querySelector<HTMLButtonElement>('[data-action="attack"]')!.click();
   });
-  await expect(page.getByLabel('Hero health')).toHaveText('10 / 12 HP');
-  await expect(page.getByLabel('Slime health')).toHaveText('2 / 6 HP');
+  await expect(page.getByLabel('Hero health')).toHaveText('3 / 5 HP');
+  await expect(page.getByLabel('Slime health')).toHaveText('1 / 3 HP');
 });
 
 test('win and return', async ({ page }) => {
   await enterBattle(page);
-  await page.getByRole('button', { name: 'Attack', exact: true }).tap();
-  await page.getByRole('button', { name: 'Attack', exact: true }).tap();
+  await attack(page);
+  await attack(page);
   await expect(page.getByRole('heading', { name: 'Victory!' })).toBeVisible();
   await page.getByRole('button', { name: 'Back to clearing' }).tap();
   await expect(page.getByLabel('Position')).toHaveText('15, 14');
@@ -74,11 +74,11 @@ test('refresh continues exploration', async ({ page }) => {
 
 test('refresh during battle restores safe checkpoint', async ({ page }) => {
   await enterBattle(page);
-  await page.getByRole('button', { name: 'Attack', exact: true }).tap();
+  await attack(page);
   await page.reload();
   await page.getByRole('button', { name: 'Continue', exact: true }).tap();
   await expect(page.getByLabel('Position')).toHaveText('15, 14');
-  await expect(page.getByLabel('Hero health')).toHaveText('12 / 12 HP');
+  await expect(page.getByLabel('Hero health')).toHaveText('5 / 5 HP');
 });
 
 test('new game cancel preserves save', async ({ page }) => {
@@ -92,10 +92,10 @@ test('new game cancel preserves save', async ({ page }) => {
 });
 
 test('invalid save disables continue', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('simple-rpg.save.v3', '{broken'));
+  await page.addInitScript(() => localStorage.setItem('simple-rpg.save.v4', '{broken'));
   await page.goto('./');
   await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled();
-  await expect(page.getByRole('status')).toContainText('could not be read');
+  await expect(page.getByRole('status',{name:'Save status'})).toContainText('could not be read');
 });
 
 test('storage unavailable still permits play', async ({ page }) => {
@@ -104,17 +104,17 @@ test('storage unavailable still permits play', async ({ page }) => {
   await page.getByRole('button', { name: 'New Game', exact: true }).tap();
   await page.getByRole('button', { name: 'Move right' }).tap();
   await expect(page.getByLabel('Position')).toHaveText('4, 3');
-  await expect(page.getByRole('status')).toContainText('cannot be saved');
+  await expect(page.getByRole('status',{name:'Save status'})).toContainText('cannot be saved');
 });
 
 test('victory persists across refresh and cleared tile remains walkable', async ({ page }) => {
   await enterBattle(page);
-  await page.getByRole('button', { name: 'Attack', exact: true }).tap();
-  await page.getByRole('button', { name: 'Attack', exact: true }).tap();
+  await attack(page);
+  await attack(page);
   await expect(page.getByRole('heading', { name: 'Victory!' })).toBeVisible();
   await page.reload();
   await page.getByRole('button', { name: 'Continue', exact: true }).tap();
-  await expect(page.getByLabel('Hero health')).toHaveText('12 / 12 HP');
+  await expect(page.getByLabel('Hero health')).toHaveText('5 / 5 HP');
   await page.getByRole('button', { name: 'Move down' }).tap();
   await expect(page.getByLabel('Position')).toHaveText('15, 15');
   await page.reload();
@@ -124,20 +124,20 @@ test('victory persists across refresh and cleared tile remains walkable', async 
 
 test('defeat refresh preserves checkpoint and restart replaces it', async ({ page }) => {
   await page.goto('./');
-  await page.evaluate(value => localStorage.setItem('simple-rpg.save.v3',JSON.stringify(value)), {...checkpoint,position:{x:15,y:14},hp:2});
+  await page.evaluate(value => localStorage.setItem('simple-rpg.save.v4',JSON.stringify(value)), {...checkpoint,position:{x:15,y:14},hp:2});
   await page.reload();
   await page.getByRole('button', { name: 'Continue', exact: true }).tap();
   await page.getByRole('button', { name: 'Move down' }).tap();
-  await page.getByRole('button', { name: 'Attack', exact: true }).tap();
+  await attack(page, losingFaces);
   await expect(page.getByRole('heading', { name: 'Defeated', exact: true })).toBeVisible();
   await page.reload();
   await page.getByRole('button', { name: 'Continue', exact: true }).tap();
-  await expect(page.getByLabel('Hero health')).toHaveText('2 / 12 HP');
+  await expect(page.getByLabel('Hero health')).toHaveText('2 / 5 HP');
   await page.getByRole('button', { name: 'Move down' }).tap();
-  await page.getByRole('button', { name: 'Attack', exact: true }).tap();
+  await attack(page, losingFaces);
   await page.getByRole('button', { name: 'Restart', exact: true }).tap();
   await expect(page.getByLabel('Position')).toHaveText('3, 3');
-  await expect(page.getByLabel('Hero health')).toHaveText('12 / 12 HP');
+  await expect(page.getByLabel('Hero health')).toHaveText('5 / 5 HP');
   await page.reload();
   await page.getByRole('button', { name: 'Continue', exact: true }).tap();
   await expect(page.getByLabel('Position')).toHaveText('3, 3');
@@ -161,7 +161,7 @@ test('storage quota failure keeps play available', async ({ page }) => {
   await page.getByRole('button', { name: 'New Game', exact: true }).tap();
   await page.getByRole('button', { name: 'Move right' }).tap();
   await expect(page.getByLabel('Position')).toHaveText('4, 3');
-  await expect(page.getByRole('status')).toContainText('cannot be saved');
+  await expect(page.getByRole('status',{name:'Save status'})).toContainText('cannot be saved');
 });
 
 test('mobile controls fit through portrait and landscape rotation', async ({ page }) => {
@@ -189,13 +189,13 @@ test('battle ignores commands while hidden and resumes cleanly', async ({ page }
     document.dispatchEvent(new Event('visibilitychange'));
     document.querySelector<HTMLButtonElement>('[data-action="attack"]')!.click();
   });
-  await expect(page.getByLabel('Slime health')).toHaveText('6 / 6 HP');
+  await expect(page.getByLabel('Slime health')).toHaveText('3 / 3 HP');
   await page.evaluate(() => {
     Object.defineProperty(document, 'hidden', { configurable: true, value: false });
     document.dispatchEvent(new Event('visibilitychange'));
   });
-  await page.getByRole('button', { name: 'Attack', exact: true }).tap();
-  await expect(page.getByLabel('Slime health')).toHaveText('2 / 6 HP');
+  await attack(page);
+  await expect(page.getByLabel('Slime health')).toHaveText('1 / 3 HP');
 });
 
 test('production base path loads assets and survives refresh', async ({ page }) => {
@@ -220,7 +220,7 @@ test('a press begun during resolution cannot queue an attack', async ({ page }) 
   const now = new Date();
   await page.clock.install({ time: now });
   await page.clock.pauseAt(new Date(now.getTime() + 60_000));
-  await page.getByRole('button', { name: 'Attack', exact: true }).tap();
+  await attack(page);
   const button = page.getByRole('button', { name: 'Attack', exact: true });
   const box = (await button.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -230,7 +230,7 @@ test('a press begun during resolution cannot queue an attack', async ({ page }) 
   await page.clock.runFor(300);
   await expect(button).toBeEnabled();
   await page.mouse.up();
-  await expect(page.getByLabel('Slime health')).toHaveText('2 / 6 HP');
+  await expect(page.getByLabel('Slime health')).toHaveText('1 / 3 HP');
 });
 
 test('keyboard focus survives battle resolution', async ({ page }) => {
@@ -240,6 +240,7 @@ test('keyboard focus survives battle resolution', async ({ page }) => {
   await page.keyboard.press('Enter');
   await expect(attack).toBeEnabled();
   await expect(attack).toBeFocused();
+  await setCombatFaces(page, [8,8,8,8,8,1,1,1]);
   await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: 'Victory!' })).toBeVisible();
 });
@@ -273,5 +274,5 @@ test('space held during resolution cannot queue an attack', async ({ page }) => 
   await page.clock.runFor(300);
   await expect(attack).toBeEnabled();
   await page.keyboard.up(' ');
-  await expect(page.getByLabel('Slime health')).toHaveText('2 / 6 HP');
+  await expect(page.getByLabel('Slime health')).toHaveText('1 / 3 HP');
 });

@@ -2,11 +2,19 @@ name: Publish game
 
 on:
   workflow_dispatch:
+    inputs:
+      acceptance_ref:
+        description: 'Acceptance commit (defaults to repository ACCEPTANCE_REF)'
+        required: false
+        type: string
   push:
     branches: [main]
 
 permissions:
   contents: read
+
+env:
+  ACCEPTANCE_REF: ${{ inputs.acceptance_ref || vars.ACCEPTANCE_REF }}
 
 concurrency:
   group: github-pages
@@ -20,16 +28,44 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: main
+          path: production-source
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version-file: .nvmrc
+          node-version-file: production-source/.nvmrc
           cache: npm
+          cache-dependency-path: production-source/package-lock.json
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
       - run: npm ci
+        working-directory: production-source
       - run: npm run build
+        working-directory: production-source
+      - name: Assemble production site
+        run: |
+          mkdir -p site
+          cp -a production-source/dist/. site/
+      - name: Check out pinned acceptance revision
+        if: env.ACCEPTANCE_REF != ''
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ env.ACCEPTANCE_REF }}
+          path: acceptance-source
+      - run: npm ci
+        if: env.ACCEPTANCE_REF != ''
+        working-directory: acceptance-source
+      - name: Build acceptance game
+        if: env.ACCEPTANCE_REF != ''
+        run: npm run build -- --base=/SimpleRpg/acceptance/
+        working-directory: acceptance-source
+      - name: Add acceptance to the site
+        if: env.ACCEPTANCE_REF != ''
+        run: |
+          mkdir -p site/acceptance
+          cp -a acceptance-source/dist/. site/acceptance/
       - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
         with:
-          path: dist
+          path: site
   deploy:
     needs: build
     runs-on: ubuntu-latest

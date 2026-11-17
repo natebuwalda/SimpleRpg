@@ -10,7 +10,7 @@ const raw = (v:unknown) => JSON.stringify(v);
 it('round trips a complete world', () => {
  let value:string|null=null;
  const modern=makeCheckpoint();
- expect(saveGame({setItem(key,v){expect(key).toBe('simple-rpg.save.v3');value=v;}},modern)).toBe(true);
+ expect(saveGame({setItem(key,v){expect(key).toBe('simple-rpg.save.v4');value=v;}},modern)).toBe(true);
  expect(loadSave({getItem:()=>value})).toEqual({checkpoint:modern,status:'ready',migrated:false,source:null});
 });
 it('translates legacy hero and landmarks without losing progress', () => {
@@ -26,9 +26,9 @@ it('allows only cleared encounter tiles',()=>{
 });
 it('prefers v2 and never resurrects stale v1',()=>{
  const reads:string[]=[];
- expect(loadSave({getItem(key){reads.push(key);return key.endsWith('v3')?null:key.endsWith('v2')?raw(checkpoint):raw(legacy);}},()=>0)).toMatchObject({checkpoint:{position:checkpoint.position},status:'ready',migrated:true});
- expect(reads).toEqual(['simple-rpg.save.v3','simple-rpg.save.v2']);
- expect(loadSave({getItem:key=>key.endsWith('v3')?null:key.endsWith('v2')?'broken':raw(legacy)})).toMatchObject({checkpoint:null,status:'invalid',migrated:false});
+ expect(loadSave({getItem(key){reads.push(key);return (key.endsWith('v4')||key.endsWith('v3'))?null:key.endsWith('v2')?raw(checkpoint):raw(legacy);}},()=>0)).toMatchObject({checkpoint:{position:checkpoint.position},status:'ready',migrated:true});
+ expect(reads).toEqual(['simple-rpg.save.v4','simple-rpg.save.v3','simple-rpg.save.v2']);
+ expect(loadSave({getItem:key=>(key.endsWith('v4')||key.endsWith('v3'))?null:key.endsWith('v2')?'broken':raw(legacy)})).toMatchObject({checkpoint:null,status:'invalid',migrated:false});
 });
 it('falls back only when v2 absent',()=>{
  expect(loadSave({getItem:key=>key.endsWith('v1')?raw(legacy):null})).toMatchObject({status:'ready',migrated:true,checkpoint:{position:{x:7,y:6}}});
