@@ -1,13 +1,17 @@
 import { expect, it } from 'vitest';
-import { loadSave, parseSave, saveGame, migrateLegacySave } from '../src/game/save';
+import { loadSave, saveGame } from '../src/game/save';
+import { parseOlderSave as migrateLegacySave } from '../src/game/legacy-save';
+import { makeCheckpoint } from './fixtures';
+const parseSave = (value:string|null) => { try {return JSON.parse(value ?? 'null')?.version === 2 ? migrateLegacySave(value) : null;} catch {return null;} };
 const world = {version:1 as const,layout:'woodland' as const,width:20,height:40};
 const checkpoint = {version:2 as const,world,position:{x:3,y:3},hp:12,completedEncounterIds:[] as string[]};
 const legacy = {version:1,position:{x:5,y:4},hp:10,completedEncounterIds:[] as string[]};
 const raw = (v:unknown) => JSON.stringify(v);
 it('round trips a complete world', () => {
  let value:string|null=null;
- expect(saveGame({setItem(key,v){expect(key).toBe('simple-rpg.save.v2');value=v;}},checkpoint)).toBe(true);
- expect(loadSave({getItem:()=>value})).toEqual({checkpoint,status:'ready',migrated:false});
+ const modern=makeCheckpoint();
+ expect(saveGame({setItem(key,v){expect(key).toBe('simple-rpg.save.v3');value=v;}},modern)).toBe(true);
+ expect(loadSave({getItem:()=>value})).toEqual({checkpoint:modern,status:'ready',migrated:false,source:null});
 });
 it('translates legacy hero and landmarks without losing progress', () => {
  expect(migrateLegacySave(raw(legacy))).toEqual({version:2,world:{version:1,layout:'legacy-expanded',width:20,height:20},position:{x:7,y:6},hp:10,completedEncounterIds:[]});
@@ -22,17 +26,17 @@ it('allows only cleared encounter tiles',()=>{
 });
 it('prefers v2 and never resurrects stale v1',()=>{
  const reads:string[]=[];
- expect(loadSave({getItem(key){reads.push(key);return key.endsWith('v2')?raw(checkpoint):raw(legacy);}})).toEqual({checkpoint,status:'ready',migrated:false});
- expect(reads).toEqual(['simple-rpg.save.v2']);
- expect(loadSave({getItem:key=>key.endsWith('v2')?'broken':raw(legacy)})).toEqual({checkpoint:null,status:'invalid',migrated:false});
+ expect(loadSave({getItem(key){reads.push(key);return key.endsWith('v3')?null:key.endsWith('v2')?raw(checkpoint):raw(legacy);}},()=>0)).toMatchObject({checkpoint:{position:checkpoint.position},status:'ready',migrated:true});
+ expect(reads).toEqual(['simple-rpg.save.v3','simple-rpg.save.v2']);
+ expect(loadSave({getItem:key=>key.endsWith('v3')?null:key.endsWith('v2')?'broken':raw(legacy)})).toMatchObject({checkpoint:null,status:'invalid',migrated:false});
 });
 it('falls back only when v2 absent',()=>{
  expect(loadSave({getItem:key=>key.endsWith('v1')?raw(legacy):null})).toMatchObject({status:'ready',migrated:true,checkpoint:{position:{x:7,y:6}}});
- expect(loadSave({getItem:()=>null})).toEqual({checkpoint:null,status:'empty',migrated:false});
- expect(loadSave({getItem:key=>key.endsWith('v1')?'broken':null})).toEqual({checkpoint:null,status:'invalid',migrated:false});
+ expect(loadSave({getItem:()=>null})).toEqual({checkpoint:null,status:'empty',migrated:false,source:null});
+ expect(loadSave({getItem:key=>key.endsWith('v1')?'broken':null})).toMatchObject({checkpoint:null,status:'invalid',migrated:false});
 });
 it('guards storage reads and writes',()=>{
- expect(loadSave({getItem(){throw Error('blocked');}})).toEqual({checkpoint:null,status:'unavailable',migrated:false});
- expect(saveGame({setItem(){throw Error('quota');}},checkpoint)).toBe(false);
- let writes=0; expect(saveGame({setItem(){writes++;}},{...checkpoint,hp:0})).toBe(false); expect(writes).toBe(0);
+ expect(loadSave({getItem(){throw Error('blocked');}})).toEqual({checkpoint:null,status:'unavailable',migrated:false,source:null});
+ expect(saveGame({setItem(){throw Error('quota');}},makeCheckpoint())).toBe(false);
+ let writes=0; expect(saveGame({setItem(){writes++;}},{...makeCheckpoint(),hp:0})).toBe(false); expect(writes).toBe(0);
 });

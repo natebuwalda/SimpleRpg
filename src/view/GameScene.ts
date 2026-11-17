@@ -2,7 +2,9 @@ import Phaser from 'phaser';
 import type { GameState, Position, WorldDefinition } from '../game/types';
 import { ENCOUNTER_ID, isWalkable, getLandmarks } from '../game/world';
 import { VIEWPORT_TILES, TILE_SIZE, updateViewport, worldToScreen } from '../game/viewport';
-const PREVIEW_WORLD: WorldDefinition = {version:1,layout:'woodland',width:20,height:20};
+const PREVIEW_WORLD: WorldDefinition = {version:2,layout:'woodland',width:20,height:20,slimes:[
+  {id:'slime-1',position:{x:5,y:3}}, {id:'slime-2',position:{x:8,y:8}}, {id:'slime-3',position:{x:15,y:15}},
+]};
 
 export class GameScene extends Phaser.Scene {
   private drawing?: Phaser.GameObjects.Graphics;

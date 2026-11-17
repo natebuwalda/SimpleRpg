@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-import { enterBattle } from './helpers';
+import { enterBattle, seed, checkpoint } from './helpers';
 
 test('attack resolves one turn per activation', async ({ page }) => {
   await enterBattle(page);
@@ -41,8 +41,7 @@ test('title fits phone', async ({ page }) => {
 });
 
 test('touch and keyboard respect collision', async ({ page }) => {
-  await page.goto('./');
-  await page.getByRole('button', { name: 'New Game', exact: true }).tap();
+  await seed(page);
   await expect(page.getByLabel('Position')).toHaveText('3, 3');
   await page.getByRole('button', { name: 'Move left' }).tap();
   await page.getByRole('button', { name: 'Move left' }).tap();
@@ -52,8 +51,7 @@ test('touch and keyboard respect collision', async ({ page }) => {
 });
 
 test('blur and repeated keys do not add movement', async ({ page }) => {
-  await page.goto('./');
-  await page.getByRole('button', { name: 'New Game', exact: true }).tap();
+  await seed(page);
   await page.keyboard.down('ArrowRight');
   await page.keyboard.down('ArrowRight');
   await expect(page.getByLabel('Position')).toHaveText('4, 3');
@@ -67,8 +65,7 @@ test('blur and repeated keys do not add movement', async ({ page }) => {
 });
 
 test('refresh continues exploration', async ({ page }) => {
-  await page.goto('./');
-  await page.getByRole('button', { name: 'New Game', exact: true }).tap();
+  await seed(page);
   await page.getByRole('button', { name: 'Move right' }).tap();
   await page.reload();
   await page.getByRole('button', { name: 'Continue', exact: true }).tap();
@@ -85,8 +82,7 @@ test('refresh during battle restores safe checkpoint', async ({ page }) => {
 });
 
 test('new game cancel preserves save', async ({ page }) => {
-  await page.goto('./');
-  await page.getByRole('button', { name: 'New Game', exact: true }).tap();
+  await seed(page);
   await page.getByRole('button', { name: 'Move right' }).tap();
   await page.reload();
   await page.getByRole('button', { name: 'New Game', exact: true }).tap();
@@ -96,14 +92,14 @@ test('new game cancel preserves save', async ({ page }) => {
 });
 
 test('invalid save disables continue', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('simple-rpg.save.v2', '{broken'));
+  await page.addInitScript(() => localStorage.setItem('simple-rpg.save.v3', '{broken'));
   await page.goto('./');
   await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled();
   await expect(page.getByRole('status')).toContainText('could not be read');
 });
 
 test('storage unavailable still permits play', async ({ page }) => {
-  await page.addInitScript(() => Object.defineProperty(window, 'localStorage', { get() { throw new Error('blocked'); } }));
+  await page.addInitScript(() => { Math.random=()=>.5; Object.defineProperty(window, 'localStorage', { get() { throw new Error('blocked'); } }); });
   await page.goto('./');
   await page.getByRole('button', { name: 'New Game', exact: true }).tap();
   await page.getByRole('button', { name: 'Move right' }).tap();
@@ -128,7 +124,7 @@ test('victory persists across refresh and cleared tile remains walkable', async 
 
 test('defeat refresh preserves checkpoint and restart replaces it', async ({ page }) => {
   await page.goto('./');
-  await page.evaluate(() => localStorage.setItem('simple-rpg.save.v2', JSON.stringify({ version: 2, world: {version:1,layout:'woodland',width:20,height:20}, position: { x: 15, y: 14 }, hp: 2, completedEncounterIds: [] })));
+  await page.evaluate(value => localStorage.setItem('simple-rpg.save.v3',JSON.stringify(value)), {...checkpoint,position:{x:15,y:14},hp:2});
   await page.reload();
   await page.getByRole('button', { name: 'Continue', exact: true }).tap();
   await page.getByRole('button', { name: 'Move down' }).tap();
@@ -148,8 +144,7 @@ test('defeat refresh preserves checkpoint and restart replaces it', async ({ pag
 });
 
 test('confirm new game replaces the old save', async ({ page }) => {
-  await page.goto('./');
-  await page.getByRole('button', { name: 'New Game', exact: true }).tap();
+  await seed(page);
   await page.getByRole('button', { name: 'Move right' }).tap();
   await page.reload();
   await page.getByRole('button', { name: 'New Game', exact: true }).tap();
@@ -161,7 +156,7 @@ test('confirm new game replaces the old save', async ({ page }) => {
 });
 
 test('storage quota failure keeps play available', async ({ page }) => {
-  await page.addInitScript(() => { Storage.prototype.setItem = () => { throw new Error('quota'); }; });
+  await page.addInitScript(() => { Math.random=()=>.5; Storage.prototype.setItem = () => { throw new Error('quota'); }; });
   await page.goto('./');
   await page.getByRole('button', { name: 'New Game', exact: true }).tap();
   await page.getByRole('button', { name: 'Move right' }).tap();
@@ -254,6 +249,7 @@ test('another tab saving requires confirmation before new game', async ({ page, 
   const other = await context.newPage();
   await other.goto('./');
   await page.bringToFront();
+  await page.evaluate(()=>{Math.random=()=>.5;});
   await page.getByRole('button', { name: 'New Game', exact: true }).click();
   await page.getByRole('button', { name: 'Move right' }).click();
   await other.bringToFront();

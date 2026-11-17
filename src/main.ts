@@ -3,7 +3,8 @@ import { GameScene } from './view/GameScene';
 import { mountUi } from './view/ui';
 import type { UiAction, Direction } from './game/types';
 import { createSession, transition } from './game/session';
-import { loadSave, saveGame } from './game/save';
+import { loadSave, saveGame, type MigrationResolver, type MigrationSource } from './game/save';
+import type { Checkpoint } from './game/types';
 import { VIEWPORT_TILES, TILE_SIZE } from './game/viewport';
 import { generateWorld } from './game/world';
 import './style.css';
@@ -13,8 +14,13 @@ let state = createSession();
 const scene = new GameScene();
 let storage: Storage | null = null;
 try { storage = window.localStorage; } catch { /* Play without persistent storage. */ }
+let migrationCache: {source:MigrationSource;checkpoint:Checkpoint|null} | null = null;
+const resolveMigration: MigrationResolver = (source, create) => {
+  if (!migrationCache || migrationCache.source.key !== source.key || migrationCache.source.raw !== source.raw) migrationCache = {source,checkpoint:create()};
+  return migrationCache.checkpoint;
+};
 function readSave() {
-  const result = storage ? loadSave(storage) : { checkpoint: null, status: 'unavailable' as const, migrated: false };
+  const result = storage ? loadSave(storage, Math.random, resolveMigration) : { checkpoint: null, status: 'unavailable' as const, migrated: false, source:null };
   if (result.migrated && result.checkpoint && storage && !saveGame(storage, result.checkpoint)) return { ...result, status: 'unavailable' as const };
   return result;
 }
