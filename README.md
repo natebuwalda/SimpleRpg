@@ -2,7 +2,7 @@
 
 A small browser RPG built with TypeScript, Phaser, and Vite. Iteration 2 adds three independently tracked random slime placements to the saved worlds and buffered scrolling.
 
-**[Play the browser game](https://natebuwalda.github.io/SimpleRpg/)** — currently the accepted Iteration 1 release; Iteration 2 awaits review and release.
+**[Play the Iteration 2 exploratory preview](https://natebuwalda.github.io/SimpleRpg/)** — deployed from the feature branch for phone testing; its PR remains unmerged.
 
 ## Development
 

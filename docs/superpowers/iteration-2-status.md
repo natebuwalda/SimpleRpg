@@ -1,6 +1,6 @@
 # Iteration 2 implementation status
 
-Implemented natively on `codex/iteration-2`, based on accepted Iteration1 main `6057b5d`. Owner approved the design and implementation plan on November17,2026. Independent review is complete with no actionable findings. [Draft PR #3](https://github.com/natebuwalda/SimpleRpg/pull/3) contains the implementation; no merge or public deployment has been performed.
+Implemented natively on `codex/iteration-2`, based on accepted Iteration1 main `6057b5d`. Owner approved the design and implementation plan on November17,2026. Independent review is complete with no actionable findings. [Draft PR #3](https://github.com/natebuwalda/SimpleRpg/pull/3) contains the implementation. The owner subsequently authorized the exploratory deployment recorded below; the PR remains unmerged.
 
 ## Delivered behavior
 
@@ -47,4 +47,12 @@ Initial GitHub Ubuntu26 checks passed typecheck,125 unit tests and the build, bu
 
 ## Release and acceptance boundary
 
-The public game at https://natebuwalda.github.io/SimpleRpg/ remains the accepted Iteration1 release. Owner direction is required before deploying Iteration2 for phone acceptance or merging its PR. Automatic publishing stays main-only. The existing manual Publish game workflow can deploy an authorized branch after adding its exact temporary Pages environment allowance through native GitHub credentials; remove that allowance on merge. Do not change workflow triggers or copy credentials into cloud files/messages.
+The public game at https://natebuwalda.github.io/SimpleRpg/ now hosts the authorized Iteration2 exploratory preview; main remains accepted Iteration1. Owner phone acceptance and merge authorization remain pending. Automatic publishing stays main-only. The feature branch has a temporary Pages environment allowance for manual preview deployments; remove it on merge. No workflow triggers were changed and no credentials were copied into cloud files/messages.
+
+## Exploratory deployment
+
+The owner authorized exploratory testing. Native GitHub credentials added the exact `codex/iteration-2` deployment-branch allowance alongside main, then dispatched the existing manual Publish game workflow for `8f8d644b52f51ae96ba933b1fe71fdf9e952a584`. Checks, build and deployment succeeded: https://github.com/natebuwalda/SimpleRpg/actions/runs/44147780480 .
+
+A Chromium check against the actual public URL generated a26x33 world with three distinct traversable, non-start placements. It verified Run, all three independent victories and remaining counts3/2/1/0, exact world/partial progress after reload, the peaceful message at zero, and Restart restoring the same original placements after a low-HP defeat fixture. No failed requests or runtime errors occurred. The hosted phone-sized screenshot was inspected.
+
+For phone exploration, New Game starts with all three slimes. Continue preserves earlier progress: migrating an older save whose original slime was defeated correctly leaves two living slimes until Restart. Defeated slimes remain gone after reload. Restart is available after defeat and restores the same three placements.
