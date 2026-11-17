@@ -1,7 +1,10 @@
 import { defineConfig } from '@playwright/test';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 export default defineConfig({
   testDir: './e2e',
+  outputDir: process.env.PLAYWRIGHT_OUTPUT_DIR ?? join(tmpdir(), 'simple-rpg-playwright'),
   fullyParallel: true,
   timeout: 60_000,
   workers: 4,

@@ -39,7 +39,8 @@ export function loadSave(storage: Pick<Storage, 'getItem'>, random: () => number
       const raw = storage.getItem(key);
       if (raw === null) continue;
       const source = key === SAVE_KEY ? null : {key,raw};
-      const checkpoint = source ? resolveMigration(source, () => migrateOlderSave(raw, random)) : parseSave(raw);
+      const expectedVersion = key === PREVIOUS_SAVE_KEY ? 2 : 1;
+      const checkpoint = source ? resolveMigration(source, () => decodeRecord(raw)?.version === expectedVersion ? migrateOlderSave(raw, random) : null) : parseSave(raw);
       return {checkpoint,status:checkpoint?'ready':'invalid',migrated:source !== null && checkpoint !== null,source};
     }
     return {checkpoint:null,status:'empty',migrated:false,source:null};

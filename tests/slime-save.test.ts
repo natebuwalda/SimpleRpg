@@ -40,3 +40,13 @@ it('passes exact source contents to the migration resolver',()=>{
  const result=loadSave({getItem:key=>key===source.key?source.raw:null},()=>0,(actual,create)=>{expect(actual).toEqual(source);calls++;return create();});
  expect(result.source).toEqual(source);expect(result.checkpoint?.world.slimes).toHaveLength(3);expect(calls).toBe(1);
 });
+it('does not reinterpret an older key containing the wrong schema version',()=>{
+ expect(loadSave({getItem:key=>key.endsWith('v2')?raw(v1):null},()=>0)).toMatchObject({status:'invalid',checkpoint:null});
+ expect(loadSave({getItem:key=>key.endsWith('v1')?raw(old):null},()=>0)).toMatchObject({status:'invalid',checkpoint:null});
+});
+it.each([
+ {...cp,version:2}, {...cp,hp:0}, {...cp,hp:13}, {...cp,hp:1.5}, {...cp,hp:'12'},
+ {...cp,world:{...cp.world,version:1}}, {...cp,world:{...cp.world,width:19}}, {...cp,world:{...cp.world,height:41}},
+ {...cp,world:{...cp.world,width:20.5}}, {...cp,world:{...cp.world,layout:'unknown'}},
+ {...cp,position:{x:6,y:5}}, {...cp,position:{x:2,y:3}}, {...cp,position:{x:3.5,y:3}},
+])('rejects invalid current checkpoint state %j',value=>expect(parseSave(raw(value))).toBeNull());

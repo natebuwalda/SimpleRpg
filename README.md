@@ -1,8 +1,8 @@
 # SimpleRpg
 
-A small browser RPG built with TypeScript, Phaser, and Vite. Iteration 1 adds larger saved worlds and buffered scrolling to the phone-friendly exploration and battle loop.
+A small browser RPG built with TypeScript, Phaser, and Vite. Iteration 2 adds three independently tracked random slime placements to the saved worlds and buffered scrolling.
 
-**[Play the browser game](https://natebuwalda.github.io/SimpleRpg/)** · [Iteration 0 pull request](https://github.com/natebuwalda/SimpleRpg/pull/1)
+**[Play the browser game](https://natebuwalda.github.io/SimpleRpg/)** — currently the accepted Iteration 1 release; Iteration 2 awaits review and release.
 
 ## Development
 
@@ -10,13 +10,17 @@ Use Node 24.21.0 (see `.nvmrc`), then `npm ci` and `npm run dev`. Open the print
 
 Checks: `npm run typecheck`, `npm test`, `npm run test:e2e`, and `npm run build`. Before browser tests, run `npx playwright install chromium`. Cloud environments with an installed Chromium can set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium` for browser checks. Build output is `dist/`; `npm run preview` serves it locally.
 
+Playwright traces/results use the OS temporary directory `simple-rpg-playwright` to avoid OneDrive file-locking issues. Set `PLAYWRIGHT_OUTPUT_DIR` to override it. Explicit phone screenshots remain under ignored `test-results/`.
+
 Design and task plan are under `docs/superpowers/`.
 
 ## Play
 
-Tap the directional buttons or press arrows/WASD to move one tile per press. Each New Game independently chooses a width and height of 20–40 tiles. The panel shows 10 × 10 tiles; it scrolls only when needed to keep three visible tiles ahead, with a three-tile impassable forest border and no fog. Follow the path to the slime at (width−5, height−5); choose Attack or Run. Two attacks win. Run always succeeds. Victory heals the hero and clears the encounter. New Game asks before replacing an existing save.
+Tap the directional buttons or press arrows/WASD to move one tile per press. Each New Game independently chooses a width and height of 20–40 tiles and places three stationary slimes on distinct traversable tiles, excluding the hero's start. Paths are decoration, not directions to the slimes. The panel shows 10 × 10 tiles; it scrolls only when needed to keep three visible tiles ahead, with a three-tile impassable forest border and no fog. Choose Attack or Run when you enter a living slime's tile. Two attacks win; Run always succeeds. Victory heals the hero and removes only that slime. The remaining count reaches zero when the whole clearing is peaceful. New Game asks before replacing an existing save.
 
-Progress saves automatically on this browser/device, including the exact world definition. Restart after defeat resets progress in the same world. Valid Iteration 0 saves migrate to a 20 × 20 legacy world, translating the hero and landmarks by (+2,+2) and preserving HP and cleared encounters. The original v1 save remains as a recovery copy; an invalid v2 save never falls back to stale v1 progress. Refresh returns to the title; Continue resumes the last exploration checkpoint. Refreshing during battle or defeat restores the checkpoint before that encounter. Saves do not sync across devices and may be lost if browser data is cleared. Blocked or full browser storage allows play with a warning. Network access is required to load the game; offline play is not guaranteed.
+Progress saves automatically on this browser/device, including slime positions and independent defeats. Restart after defeat resets HP/progress and restores the same three slime placements in the same world. Refresh returns to the title; Continue resumes the last exploration checkpoint. Refreshing during battle or defeat restores the checkpoint before that encounter; it does not restore earlier defeated slimes.
+
+Valid v1/v2 saves upgrade to v3, retaining the old slime and its defeated state and adding two placements away from the start/current hero. v1 retains the accepted (+2,+2) legacy-world translation. Original older keys remain as recovery copies. A present invalid newer save never falls back to stale older progress. If upgrade writes are blocked, Continue remains playable and the same upgrade is cached within that page session; reloading while all writes remain blocked may choose different added placements. A warning remains visible. Saves do not sync across devices and may be lost if browser data is cleared. Network access is required to load the game; offline play is not guaranteed.
 
 Browser checks cover touch and keyboard, battle/reload/Continue, storage failures, and 320x568, 390x844, and 844x390 layouts. The owner also passed the physical-phone test plan and accepted Iteration 0.
 
@@ -28,4 +32,4 @@ Releases deploy from `main` or a manually selected workflow ref permitted by the
 
 The initial Actions deployment succeeded and the hosted game passed an automated touch exploration → battle → victory → refresh → Continue check with no failed asset requests or runtime errors. The owner also completed and accepted all physical-phone acceptance checks; see [implementation status](docs/superpowers/iteration-0-status.md).
 
-Iteration 1 verification and pending release/phone acceptance steps are recorded in [Iteration 1 status](docs/superpowers/iteration-1-status.md). The public game remains Iteration 0 until an authorized release.
+Iteration 1 was accepted and merged in [PR #2](https://github.com/natebuwalda/SimpleRpg/pull/2). Iteration 2 verification and remaining release/phone acceptance steps are recorded in [Iteration 2 status](docs/superpowers/iteration-2-status.md).
