@@ -13,6 +13,9 @@ export const PREVIOUS_SAVE_KEY = keys.v2;
 export const LEGACY_SAVE_KEY = keys.v1;
 export type MigrationSource = { key: string; raw: string };
 export type MigrationResolver = (source: MigrationSource, create: () => Checkpoint | null) => Checkpoint | null;
+export function checkpointSignature(checkpoint:Checkpoint|null):string {
+  return JSON.stringify(checkpoint ? parseSave(JSON.stringify(checkpoint)) : null);
+}
 export function parseSave(raw: string | null): Checkpoint | null {
   const v = decodeRecord(raw);
   if (!v || v.version !== 5 || !isValidCharacter(v.character)) return null;

@@ -7,6 +7,7 @@ const label=(key:string)=>key[0].toUpperCase()+key.slice(1);
 
 export function mountCharacterCreation(root:HTMLElement,callbacks:Callbacks) {
   let draft=createCharacterDraft(),step=0,confirming=false;
+  let pending=false,confirmReady=false,pointerAllowed=false,confirmTimer:number|undefined;
   const controller=new AbortController();
   root.innerHTML=`<section class="creation" aria-label="Character creation"><div class="creation-body"></div><footer class="creation-actions"></footer></section><p class="sr-only" role="status" aria-label="Creation result" aria-atomic="true"></p>`;
   const body=root.querySelector<HTMLElement>('.creation-body')!, actions=root.querySelector<HTMLElement>('.creation-actions')!, live=root.querySelector<HTMLElement>('[role="status"]')!;
@@ -36,7 +37,7 @@ export function mountCharacterCreation(root:HTMLElement,callbacks:Callbacks) {
   function render(focus=true,changed=false){
     if(confirming){
       body.innerHTML=`<div class="eyebrow">A FRESH START</div><h1 tabindex="-1">Begin again?</h1><p class="description">Starting over will replace your saved adventure.</p>${changed?'<p class="creation-notice">Your saved adventure changed. Confirm again to replace it.</p>':''}`;
-      actions.innerHTML=`<button type="button" data-creation-action="cancel-confirm">Cancel</button><button type="button" class="primary" data-creation-action="confirm">Start Over</button>`;
+      actions.innerHTML=`<button type="button" data-creation-action="cancel-confirm">Cancel</button><button type="button" class="primary" data-creation-action="confirm" ${!confirmReady||pending?'disabled':''}>Start Over</button>`;
       if(changed)live.textContent='Your saved adventure changed. Confirm again to replace it.';
       if(focus)actions.querySelector<HTMLButtonElement>('button')!.focus();
       body.scrollTop=0;return;
@@ -56,8 +57,14 @@ export function mountCharacterCreation(root:HTMLElement,callbacks:Callbacks) {
       root.querySelector<HTMLButtonElement>('[data-creation-action="next"]')!.disabled=!readyForNext();
     }
   },{signal:controller.signal});
+  root.addEventListener('pointerdown',event=>{
+    const button=(event.target as Element).closest<HTMLButtonElement>('button');
+    pointerAllowed=!!button&&!button.disabled&&!pending;
+  },{capture:true,signal:controller.signal});
+  root.addEventListener('pointercancel',()=>{pointerAllowed=false;},{signal:controller.signal});
   root.addEventListener('click',event=>{
-    const button=(event.target as Element).closest<HTMLButtonElement>('button');if(!button||button.disabled)return;
+    const button=(event.target as Element).closest<HTMLButtonElement>('button');if(!button||button.disabled||pending||(event.detail>0&&!pointerAllowed))return;
+    pointerAllowed=false;
     if(button.dataset.delta){
       const change={group:button.dataset.group,key:button.dataset.key,delta:Number(button.dataset.delta)} as AllocationChange;
       const next=allocatePoint(draft,change);if(next===draft)return;draft=next;updateAllocation();
@@ -70,12 +77,20 @@ export function mountCharacterCreation(root:HTMLElement,callbacks:Callbacks) {
       case 'cancel': callbacks.onCancel();break;
       case 'cancel-confirm': confirming=false;render();break;
       case 'begin': {const character=finishCharacter(draft);if(!confirming&&step===2&&character)callbacks.onBegin(character);break;}
-      case 'confirm': {const character=finishCharacter(draft);if(confirming&&character)callbacks.onConfirm(character);break;}
+      case 'confirm': {const character=finishCharacter(draft);if(confirming&&confirmReady&&character)callbacks.onConfirm(character);break;}
     }
   },{signal:controller.signal});
   render();
   return {
-    showOverwriteConfirmation(changed=false){confirming=true;render(true,changed);},
-    destroy(){controller.abort();root.replaceChildren();},
+    showOverwriteConfirmation(changed=false){
+      confirming=true;confirmReady=false;pointerAllowed=false;window.clearTimeout(confirmTimer);render(true,changed);
+      confirmTimer=window.setTimeout(()=>{confirmReady=true;if(!pending&&confirming)actions.querySelector<HTMLButtonElement>('[data-creation-action="confirm"]')!.disabled=false;},300);
+    },
+    setPending(value:boolean){
+      pending=value;root.setAttribute('aria-busy',String(value));
+      root.querySelectorAll<HTMLInputElement|HTMLButtonElement>('input,button').forEach(element=>{element.disabled=value;});
+      if(!value){if(confirming)actions.querySelector<HTMLButtonElement>('[data-creation-action="confirm"]')!.disabled=!confirmReady;else updateAllocation();}
+    },
+    destroy(){window.clearTimeout(confirmTimer);controller.abort();root.removeAttribute('aria-busy');root.replaceChildren();},
   };
 }

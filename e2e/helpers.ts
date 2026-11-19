@@ -14,15 +14,19 @@ export async function startAdventure(page:Page,build=checkpoint.character) {
   await page.getByRole('button',{name:'New Game',exact:true}).click();
   await createCharacter(page,build);
   await page.getByRole('button',{name:'Begin adventure',exact:true}).click();
+  await expect(page.getByLabel('Hero health').or(page.getByRole('button',{name:'Start Over',exact:true}))).toBeVisible();
+  await expect(page.locator('#screen')).toHaveAttribute('aria-busy','false');
 }
 export async function seed(page:Page, value = checkpoint) {
   await page.goto('./');
   await page.evaluate(value => localStorage.setItem('simple-rpg.save.v5',JSON.stringify(value)), value);
   await page.reload();
   await page.getByRole('button',{name:'Continue',exact:true}).tap();
+  await expect(page.getByLabel('Position')).toBeVisible();
+  await expect(page.locator('#screen')).toHaveAttribute('aria-busy','false');
 }
 export async function steps(page:Page, direction:string, count=1) {
-  for(let i=0;i<count;i++) await page.getByRole('button',{name:`Move ${direction}`,exact:true}).tap();
+  for(let i=0;i<count;i++) {await page.getByRole('button',{name:`Move ${direction}`,exact:true}).tap();await expect(page.locator('#screen')).toHaveAttribute('aria-busy','false');}
 }
 export async function enterBattle(page:Page) {
   await seed(page);
@@ -49,7 +53,9 @@ export async function setCombatFaces(page: Page, faces: number[]): Promise<void>
 }
 export async function attack(page: Page, faces = tradingFaces): Promise<void> {
   await expect(page.getByRole('button', { name: 'Attack', exact: true })).toBeEnabled();
+  const result=page.getByRole('status',{name:'Combat result'}),before=await result.textContent();
   await setCombatFaces(page, faces);
   await page.getByRole('button', { name: 'Attack', exact: true }).tap();
+  await expect(result).not.toHaveText(before??'');
   await page.evaluate(() => { Math.random = window.__combatOriginal!; });
 }

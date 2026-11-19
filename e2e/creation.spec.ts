@@ -140,6 +140,7 @@ test('a Combat-zero adventure retains damage, heals to its max and Restarts the 
   await attack(page,[1,1,1,1, 8,1,1, 1,1]);
   await expect(page.getByLabel('Hero health')).toHaveText('2 / 3 HP');
   await page.getByRole('button',{name:'Run',exact:true}).click();
+  await expect(page.getByLabel('Position')).toHaveText('15, 14');
   await page.reload();await page.getByRole('button',{name:'Continue',exact:true}).click();
   await expect(page.getByLabel('Hero health')).toHaveText('2 / 3 HP');await steps(page,'down');
   await attack(page,[10,10, 1,1,1, 1,1,1, 1,1]);await attack(page,[8, 1,1,1]);
@@ -153,6 +154,79 @@ test('a Combat-zero adventure retains damage, heals to its max and Restarts the 
 
 test('repeated overwrite confirmation creates one replacement',async({page})=>{
   await seed(page);await page.reload();await startAdventure(page);
+  await expect(page.getByRole('button',{name:'Start Over',exact:true})).toBeEnabled();
   await page.evaluate(()=>{let count=0;const original=Storage.prototype.setItem;Object.defineProperty(window,'__creationWrites',{get:()=>count});Storage.prototype.setItem=function(key,value){if(key==='simple-rpg.save.v5')count++;return original.call(this,key,value);};const button=document.querySelector<HTMLButtonElement>('[data-creation-action="confirm"]')!;button.click();button.click();});
   await expect(page.getByLabel('Position')).toHaveText('3, 3');expect(await page.evaluate(()=>window.__creationWrites)).toBe(1);
+});
+
+test('a real double-click cannot click through Begin into destructive confirmation',async({page})=>{
+  await seed(page);await page.reload();const saved=await page.evaluate(()=>localStorage.getItem('simple-rpg.save.v5'));
+  await page.getByRole('button',{name:'New Game',exact:true}).click();await createCharacter(page,scholar);
+  await page.getByRole('button',{name:'Begin adventure',exact:true}).dblclick({delay:35});
+  expect(await page.evaluate(()=>localStorage.getItem('simple-rpg.save.v5'))).toBe(saved);
+  await expect(page.getByRole('button',{name:'Start Over',exact:true})).toBeVisible();
+  await expect(page.getByLabel('Hero health')).toHaveCount(0);
+});
+
+test('a double-click on changed-save confirmation requires another fresh gesture',async({page})=>{
+  await seed(page);await page.reload();await startAdventure(page,scholar);
+  await page.evaluate(value=>localStorage.setItem('simple-rpg.save.v5',JSON.stringify(value)),{...checkpoint,position:{x:4,y:3}});
+  await page.getByRole('button',{name:'Start Over',exact:true}).dblclick({delay:35});
+  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v5')!).position)).toEqual({x:4,y:3});
+  await expect(page.getByRole('button',{name:'Start Over',exact:true})).toBeVisible();
+});
+
+test('simultaneous starts serialize comparison and write instead of silently replacing a character',async({page,context})=>{
+  const other=await context.newPage();
+  for(const [index,p] of [page,other].entries()){
+    await p.goto('./');await p.getByRole('button',{name:'New Game',exact:true}).click();await createCharacter(p,{...checkpoint.character,name:`Player ${index}`});
+  }
+  const at=Date.now()+250;
+  await Promise.all([page,other].map(p=>p.evaluate(at=>new Promise<void>(resolve=>setTimeout(()=>{
+    window.dispatchEvent(new Event('focus'));document.querySelector<HTMLButtonElement>('[data-creation-action="begin"]')!.click();resolve();
+  },Math.max(0,at-Date.now()))),at)));
+  await expect.poll(async()=>{
+    const results=await Promise.all([page,other].map(p=>p.getByLabel('Position').count()));return results.reduce((a,b)=>a+b,0);
+  }).toBe(1);
+  const loser=await page.getByLabel('Position').count()?other:page;
+  await expect(loser.getByRole('button',{name:'Start Over',exact:true})).toBeVisible();
+});
+
+for(const saved of [false,true])test(`starting with the keyboard restores movement focus (${saved?'replacement':'new'})`,async({page})=>{
+  if(saved){await seed(page);await page.reload();}else await page.goto('./');
+  await page.getByRole('button',{name:'New Game',exact:true}).click();await createCharacter(page);
+  await page.getByRole('button',{name:'Begin adventure',exact:true}).focus();await page.keyboard.press('Enter');
+  if(saved){const confirm=page.getByRole('button',{name:'Start Over',exact:true});await expect(confirm).toBeEnabled();await confirm.focus();await page.keyboard.press('Enter');}
+  await expect(page.getByRole('button',{name:'Move up',exact:true})).toBeFocused();
+});
+
+test('a press begun while overwrite confirmation is locked cannot activate after unlock',async({page})=>{
+  await seed(page);await page.reload();await page.getByRole('button',{name:'New Game',exact:true}).click();await createCharacter(page);
+  const saved=await page.evaluate(()=>localStorage.getItem('simple-rpg.save.v5'));
+  const now=new Date();await page.clock.install({time:now});await page.clock.pauseAt(new Date(now.getTime()+60_000));
+  await page.getByRole('button',{name:'Begin adventure'}).click();const confirm=page.getByRole('button',{name:'Start Over',exact:true});
+  await expect(confirm).toBeDisabled();const box=(await confirm.boundingBox())!;
+  await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();
+  await page.clock.runFor(300);await expect(confirm).toBeEnabled();await page.mouse.up();
+  expect(await page.evaluate(()=>localStorage.getItem('simple-rpg.save.v5'))).toBe(saved);
+  await expect(confirm).toBeVisible();
+});
+
+test('an older active adventure cannot overwrite a newly confirmed character from another tab',async({page,context})=>{
+  await seed(page);const old=await context.newPage();await old.goto('./');await old.getByRole('button',{name:'Continue',exact:true}).click();
+  await page.bringToFront();await page.reload();await startAdventure(page,scholar);await page.getByRole('button',{name:'Start Over',exact:true}).click();
+  await expect(page.getByLabel('Hero health')).toHaveText('3 / 3 HP');
+  const saved=await page.evaluate(()=>localStorage.getItem('simple-rpg.save.v5'));
+  await old.bringToFront();await steps(old,'right');
+  await expect(old.getByLabel('Position')).toHaveText('4, 3');
+  await expect(old.getByRole('status',{name:'Save status'})).toContainText('Another tab changed this adventure');
+  expect(await old.evaluate(()=>localStorage.getItem('simple-rpg.save.v5'))).toBe(saved);
+});
+
+test('without browser save locks Continue stays playable but stored progress is never replaced',async({page})=>{
+  await page.addInitScript(()=>Object.defineProperty(navigator,'locks',{value:undefined,configurable:true}));
+  await seed(page);const saved=await page.evaluate(()=>localStorage.getItem('simple-rpg.save.v5'));
+  await steps(page,'right');await expect(page.getByLabel('Position')).toHaveText('4, 3');
+  await expect(page.getByRole('status',{name:'Save status'})).toContainText('cannot be saved');
+  expect(await page.evaluate(()=>localStorage.getItem('simple-rpg.save.v5'))).toBe(saved);
 });

@@ -37,6 +37,7 @@ test('zero-success ties cause no damage and Run preserves prior damage', async (
   await attack(page);
   await expect(page.getByLabel('Hero health')).toHaveText('3 / 5 HP');
   await page.getByRole('button', { name: 'Run', exact: true }).tap();
+  await expect(page.getByLabel('Position')).toHaveText('15, 14');
   await expect(page.getByLabel('Hero health')).toHaveText('3 / 5 HP');
   await page.reload(); await page.getByRole('button', { name: 'Continue', exact: true }).tap();
   await expect(page.getByLabel('Hero health')).toHaveText('3 / 5 HP');

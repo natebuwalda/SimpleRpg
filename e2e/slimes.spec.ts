@@ -77,6 +77,7 @@ test('failed migration writes keep placements stable until the source changes', 
     localStorage.setItem('simple-rpg.save.v2',JSON.stringify(value));
     window.dispatchEvent(new StorageEvent('storage',{key:'simple-rpg.save.v2'}));
   },{...old,position:{x:7,y:7},hp:8});
+  await expect.poll(async()=>JSON.parse(await page.evaluate(()=>window.__saveAttempts.at(-1)!)).position).toEqual({x:7,y:7});
   const changed=JSON.parse(await page.evaluate(()=>(window as Window & {__saveAttempts:string[]}).__saveAttempts.at(-1)!));
   expect(changed.position).toEqual({x:7,y:7});expect(changed.hp).toBe(5);
   await page.getByRole('button',{name:'Continue',exact:true}).tap();

@@ -16,6 +16,8 @@ Playwright traces/results use the OS temporary directory `simple-rpg-playwright`
 
 Design and task plan are under `docs/superpowers/`.
 
+Persistent writes use browser Web Locks to serialize each game's save namespace across tabs. The final comparison and replacement occur in the same critical section. An older active tab stops saving if another tab replaces its adventure and asks the player to reload. If locking is unavailable, Continue and play remain usable without replacing stored data; a warning explains that progress cannot be saved.
+
 Iteration 4 is being prepared on its feature branch; acceptance deployment and physical-phone acceptance await owner direction. The links above follow previously published builds until a deployment is requested.
 
 ## Play
@@ -37,7 +39,7 @@ Browser checks cover touch and keyboard, battle/reload/Continue, storage failure
 ## Iteration 4 manual acceptance
 
 1. New Game: name a character; test both five-point budgets, base floors and rating caps. Confirm incomplete steps cannot advance. Try Combat 0 and watch derived values change; Back should preserve choices.
-2. Cancel a draft and refresh during another draft: the prior adventure must remain available. At Review, Begin should confirm replacing an existing save; cancelling that confirmation returns to the same draft. If another tab saves while confirming, a second confirmation is required.
+2. Cancel a draft and refresh during another draft: the prior adventure must remain available. At Review, Begin should confirm replacing an existing save; cancelling that confirmation returns to the same draft. If another tab saves while confirming, a second confirmation is required. Rapid double-taps must not bypass confirmation, and older active tabs must not replace a newly confirmed adventure.
 3. Try Prowess/Cunning/Resistance 1/5/2 and Combat/Subterfuge/Lore 0/5/0: maximum Health 3, Initiative 6, resource capacity 7, Attack 1d10 and Defense 2d10. Begin, open Character and inspect the name/read-only build. A 5/1/2 + 5/0/0 build instead has Health 7 and pools 10/7.
 4. Fight, inspect rolls, Run after damage, refresh/Continue, win and lose. Victory heals to the chosen maximum; Restart preserves that character and the original world/placements while restoring all slimes and full Health.
 5. On a phone, check creation, Review and Character in portrait/landscape, including a long name. Navigation stays reachable, long content scrolls vertically and text input does not trigger game movement.

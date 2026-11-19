@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-import { enterBattle, seed, checkpoint, attack, losingFaces, setCombatFaces, startAdventure } from './helpers';
+import { enterBattle, seed, checkpoint, attack, losingFaces, setCombatFaces, startAdventure, steps } from './helpers';
 
 test('attack resolves one turn per activation', async ({ page }) => {
   await enterBattle(page);
@@ -66,7 +66,7 @@ test('blur and repeated keys do not add movement', async ({ page }) => {
 
 test('refresh continues exploration', async ({ page }) => {
   await seed(page);
-  await page.getByRole('button', { name: 'Move right' }).tap();
+  await steps(page,'right');
   await page.reload();
   await page.getByRole('button', { name: 'Continue', exact: true }).tap();
   await expect(page.getByLabel('Position')).toHaveText('4, 3');
@@ -83,7 +83,7 @@ test('refresh during battle restores safe checkpoint', async ({ page }) => {
 
 test('new game cancel preserves save', async ({ page }) => {
   await seed(page);
-  await page.getByRole('button', { name: 'Move right' }).tap();
+  await steps(page,'right');
   await page.reload();
   await page.getByRole('button',{name:'New Game',exact:true}).click();
   await page.getByRole('button', { name: 'Cancel', exact: true }).tap();
@@ -102,7 +102,7 @@ test('storage unavailable still permits play', async ({ page }) => {
   await page.addInitScript(() => { Math.random=()=>.5; Object.defineProperty(window, 'localStorage', { get() { throw new Error('blocked'); } }); });
   await page.goto('./');
   await startAdventure(page);
-  await page.getByRole('button', { name: 'Move right' }).tap();
+  await steps(page,'right');
   await expect(page.getByLabel('Position')).toHaveText('4, 3');
   await expect(page.getByRole('status',{name:'Save status'})).toContainText('cannot be saved');
 });
@@ -145,7 +145,7 @@ test('defeat refresh preserves checkpoint and restart replaces it', async ({ pag
 
 test('confirm new game replaces the old save', async ({ page }) => {
   await seed(page);
-  await page.getByRole('button', { name: 'Move right' }).tap();
+  await steps(page,'right');
   await page.reload();
   await startAdventure(page);
   await page.getByRole('button', { name: 'Start Over', exact: true }).tap();
@@ -159,7 +159,7 @@ test('storage quota failure keeps play available', async ({ page }) => {
   await page.addInitScript(() => { Math.random=()=>.5; Storage.prototype.setItem = () => { throw new Error('quota'); }; });
   await page.goto('./');
   await startAdventure(page);
-  await page.getByRole('button', { name: 'Move right' }).tap();
+  await steps(page,'right');
   await expect(page.getByLabel('Position')).toHaveText('4, 3');
   await expect(page.getByRole('status',{name:'Save status'})).toContainText('cannot be saved');
 });

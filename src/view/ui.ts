@@ -4,6 +4,7 @@ import type { PoolRoll } from '../game/dice';
 import { SLIME } from '../game/battle';
 import { getRemainingSlimeCount } from '../game/world';
 import { mountCharacterCreation } from './character-creation';
+import { checkpointSignature } from '../game/save';
 
 export interface Ui {
   render(state: GameState, saveStatus: string): void;
@@ -11,6 +12,9 @@ export interface Ui {
   setBusy(busy: boolean): void;
   setSaved(checkpoint: Checkpoint | null): void;
   onTitleAction(handler: () => void): void;
+  setStarting(pending:boolean):void;
+  completeCreation():void;
+  confirmChangedSave():void;
 }
 
 function characterDetails(character: Character): string {
@@ -61,6 +65,7 @@ export function mountUi(root: HTMLElement): Ui {
   let saved: Checkpoint | null = null;
   let creation: ReturnType<typeof mountCharacterCreation> | null = null;
   let confirmedSave: string | null = null;
+  let focusNewAdventure=false;
   let currentState: GameState = { kind: 'title' };
   let currentStatus = '';
   let beforeTitleAction = () => {};
@@ -76,7 +81,7 @@ export function mountUi(root: HTMLElement): Ui {
   }
   function commitCharacter(character:Character){
     if(!creation || !active || currentState.kind!=='title')return;
-    closeCreation();handler({type:'newGame',character});
+    handler({type:'newGame',character,expectedSave:checkpointSignature(saved)});
   }
   function openCreation(){
     if(creation || currentState.kind!=='title')return;
@@ -85,13 +90,13 @@ export function mountUi(root: HTMLElement): Ui {
       onBegin(character){
         if(!active)return;
         beforeTitleAction();
-        if(saved){confirmedSave=JSON.stringify(saved);creation?.showOverwriteConfirmation();}
+        if(saved){confirmedSave=checkpointSignature(saved);creation?.showOverwriteConfirmation();}
         else commitCharacter(character);
       },
       onConfirm(character){
         if(!active)return;
         beforeTitleAction();
-        const current=JSON.stringify(saved);
+        const current=checkpointSignature(saved);
         if(current!==confirmedSave){confirmedSave=current;creation?.showOverwriteConfirmation(true);return;}
         commitCharacter(character);
       },
@@ -136,6 +141,9 @@ export function mountUi(root: HTMLElement): Ui {
     setSaved(checkpoint) { saved = checkpoint; },
     onTitleAction(next) { beforeTitleAction = next; },
     onAction(next) { handler = next; },
+    setStarting(value){creation?.setPending(value);},
+    completeCreation(){closeCreation();focusNewAdventure=true;},
+    confirmChangedSave(){confirmedSave=checkpointSignature(saved);creation?.showOverwriteConfirmation(true);},
     setBusy(nextBusy) {
       busy = nextBusy;
       root.querySelectorAll<HTMLButtonElement>('[data-action="attack"], [data-action="run"]').forEach(button => {
@@ -190,7 +198,9 @@ export function mountUi(root: HTMLElement): Ui {
           if (announcement.textContent) announcement.textContent = '';
         }
       }
-      if (focused) {
+      if(focusNewAdventure&&state.kind==='exploring'){
+        root.querySelector<HTMLButtonElement>('[data-direction="up"]')?.focus({preventScroll:true});focusNewAdventure=false;
+      } else if (focused) {
         const selector = focused.direction ? `[data-direction="${focused.direction}"]` : `[data-action="${focused.action}"]`;
         const target = root.querySelector<HTMLButtonElement>(selector);
         if (target) target.focus({ preventScroll: true });
