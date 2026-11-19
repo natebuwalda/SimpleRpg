@@ -1,6 +1,6 @@
 # Iteration 4: Character creation and starting sheet
 
-Status: proposed short design for owner review. The interactive layout is approved; no application implementation has started.
+Status: design accepted by the owner on 2026-11-19. No application implementation has started.
 
 ## Intent and iteration boundary
 
@@ -25,7 +25,7 @@ The owner approved the phone mockup: three creation steps (Attributes, Skills, R
 - Skills: Combat, Subterfuge and Lore start at 0. Spend exactly 5 points across them. Each final rating is an integer from 0 through 5; total ratings sum to 5.
 - Combat 0 is explicitly allowed. Subterfuge and Lore can receive points even though their corresponding actions remain deferred. Show this limitation while allocating skills so the player understands the current choice.
 - Increment/decrement controls respect each base, maximum and remaining budget. Points may be reclaimed and redistributed before starting. A group cannot advance until its entire budget is allocated.
-- Proposed name detail: a nonblank name, trimmed before starting, with a 24-character input limit. Render names as text, including punctuation and Unicode; never interpret them as markup. Names need not be unique because this iteration has one adventure and no roster.
+- Name: a nonblank name, trimmed before starting, with a 24-character input limit. Render names as text, including punctuation and Unicode; never interpret them as markup. Names need not be unique because this iteration has one adventure and no roster.
 - Start the draft with base ratings and an empty name. The mockup's prefilled Rowan name is illustrative. A draft is temporary: cancelling creation or refreshing discards it and leaves the saved adventure intact.
 
 Derived values update immediately as points change:
@@ -54,7 +54,7 @@ Persist the name and allocated build as part of the adventure checkpoint. No ind
 
 The current v4 decoder requires the exact starter build; it must remain the historical validator for that version rather than being loosened. New saves validate the complete creation rules, stored name and current Health against that character's derived maximum. Invalid budgets, ratings, names or Health must be rejected rather than normalized into valid new saves.
 
-Proposed compatibility name: valid existing saves receive the name **Adventurer** and retain their previously accepted build, current Health, world, placements, position and completion. Earlier migrations continue to apply their existing coordinate/placement and Health rules before adding the name. A valid v4 save must not reroll placements or reset progress. Existing players can Continue immediately or choose New Game to allocate a different build.
+Valid existing saves receive the name **Adventurer** and retain their previously accepted build, current Health, world, placements, position and completion. Earlier migrations continue to apply their existing coordinate/placement and Health rules before adding the name. A valid v4 save must not reroll placements or reset progress. Existing players can Continue immediately or choose New Game to allocate a different build.
 
 ## Phone layout and implementation choices
 
@@ -71,4 +71,4 @@ Planning may settle component/file boundaries and how the read-only sheet fits t
 5. Save/reload preserves the named build; valid older saves upgrade without lost progress, strict historical validation remains intact, and blocked storage stays playable and predictable.
 6. The sheet is read-only and phone-accessible. Keyboard input in creation does not move the hero, and the accepted map, input-lock, announcement, save-isolation and layout regressions remain covered.
 
-The owner reviews this design before implementation planning. Iteration 5 roster work stays deferred.
+The owner accepted this design before implementation planning. Iteration 5 roster work stays deferred.
