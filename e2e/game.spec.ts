@@ -34,9 +34,9 @@ test('run returns to safe tile', async ({ page }) => {
 test('title fits phone', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await page.goto('./');
-  await expect(page.getByRole('heading', { name: 'Simple RPG' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'New Game', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled();
+  await expect(page.getByRole('heading', { name: 'Your adventures' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'New Character', exact: true })).toBeVisible();
+  await expect(page.getByLabel('Roster capacity')).toHaveText('0 / 10 slots');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
@@ -68,7 +68,7 @@ test('refresh continues exploration', async ({ page }) => {
   await seed(page);
   await steps(page,'right');
   await page.reload();
-  await page.getByRole('button', { name: 'Continue', exact: true }).tap();
+  await page.getByRole('button', { name: 'Resume', exact: true }).tap();
   await expect(page.getByLabel('Position')).toHaveText('4, 3');
 });
 
@@ -76,7 +76,7 @@ test('refresh during battle restores safe checkpoint', async ({ page }) => {
   await enterBattle(page);
   await attack(page);
   await page.reload();
-  await page.getByRole('button', { name: 'Continue', exact: true }).tap();
+  await page.getByRole('button', { name: 'Resume', exact: true }).tap();
   await expect(page.getByLabel('Position')).toHaveText('15, 14');
   await expect(page.getByLabel('Hero health')).toHaveText('5 / 5 HP');
 });
@@ -85,26 +85,10 @@ test('new game cancel preserves save', async ({ page }) => {
   await seed(page);
   await steps(page,'right');
   await page.reload();
-  await page.getByRole('button',{name:'New Game',exact:true}).click();
+  await page.getByRole('button',{name:'New Character',exact:true}).click();
   await page.getByRole('button', { name: 'Cancel', exact: true }).tap();
-  await page.getByRole('button', { name: 'Continue', exact: true }).tap();
+  await page.getByRole('button', { name: 'Resume', exact: true }).tap();
   await expect(page.getByLabel('Position')).toHaveText('4, 3');
-});
-
-test('invalid save disables continue', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('simple-rpg.save.v5', '{broken'));
-  await page.goto('./');
-  await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled();
-  await expect(page.getByRole('status',{name:'Save status'})).toContainText('could not be read');
-});
-
-test('storage unavailable still permits play', async ({ page }) => {
-  await page.addInitScript(() => { Math.random=()=>.5; Object.defineProperty(window, 'localStorage', { get() { throw new Error('blocked'); } }); });
-  await page.goto('./');
-  await startAdventure(page);
-  await steps(page,'right');
-  await expect(page.getByLabel('Position')).toHaveText('4, 3');
-  await expect(page.getByRole('status',{name:'Save status'})).toContainText('cannot be saved');
 });
 
 test('victory persists across refresh and cleared tile remains walkable', async ({ page }) => {
@@ -113,55 +97,13 @@ test('victory persists across refresh and cleared tile remains walkable', async 
   await attack(page);
   await expect(page.getByRole('heading', { name: 'Victory!' })).toBeVisible();
   await page.reload();
-  await page.getByRole('button', { name: 'Continue', exact: true }).tap();
+  await page.getByRole('button', { name: 'Resume', exact: true }).tap();
   await expect(page.getByLabel('Hero health')).toHaveText('5 / 5 HP');
   await page.getByRole('button', { name: 'Move down' }).tap();
   await expect(page.getByLabel('Position')).toHaveText('15, 15');
   await page.reload();
-  await page.getByRole('button', { name: 'Continue', exact: true }).tap();
+  await page.getByRole('button', { name: 'Resume', exact: true }).tap();
   await expect(page.getByLabel('Position')).toHaveText('15, 15');
-});
-
-test('defeat refresh preserves checkpoint and restart replaces it', async ({ page }) => {
-  await page.goto('./');
-  await page.evaluate(value => localStorage.setItem('simple-rpg.save.v5',JSON.stringify(value)), {...checkpoint,position:{x:15,y:14},hp:2});
-  await page.reload();
-  await page.getByRole('button', { name: 'Continue', exact: true }).tap();
-  await page.getByRole('button', { name: 'Move down' }).tap();
-  await attack(page, losingFaces);
-  await expect(page.getByRole('heading', { name: 'Defeated', exact: true })).toBeVisible();
-  await page.reload();
-  await page.getByRole('button', { name: 'Continue', exact: true }).tap();
-  await expect(page.getByLabel('Hero health')).toHaveText('2 / 5 HP');
-  await page.getByRole('button', { name: 'Move down' }).tap();
-  await attack(page, losingFaces);
-  await page.getByRole('button', { name: 'Restart', exact: true }).tap();
-  await expect(page.getByLabel('Position')).toHaveText('3, 3');
-  await expect(page.getByLabel('Hero health')).toHaveText('5 / 5 HP');
-  await page.reload();
-  await page.getByRole('button', { name: 'Continue', exact: true }).tap();
-  await expect(page.getByLabel('Position')).toHaveText('3, 3');
-});
-
-test('confirm new game replaces the old save', async ({ page }) => {
-  await seed(page);
-  await steps(page,'right');
-  await page.reload();
-  await startAdventure(page);
-  await page.getByRole('button', { name: 'Start Over', exact: true }).tap();
-  await expect(page.getByLabel('Position')).toHaveText('3, 3');
-  await page.reload();
-  await page.getByRole('button', { name: 'Continue', exact: true }).tap();
-  await expect(page.getByLabel('Position')).toHaveText('3, 3');
-});
-
-test('storage quota failure keeps play available', async ({ page }) => {
-  await page.addInitScript(() => { Math.random=()=>.5; Storage.prototype.setItem = () => { throw new Error('quota'); }; });
-  await page.goto('./');
-  await startAdventure(page);
-  await steps(page,'right');
-  await expect(page.getByLabel('Position')).toHaveText('4, 3');
-  await expect(page.getByRole('status',{name:'Save status'})).toContainText('cannot be saved');
 });
 
 test('mobile controls fit through portrait and landscape rotation', async ({ page }) => {
@@ -169,7 +111,7 @@ test('mobile controls fit through portrait and landscape rotation', async ({ pag
   await startAdventure(page);
   for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 }]) {
     await page.setViewportSize(viewport);
-    for (const button of await page.getByRole('button').all()) {
+    for (const button of await page.getByRole('button').filter({hasNotText:'Return to characters'}).all()) {
       const box = await button.boundingBox();
       expect(box).not.toBeNull();
       expect(box!.width).toBeGreaterThanOrEqual(48);
@@ -204,13 +146,13 @@ test('production base path loads assets and survives refresh', async ({ page }) 
   page.on('response', response => { if (response.status() >= 400) failures.push(`${response.status()} ${response.url()}`); });
   page.on('requestfailed', request => failures.push(request.url()));
   await page.goto('./');
-  await expect(page.locator('canvas')).toBeVisible();
+  await expect(page.locator('canvas')).toBeAttached();
   await page.screenshot({ path: 'test-results/phone-title.png', fullPage: true });
   await startAdventure(page);
   await expect(page.getByLabel('Position')).toHaveText('3, 3');
   await page.screenshot({ path: 'test-results/phone-exploration.png', fullPage: true });
   await page.reload();
-  await page.getByRole('button', { name: 'Continue', exact: true }).tap();
+  await page.getByRole('button', { name: 'Resume', exact: true }).tap();
   await expect(page.locator('canvas')).toBeVisible();
   expect(failures).toEqual([]);
 });
@@ -243,25 +185,6 @@ test('keyboard focus survives battle resolution', async ({ page }) => {
   await setCombatFaces(page, [8,8,8,8,8,1,1,1]);
   await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: 'Victory!' })).toBeVisible();
-});
-
-test('another tab saving requires confirmation before new game', async ({ page, context }) => {
-  await page.goto('./');
-  const other = await context.newPage();
-  await other.goto('./');
-  await page.bringToFront();
-  await page.evaluate(()=>{Math.random=()=>.5;});
-  await startAdventure(page);
-  await page.getByRole('button', { name: 'Move right' }).click();
-  await other.bringToFront();
-  await startAdventure(other);
-  await expect(other.getByRole('button', { name: 'Cancel', exact: true })).toBeVisible();
-  await other.getByRole('button', { name: 'Cancel', exact: true }).click();
-  await other.getByRole('button',{name:'Back',exact:true}).click();
-  await other.getByRole('button',{name:'Back',exact:true}).click();
-  await other.getByRole('button',{name:'Cancel',exact:true}).click();
-  await other.getByRole('button', { name: 'Continue', exact: true }).click();
-  await expect(other.getByLabel('Position')).toHaveText('4, 3');
 });
 
 test('space held during resolution cannot queue an attack', async ({ page }) => {

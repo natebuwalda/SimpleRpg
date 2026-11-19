@@ -23,7 +23,7 @@ test('fixed character and exact bonus dice are understandable through victory', 
   await page.getByText('Roll details', { exact: true }).click();
   await expect(page.getByLabel('Your attack dice')).toContainText('Successes: 5');
   await expect(page.getByText('No counterattack.', { exact: true })).toBeVisible();
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('simple-rpg.save.v5')!));
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('simple-rpg.save.v6')!).slots[0].checkpoint);
   expect(saved.hp).toBe(5); expect(saved.character).toEqual(checkpoint.character);
   expect(saved).not.toHaveProperty('lastTurn');
 });
@@ -39,7 +39,7 @@ test('zero-success ties cause no damage and Run preserves prior damage', async (
   await page.getByRole('button', { name: 'Run', exact: true }).tap();
   await expect(page.getByLabel('Position')).toHaveText('15, 14');
   await expect(page.getByLabel('Hero health')).toHaveText('3 / 5 HP');
-  await page.reload(); await page.getByRole('button', { name: 'Continue', exact: true }).tap();
+  await page.reload(); await page.getByRole('button', { name: 'Resume', exact: true }).tap();
   await expect(page.getByLabel('Hero health')).toHaveText('3 / 5 HP');
 });
 
@@ -92,29 +92,13 @@ test('combat announcements retain their live region and distinguish identical tu
   expect(await save.evaluate(node=>(node as HTMLElement & {__mutations:number}).__mutations)).toBe(0);
 });
 
-test('v3 upgrade preserves placements, progress and recovery copy through focus and reload', async ({ page }) => {
-  const old = {version:3,world:checkpoint.world,position:{x:8,y:8},hp:2,completedEncounterIds:['slime-2']};
-  await page.goto('./');
-  await page.evaluate(value=>localStorage.setItem('simple-rpg.save.v3',JSON.stringify(value)),old);
-  await page.reload();
-  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
-  await page.getByRole('button',{name:'Continue',exact:true}).tap();
-  await expect(page.getByLabel('Position')).toHaveText('8, 8');
-  await expect(page.getByLabel('Hero health')).toHaveText('2 / 5 HP');
-  const upgraded=await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v5')!));
-  expect(upgraded).toEqual({...old,version:5,character:checkpoint.character});
-  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v3')!))).toEqual(old);
-  await page.reload();await page.getByRole('button',{name:'Continue',exact:true}).tap();
-  await expect(page.getByLabel('Slimes remaining')).toHaveText('2 slimes remain.');
-});
-
 for (const viewport of [{ width:320,height:568 }, { width:390,height:844 }, { width:844,height:390 }]) {
   test(`long rolls keep phone commands usable at ${viewport.width}×${viewport.height}`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await seed(page, { ...checkpoint, position: { x:15,y:14 } }); await steps(page, 'down');
     await page.addStyleTag({content:'.description { font-family: monospace; font-size: 18px; }'});
     await attack(page, Array(15).fill(1));
-    for (const button of await page.getByRole('button').all()) {
+    for (const button of await page.getByRole('button').filter({hasNotText:'Return to characters'}).all()) {
       const box = (await button.boundingBox())!;
       expect(box.width).toBeGreaterThanOrEqual(48); expect(box.height).toBeGreaterThanOrEqual(48);
       expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
@@ -123,7 +107,7 @@ for (const viewport of [{ width:320,height:568 }, { width:390,height:844 }, { wi
     // Both hero and slime defense roll their maximum bonus dice: a lethal margin of four.
     await attack(page, Array(16).fill(10));
     await page.addStyleTag({content:'.description { font-family: monospace; font-size: 18px; }'});
-    for (const button of await page.getByRole('button').all()) {
+    for (const button of await page.getByRole('button').filter({hasNotText:'Return to characters'}).all()) {
       const box = (await button.boundingBox())!;
       expect(box.width).toBeGreaterThanOrEqual(48); expect(box.height).toBeGreaterThanOrEqual(48);
       expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);

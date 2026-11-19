@@ -31,6 +31,21 @@ button.primary:hover:not(:disabled) { background: #e3eac6; }
 .detail-content { overflow-wrap: anywhere; padding: 0 4px 4px; }
 .detail-content p { margin: 0 0 12px; }
 .game-shell.creating { width: min(100%,560px); }
+.roster-visible .world-frame { display:none; }
+.roster-visible .play-area { display:block; }
+.roster-visible .panel { padding-top:0; }
+.roster-count,.roster-slot-title { display:flex;justify-content:space-between;gap:12px;align-items:baseline; }
+.roster-count { margin:24px 0 12px; }
+.roster-count span,.roster-slot-title span { font-size:13px;color:#b2c1b4;white-space:nowrap; }
+.roster-wide { width:100%;margin:8px 0; }
+.roster-slot { padding:20px 0;border-bottom:1px solid #40564d; }
+.roster-slot h2 { font:500 21px system-ui,sans-serif;letter-spacing:0;overflow-wrap:anywhere;min-width:0; }
+.roster-slot p,.roster-message { font-size:13px;line-height:1.6;color:#b2c1b4; }
+.roster-sheet p { display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #344a43; }
+.roster-visible h1,.confirmation h1 { overflow-wrap:anywhere; }
+.danger { color:#ffd0bd; }
+.return-roster { margin-top:20px; }
+.confirmation .actions button { min-width:0;overflow-wrap:anywhere; }
 .creating .play-area { display:block; }
 .creating .world-frame { display:none; }
 .creating .panel { padding:0; }

@@ -4,17 +4,20 @@ import type { PoolRoll } from '../game/dice';
 import { SLIME } from '../game/battle';
 import { getRemainingSlimeCount } from '../game/world';
 import { mountCharacterCreation } from './character-creation';
-import { checkpointSignature } from '../game/save';
+import {mountRoster} from './roster';
+import {mountConfirmation} from './confirmation';
+import type {RosterObservation} from '../game/roster';
 
 export interface Ui {
   render(state: GameState, saveStatus: string): void;
   onAction(handler: (action: UiAction) => void): void;
   setBusy(busy: boolean): void;
-  setSaved(checkpoint: Checkpoint | null): void;
-  onTitleAction(handler: () => void): void;
-  setStarting(pending:boolean):void;
+  setRoster(observation:RosterObservation,canMutate:boolean):void;
+  setCreationPending(pending:boolean):void;
+  showCreationMessage(message:string):void;
+  showRosterMessage(message:string):void;
+  confirmDiscard():void;
   completeCreation():void;
-  confirmChangedSave():void;
 }
 
 function characterDetails(character: Character): string {
@@ -45,7 +48,7 @@ function turnSummary(turn: TurnRolls | null | undefined, attackPool?: number): s
 export function mountUi(root: HTMLElement): Ui {
   root.innerHTML = `
     <main class="game-shell">
-      <header><span class="wordmark">SIMPLE RPG</span><span class="edition">ITERATION 04</span></header>
+      <header><span class="wordmark">SIMPLE RPG</span><span class="edition">ITERATION 05</span></header>
       <p id="combat-announcement" class="sr-only" role="status" aria-label="Combat result" aria-atomic="true"></p>
       <section class="play-area">
         <div class="world-frame"><div id="canvas" role="img" aria-label="A tiny woodland adventure"></div></div>
@@ -62,13 +65,13 @@ export function mountUi(root: HTMLElement): Ui {
       <footer><span>A WORLD IN YOUR POCKET</span><span>TOUCH · KEYBOARD</span></footer>
     </main>`;
   let handler: (action: UiAction) => void = () => {};
-  let saved: Checkpoint | null = null;
+  let observation:RosterObservation={status:'empty',raw:null,roster:{version:6,slots:[]}},canMutate=false;
+  let roster:ReturnType<typeof mountRoster>|null=null;
+  let discard:ReturnType<typeof mountConfirmation>|null=null;
   let creation: ReturnType<typeof mountCharacterCreation> | null = null;
-  let confirmedSave: string | null = null;
   let focusNewAdventure=false;
   let currentState: GameState = { kind: 'title' };
   let currentStatus = '';
-  let beforeTitleAction = () => {};
   let busy = false;
   let active = true;
   let pointerAllowed = false;
@@ -81,26 +84,18 @@ export function mountUi(root: HTMLElement): Ui {
   }
   function commitCharacter(character:Character){
     if(!creation || !active || currentState.kind!=='title')return;
-    handler({type:'newGame',character,expectedSave:checkpointSignature(saved)});
+    handler({type:'newGame',character});
   }
   function openCreation(){
     if(creation || currentState.kind!=='title')return;
+    roster?.destroy();roster=null;
     root.querySelector('.game-shell')!.classList.add('creating');
     creation=mountCharacterCreation(root.querySelector<HTMLElement>('#screen')!,{
       onBegin(character){
         if(!active)return;
-        beforeTitleAction();
-        if(saved){confirmedSave=checkpointSignature(saved);creation?.showOverwriteConfirmation();}
-        else commitCharacter(character);
-      },
-      onConfirm(character){
-        if(!active)return;
-        beforeTitleAction();
-        const current=checkpointSignature(saved);
-        if(current!==confirmedSave){confirmedSave=current;creation?.showOverwriteConfirmation(true);return;}
         commitCharacter(character);
       },
-      onCancel(){closeCreation();api.render(currentState,currentStatus);root.querySelector<HTMLButtonElement>('[data-action="newGame"]')?.focus();},
+      onCancel(){closeCreation();api.render(currentState,currentStatus);root.querySelector<HTMLButtonElement>('[data-roster="create"]')?.focus();},
     });
   }
   window.addEventListener('blur', () => { active = false; pointerAllowed = false; pendingFocus = null; });
@@ -124,26 +119,25 @@ export function mountUi(root: HTMLElement): Ui {
     if (blockedKeys.has(event.key)) { event.preventDefault(); blockedKeys.delete(event.key); }
   }, true);
   root.addEventListener('click', (event) => {
-    if(creation)return;
+    if(creation||roster||discard)return;
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button');
     if (!button || button.disabled) return;
     if (!active || (event.detail > 0 && !pointerAllowed)) return;
     pointerAllowed = false;
-    if (button.dataset.action === 'newGame' || button.dataset.action === 'continue') beforeTitleAction();
     if (button.dataset.direction) handler({ type: 'move', direction: button.dataset.direction as Direction });
-    else if (button.dataset.action === 'continue') {
-      if (saved) handler({ type: 'continue', checkpoint: saved });
-    } else if (button.dataset.action === 'newGame') {
-      openCreation();
-    } else if (button.dataset.action) handler({ type: button.dataset.action } as UiAction);
+    else if (button.dataset.action) handler({ type: button.dataset.action } as UiAction);
   });
   const api: Ui = {
-    setSaved(checkpoint) { saved = checkpoint; },
-    onTitleAction(next) { beforeTitleAction = next; },
+    setRoster(next,allow){observation=next;canMutate=allow;roster?.update(next,allow);},
     onAction(next) { handler = next; },
-    setStarting(value){creation?.setPending(value);},
+    setCreationPending(value){creation?.setPending(value);roster?.setPending(value);},
+    showCreationMessage(message){creation?.showMessage(message);},
+    showRosterMessage(message){roster?.showMessage(message);},
     completeCreation(){closeCreation();focusNewAdventure=true;},
-    confirmChangedSave(){confirmedSave=checkpointSignature(saved);creation?.showOverwriteConfirmation(true);},
+    confirmDiscard(){
+      if(discard)return;
+      discard=mountConfirmation(root.querySelector<HTMLElement>('#screen')!,{title:'Leave unsaved progress?',message:'Your latest progress could not be saved. Returning to characters discards these unsaved changes.',cancel:'Keep playing',confirm:'Discard unsaved progress',onCancel(){discard?.destroy();discard=null;api.render(currentState,currentStatus);},onConfirm(){discard?.destroy();discard=null;handler({type:'discardProgress'});}});
+    },
     setBusy(nextBusy) {
       busy = nextBusy;
       root.querySelectorAll<HTMLButtonElement>('[data-action="attack"], [data-action="run"]').forEach(button => {
@@ -164,9 +158,14 @@ export function mountUi(root: HTMLElement): Ui {
       const focused = document.activeElement instanceof HTMLButtonElement && root.contains(document.activeElement) ? { action: document.activeElement.dataset.action, direction: document.activeElement.dataset.direction } : null;
       const saveMessage = root.querySelector('.save-status')!;
       if (saveMessage.textContent !== saveStatus) saveMessage.textContent = saveStatus;
-      if (state.kind === 'title' && creation) return;
-      if (state.kind === 'title') root.querySelector('#screen')!.innerHTML = `
-        <div class="eyebrow">A LITTLE ADVENTURE</div><h1>Simple RPG</h1><p class="description">A quiet clearing. Three little slimes.<br>A journey begins with one step.</p><div class="actions"><button data-action="newGame" class="primary">New Game <span aria-hidden="true">↗</span></button><button data-action="continue" ${saved ? '' : 'disabled'}>Continue</button></div>`;
+      if(discard)return;
+      if(state.kind==='title'){
+        root.querySelector('.game-shell')!.classList.add('roster-visible');
+        if(creation)return;
+        if(!roster)roster=mountRoster(root.querySelector<HTMLElement>('#screen')!,{onCreate:openCreation,onResume(id){focusNewAdventure=true;handler({type:'resumeSlot',id});},onRestart(id,revision){focusNewAdventure=true;handler({type:'restartSlot',id,revision});},onDelete(id,revision){handler({type:'deleteSlot',id,revision});},onReset(raw){handler({type:'resetRoster',raw});}});
+        roster.update(observation,canMutate);return;
+      }
+      roster?.destroy();roster=null;root.querySelector('.game-shell')!.classList.remove('roster-visible');
       if (state.kind === 'exploring') root.querySelector('#screen')!.innerHTML = `
         <div class="eyebrow">THE FIRST CLEARING</div><h1>Find your way.</h1>
         <div class="stats"><span>HERO <strong aria-label="Hero health">${state.checkpoint.hp} / ${deriveStats(state.checkpoint.character).maxHp} HP</strong></span><span>POSITION <strong aria-label="Position">${state.checkpoint.position.x}, ${state.checkpoint.position.y}</strong></span><span>WORLD <strong aria-label="World size">${state.checkpoint.world.width} × ${state.checkpoint.world.height} tiles</strong></span></div>
@@ -181,11 +180,13 @@ export function mountUi(root: HTMLElement): Ui {
         const won = state.kind === 'victory';
         root.querySelector('#screen')!.innerHTML = `<div class="eyebrow">${won ? remaining === 0 ? 'CLEARING COMPLETE' : 'SLIME DEFEATED' : 'ADVENTURE INTERRUPTED'}</div><h1>${won ? 'Victory!' : 'Defeated'}</h1><p class="description">${won ? `The slime slips away. Health restored.<br>${remainingText}` : 'Even small adventures take practice.<br>Take a breath and begin again.'}</p><div class="actions"><button class="primary" data-action="${won ? 'acknowledgeVictory' : 'restart'}">${won ? 'Back to clearing' : 'Restart'}</button></div>`;
       }
-      if (state.kind !== 'title') {
+      {
         const turn = state.kind === 'battle' ? state.battle.lastTurn : state.kind === 'victory' || state.kind === 'defeat' ? state.lastTurn : null;
         const screen = root.querySelector('#screen')!;
         if ((state.kind === 'victory' || state.kind === 'defeat') && turn) screen.insertAdjacentHTML('beforeend', `<p class="description combat-result">${turnSummary(turn)}</p>`);
         screen.insertAdjacentHTML('beforeend', rollDetails(turn) + characterDetails(state.checkpoint.character));
+        if(state.kind!=='battle')screen.insertAdjacentHTML('beforeend','<button class="roster-wide return-roster" data-action="returnToRoster">Return to characters</button>');
+        if(saveStatus.includes('cannot be saved')&&state.kind!=='battle')screen.insertAdjacentHTML('beforeend','<button class="roster-wide" data-action="retrySave">Retry save</button>');
         screen.querySelector('[aria-label="Character name"]')!.textContent=state.checkpoint.character.name;
         const announcement = root.querySelector('#combat-announcement')!;
         if (turn && turn !== announcedTurn) {

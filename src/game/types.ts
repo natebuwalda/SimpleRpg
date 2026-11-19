@@ -19,8 +19,11 @@ export type GameState =
   | { kind: 'defeat'; checkpoint: Checkpoint; lastTurn?: TurnRolls | null };
 export type Action =
   | { type: 'newGame'; world: WorldDefinition; character: Character }
-  | { type: 'attack' | 'run' | 'acknowledgeVictory' | 'restart' }
+  | { type: 'attack' | 'run' | 'acknowledgeVictory' | 'restart' | 'returnToRoster' }
+  | { type: 'resumeDefeat'; checkpoint: Checkpoint }
   | { type: 'continue'; checkpoint: Checkpoint }
   | { type: 'move'; direction: Direction };
 
-export type UiAction = Exclude<Action, { type: 'newGame' }> | { type: 'newGame'; character: Character; expectedSave: string };
+export type UiAction = Exclude<Action, { type: 'newGame' }> | { type: 'newGame'; character: Character }
+ |{type:'resumeSlot';id:string}|{type:'restartSlot'|'deleteSlot';id:string;revision:number}
+ |{type:'resetRoster';raw:string}|{type:'discardProgress'|'retrySave'};

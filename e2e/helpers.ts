@@ -3,6 +3,8 @@ export const world = {version:2,layout:'woodland',width:20,height:20,slimes:[
   {id:'slime-1',position:{x:15,y:15}}, {id:'slime-2',position:{x:8,y:8}}, {id:'slime-3',position:{x:10,y:10}},
 ]};
 export const checkpoint = {version:5,character:{name:'Adventurer',attributes:{prowess:3,cunning:3,resistance:2},skills:{combat:2,subterfuge:2,lore:1}},world,position:{x:3,y:3},hp:5,completedEncounterIds:[] as string[]};
+export const slotId='00000000-0000-4000-8000-000000000001';
+export function wrapCheckpoint(value=checkpoint){return {version:6,slots:[{id:slotId,revision:1,status:'active',checkpoint:value}]};}
 export async function createCharacter(page:Page, build=checkpoint.character) {
   await page.getByRole('textbox',{name:'Character name',exact:true}).fill(build.name);
   for(const [key,value] of Object.entries(build.attributes))for(let i=1;i<value;i++)await page.getByRole('button',{name:`Increase ${key}`,exact:true}).click();
@@ -11,17 +13,17 @@ export async function createCharacter(page:Page, build=checkpoint.character) {
   await page.getByRole('button',{name:'Review character',exact:true}).click();
 }
 export async function startAdventure(page:Page,build=checkpoint.character) {
-  await page.getByRole('button',{name:'New Game',exact:true}).click();
+  await page.getByRole('button',{name:'New Character',exact:true}).click();
   await createCharacter(page,build);
   await page.getByRole('button',{name:'Begin adventure',exact:true}).click();
-  await expect(page.getByLabel('Hero health').or(page.getByRole('button',{name:'Start Over',exact:true}))).toBeVisible();
+  await expect(page.getByLabel('Hero health')).toBeVisible();
   await expect(page.locator('#screen')).toHaveAttribute('aria-busy','false');
 }
 export async function seed(page:Page, value = checkpoint) {
   await page.goto('./');
-  await page.evaluate(value => localStorage.setItem('simple-rpg.save.v5',JSON.stringify(value)), value);
+  await page.evaluate(value => localStorage.setItem('simple-rpg.save.v6',JSON.stringify(value)), wrapCheckpoint(value));
   await page.reload();
-  await page.getByRole('button',{name:'Continue',exact:true}).tap();
+  await page.getByRole('button',{name:'Resume',exact:true}).tap();
   await expect(page.getByLabel('Position')).toBeVisible();
   await expect(page.locator('#screen')).toHaveAttribute('aria-busy','false');
 }
