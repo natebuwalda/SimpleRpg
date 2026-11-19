@@ -6,6 +6,8 @@ import { createBattle, resolveTurn } from './battle';
 
 export function createSession(): GameState { return { kind: 'title' }; }
 export function transition(state: GameState, action: Action, rng: RandomSource = Math.random): GameState {
+  if(action.type==='returnToRoster'&&['exploring','victory','defeat'].includes(state.kind))return {kind:'title'};
+  if(action.type==='resumeDefeat'&&state.kind==='title')return {kind:'defeat',checkpoint:action.checkpoint};
   if (action.type === 'newGame' && state.kind === 'title' && isValidCharacter(action.character)) return { kind: 'exploring', checkpoint: createCheckpoint(action.world, action.character) };
   if (action.type === 'restart' && state.kind === 'defeat') return { kind: 'exploring', checkpoint: createCheckpoint(state.checkpoint.world, state.checkpoint.character) };
   if (action.type === 'continue' && state.kind === 'title') return { kind: 'exploring', checkpoint: action.checkpoint };
