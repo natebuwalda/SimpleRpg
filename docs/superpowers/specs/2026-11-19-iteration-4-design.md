@@ -1,6 +1,6 @@
 # Iteration 4: Character creation and starting sheet
 
-Status: design accepted by the owner on 2026-11-19. No application implementation has started.
+Status: design accepted by the owner on 2026-11-19; implemented in draft PR #5, pending owner acceptance and release.
 
 ## Intent and iteration boundary
 

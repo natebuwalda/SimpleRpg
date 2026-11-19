@@ -12,7 +12,7 @@ Implemented the accepted three-step name/allocation/review flow, immutable compl
 - Production builds passed; the existing Phaser bundle-size advisory remains.
 - Inspected 320px Review and expanded Character screenshots: long names wrap, primary navigation remains reachable and sheets scroll vertically.
 - Combined local deployment smoke passed with the accepted Iteration 3 main build and new Iteration 4 acceptance build: both title flows work, save/Continue remains isolated, the main entry script is unchanged and no asset/runtime failures occurred. The verifier shares the browser allocation helper and uses Node 24's TypeScript support.
-- One independent whole-branch review found two save-loss risks and one keyboard-focus regression. Each was reproduced before its fix and verified in one fix pass: confirmation requires a fresh gesture; all save writers serialize with a final checkpoint comparison; a stale active tab cannot replace newer data; and Begin restores movement focus. No Minor findings were reported. GitHub CI and draft-PR handoff follow local verification. No deployment or merge performed.
+- One independent whole-branch review found two save-loss risks and one keyboard-focus regression. Each was reproduced before its fix and verified in one fix pass: confirmation requires a fresh gesture; all save writers serialize with a final checkpoint comparison; a stale active tab cannot replace newer data; and Begin restores movement focus. No Minor findings were reported. Draft [PR #5](https://github.com/natebuwalda/SimpleRpg/pull/5) is open; GitHub CI follows local verification. No deployment or merge performed.
 
 ## Execution decisions and limits
 
