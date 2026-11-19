@@ -21,10 +21,11 @@ const unsaved='Progress cannot be saved in this browser. You can still play.';
 let saveStatus='';
 const messages:Record<Exclude<RosterResult['kind'],'saved'>,string>={full:'All 10 slots are in use. Return to characters and delete one to make room.',stale:'This adventure changed in another tab. Return to characters to load the latest save.',missing:'This character was deleted in another tab. Return to characters.',invalid:'Saved data could not be read or this change is invalid.',unavailable:unsaved,'write-failed':unsaved};
 function observation(){const o=store.read();ui.setRoster(o,canMutate&&o.status!=='unavailable');return o;}
-function render(){ui.render(state,saveStatus);scene.renderState(state);ui.setBusy(busy||pending>0);}
+function render(){ui.render(state,saveStatus,dirty);scene.renderState(state);ui.setBusy(busy||pending>0);}
 function refresh(){if(state.kind!=='title')return;const o=observation();saveStatus=o.status==='invalid'?'Your roster could not be read.':o.status==='unavailable'||!canMutate?unsaved:'';render();}
 function failed(result:Exclude<RosterResult,{kind:'saved'}>){
- if(result.kind==='unavailable')canMutate=false;
+ // A failed read can recover in this session; failed lock acquisition cannot.
+ if(result.kind==='unavailable'&&result.observation.status!=='unavailable')canMutate=false;
  saveStatus=messages[result.kind];ui.showCreationMessage(saveStatus);ui.showRosterMessage(saveStatus);
  if(result.kind==='missing'||result.kind==='stale')stale=true;
 }
@@ -57,7 +58,10 @@ async function process(action:UiAction){
   const command=action.type==='resetRoster'?{type:'reset' as const,expectedRaw:action.raw}:!('id' in action)?{type:'restart' as const,id:selected!.id,expectedRevision:selected!.revision}:{type:action.type==='deleteSlot'?'delete' as const:'restart' as const,id:action.id,expectedRevision:action.revision};
   const result=await store.transact(command);
   if(result.kind==='saved'){
-   if(result.slot)enter(result.slot);else{saveStatus='Roster saved on this device.';observation();}
+   if(result.slot)enter(result.slot);else{
+    saveStatus=`${action.type==='deleteSlot'?'Character and adventure deleted.':'Roster reset.'} ${result.roster.slots.length} / 10 slots.`;
+    observation();ui.showRosterMessage(saveStatus);
+   }
   }else{if(state.kind==='title')observation();failed(result);}return;
  }
  if(action.type==='returnToRoster'){
@@ -65,13 +69,13 @@ async function process(action:UiAction){
   if(dirty)ui.confirmDiscard();else returnToRoster();return;
  }
  if(action.type==='discardProgress'){returnToRoster();return;}
- if(action.type==='retrySave'){await persist();return;}
+ if(action.type==='retrySave'){if(dirty)await persist();return;}
  const previous=state;
  state=transition(state,action as Action);
  if(state!==previous&&state.kind!=='title'&&state.kind!=='battle'&&action.type!=='acknowledgeVictory')await persist();
 }
 function dispatch(action:UiAction){
- if(!active||pending>0||(busy&&(action.type==='attack'||action.type==='run')))return;
+ if(!active||pending>0||(ui.isConfirming()&&action.type!=='discardProgress')||(busy&&(action.type==='attack'||action.type==='run')))return;
  const resolving=state.kind==='battle'&&(action.type==='attack'||action.type==='run');
  let done=false,delayDone=!resolving;
  const unlock=()=>{if(resolving&&done&&delayDone)busy=false;ui.setBusy(busy||pending>0);};
@@ -88,6 +92,7 @@ window.addEventListener('focus',()=>{active=true;refresh();});
 document.addEventListener('visibilitychange',()=>{active=!document.hidden;if(active)refresh();});
 const directions:Record<string,Direction>={ArrowUp:'up',w:'up',ArrowDown:'down',s:'down',ArrowLeft:'left',a:'left',ArrowRight:'right',d:'right'};
 window.addEventListener('keydown',event=>{
+ if(ui.isConfirming())return;
  if(event.target instanceof Element&&event.target.closest('input,textarea,select,[contenteditable="true"]'))return;
  if(event.repeat&&(event.key==='Enter'||event.key===' '))event.preventDefault();
  const direction=directions[event.key];const readingDetails=event.target instanceof Element&&event.target.closest('details');

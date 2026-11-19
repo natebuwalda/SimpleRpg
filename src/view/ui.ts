@@ -9,7 +9,8 @@ import {mountConfirmation} from './confirmation';
 import type {RosterObservation} from '../game/roster';
 
 export interface Ui {
-  render(state: GameState, saveStatus: string): void;
+  render(state: GameState, saveStatus: string, unsavedProgress?:boolean): void;
+  isConfirming():boolean;
   onAction(handler: (action: UiAction) => void): void;
   setBusy(busy: boolean): void;
   setRoster(observation:RosterObservation,canMutate:boolean):void;
@@ -72,6 +73,7 @@ export function mountUi(root: HTMLElement): Ui {
   let focusNewAdventure=false;
   let currentState: GameState = { kind: 'title' };
   let currentStatus = '';
+  let currentDirty=false;
   let busy = false;
   let active = true;
   let pointerAllowed = false;
@@ -128,6 +130,7 @@ export function mountUi(root: HTMLElement): Ui {
     else if (button.dataset.action) handler({ type: button.dataset.action } as UiAction);
   });
   const api: Ui = {
+    isConfirming(){return !!discard;},
     setRoster(next,allow){observation=next;canMutate=allow;roster?.update(next,allow);},
     onAction(next) { handler = next; },
     setCreationPending(value){creation?.setPending(value);roster?.setPending(value);},
@@ -136,7 +139,7 @@ export function mountUi(root: HTMLElement): Ui {
     completeCreation(){closeCreation();focusNewAdventure=true;},
     confirmDiscard(){
       if(discard)return;
-      discard=mountConfirmation(root.querySelector<HTMLElement>('#screen')!,{title:'Leave unsaved progress?',message:'Your latest progress could not be saved. Returning to characters discards these unsaved changes.',cancel:'Keep playing',confirm:'Discard unsaved progress',onCancel(){discard?.destroy();discard=null;api.render(currentState,currentStatus);},onConfirm(){discard?.destroy();discard=null;handler({type:'discardProgress'});}});
+      discard=mountConfirmation(root.querySelector<HTMLElement>('#screen')!,{title:'Leave unsaved progress?',message:'Your latest progress could not be saved. Returning to characters discards these unsaved changes.',cancel:'Keep playing',confirm:'Discard unsaved progress',onCancel(){discard?.destroy();discard=null;api.render(currentState,currentStatus,currentDirty);root.querySelector<HTMLButtonElement>('[data-direction="up"],#screen [data-action]')?.focus({preventScroll:true});},onConfirm(){discard?.destroy();discard=null;handler({type:'discardProgress'});}});
     },
     setBusy(nextBusy) {
       busy = nextBusy;
@@ -150,13 +153,14 @@ export function mountUi(root: HTMLElement): Ui {
         pendingFocus = null;
       }
     },
-    render(state, saveStatus) {
+    render(state, saveStatus, unsavedProgress=false) {
       const remaining = state.kind === 'title' ? 3 : getRemainingSlimeCount(state.checkpoint);
       const remainingText = `${remaining} ${remaining === 1 ? 'slime remains' : 'slimes remain'}.`;
       currentState = state;
       currentStatus = saveStatus;
+      currentDirty=unsavedProgress;
       const focused = document.activeElement instanceof HTMLButtonElement && root.contains(document.activeElement) ? { action: document.activeElement.dataset.action, direction: document.activeElement.dataset.direction } : null;
-      const saveMessage = root.querySelector('.save-status')!;
+      const saveMessage = root.querySelector('[role="status"][aria-label="Save status"]')!;
       if (saveMessage.textContent !== saveStatus) saveMessage.textContent = saveStatus;
       if(discard)return;
       if(state.kind==='title'){
@@ -186,7 +190,7 @@ export function mountUi(root: HTMLElement): Ui {
         if ((state.kind === 'victory' || state.kind === 'defeat') && turn) screen.insertAdjacentHTML('beforeend', `<p class="description combat-result">${turnSummary(turn)}</p>`);
         screen.insertAdjacentHTML('beforeend', rollDetails(turn) + characterDetails(state.checkpoint.character));
         if(state.kind!=='battle')screen.insertAdjacentHTML('beforeend','<button class="roster-wide return-roster" data-action="returnToRoster">Return to characters</button>');
-        if(saveStatus.includes('cannot be saved')&&state.kind!=='battle')screen.insertAdjacentHTML('beforeend','<button class="roster-wide" data-action="retrySave">Retry save</button>');
+        if(unsavedProgress&&saveStatus.includes('cannot be saved')&&state.kind!=='battle')screen.insertAdjacentHTML('beforeend','<button class="roster-wide" data-action="retrySave">Retry save</button>');
         screen.querySelector('[aria-label="Character name"]')!.textContent=state.checkpoint.character.name;
         const announcement = root.querySelector('#combat-announcement')!;
         if (turn && turn !== announcedTurn) {

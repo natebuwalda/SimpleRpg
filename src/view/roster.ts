@@ -11,9 +11,9 @@ export function mountRoster(root:HTMLElement,callbacks:Callbacks){
  const find=()=>observation.roster?.slots.find(s=>s.id===selected);
  function render(focus=true){
   rendered=true;
-  const focused=document.activeElement instanceof HTMLElement&&root.contains(document.activeElement)?document.activeElement.dataset.focus:null;
+  const focused=document.activeElement instanceof HTMLElement&&root.contains(document.activeElement)?(document.activeElement.tagName==='H1'?'heading':document.activeElement.dataset.focus):null;
   confirmation?.destroy();confirmation=null;
-  const slot=find();if(selected&&!slot){mode='list';selected=null;message='This character is no longer available.';}
+  const slot=find();if(selected&&!slot){mode='list';selected=null;message='This character is no longer available.';focus=true;}
   if(mode==='delete'&&slot){
    source=String(slot.revision);
    confirmation=mountConfirmation(root,{title:'End this story?',message:`Delete ${slot.checkpoint.character.name} and their saved adventure? This cannot be undone.`,cancel:'Keep character',confirm:'Delete permanently',onCancel(){mode='detail';render();},onConfirm(){callbacks.onDelete(slot.id,slot.revision);}});
@@ -43,6 +43,7 @@ export function mountRoster(root:HTMLElement,callbacks:Callbacks){
   if(confirmation){confirmation.showMessage(message);confirmation.setPending(pending);}
   else{root.querySelector('.roster-message')!.textContent=message;if(pending)root.querySelectorAll<HTMLButtonElement>('button').forEach(b=>{b.disabled=true});}
   if(focus&&!confirmation)root.querySelector<HTMLElement>('h1')?.focus({preventScroll:true});
+  else if(focused==='heading'&&!confirmation)root.querySelector<HTMLElement>('h1')?.focus({preventScroll:true});
   else if(focused&&!confirmation)Array.from(root.querySelectorAll<HTMLButtonElement>('button')).find(b=>b.dataset.focus===focused)?.focus({preventScroll:true});
  }
  root.addEventListener('click',event=>{
@@ -62,7 +63,7 @@ export function mountRoster(root:HTMLElement,callbacks:Callbacks){
    if(confirmation&&((mode==='delete'&&source===String(find()?.revision))||(mode==='reset'&&source===next.raw)))return;
    if(confirmation)message='Saved data changed. Review and confirm again.';
    if(mode==='reset'&&next.status!=='invalid')mode='list';
-   if(!rendered||JSON.stringify(before)!==JSON.stringify(next)||oldPermission!==allow)render(false);
+   if(!rendered||JSON.stringify(before)!==JSON.stringify(next)||oldPermission!==allow)render(!rendered);
   },
   setPending(value:boolean){pending=value;if(confirmation)confirmation.setPending(value);else render(false);},
   showMessage(value:string){message=value;if(confirmation)confirmation.showMessage(value);else root.querySelector('.roster-message')!.textContent=value;},
