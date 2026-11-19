@@ -1,6 +1,6 @@
 # Iteration 5: Character roster and ten playthroughs
 
-Status: mockup accepted; written design pending owner approval.
+Status: mockup and written design accepted by the owner on 2026-11-19. Implementation awaits plan approval.
 
 ## Intent and agreed scope
 
