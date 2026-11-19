@@ -1,13 +1,13 @@
 import type { Action, GameState } from './types';
 import { createCheckpoint, getLivingEncounterAt, move } from './world';
-import { deriveStats } from './character';
+import { deriveStats, isValidCharacter } from './character';
 import type { RandomSource } from './dice';
 import { createBattle, resolveTurn } from './battle';
 
 export function createSession(): GameState { return { kind: 'title' }; }
 export function transition(state: GameState, action: Action, rng: RandomSource = Math.random): GameState {
-  if (action.type === 'newGame' && state.kind === 'title') return { kind: 'exploring', checkpoint: createCheckpoint(action.world) };
-  if (action.type === 'restart' && state.kind === 'defeat') return { kind: 'exploring', checkpoint: createCheckpoint(state.checkpoint.world) };
+  if (action.type === 'newGame' && state.kind === 'title' && isValidCharacter(action.character)) return { kind: 'exploring', checkpoint: createCheckpoint(action.world, action.character) };
+  if (action.type === 'restart' && state.kind === 'defeat') return { kind: 'exploring', checkpoint: createCheckpoint(state.checkpoint.world, state.checkpoint.character) };
   if (action.type === 'continue' && state.kind === 'title') return { kind: 'exploring', checkpoint: action.checkpoint };
   if (action.type === 'move' && state.kind === 'exploring') {
     const position = move(state.checkpoint.world, state.checkpoint.position, action.direction);

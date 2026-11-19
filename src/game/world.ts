@@ -1,6 +1,6 @@
 import { SLIME_IDS, type Checkpoint, type Direction, type Position, type WorldDefinition, type WorldGeometry, type SlimePlacement } from './types';
 
-import { createStarterCharacter, deriveStats } from './character';
+import { createStarterCharacter, deriveStats, type Character } from './character';
 import { SIGHT_BUFFER } from './viewport';
 export const FOREST_BORDER = SIGHT_BUFFER;
 export function generateWorld(random: () => number = Math.random): WorldDefinition {
@@ -22,9 +22,9 @@ export function move(world: WorldGeometry, position: Position, direction: Direct
   const next = { x: position.x + offset.x, y: position.y + offset.y };
   return isWalkable(world, next) ? next : position;
 }
-export function createCheckpoint(world: WorldDefinition): Checkpoint {
-  const character = createStarterCharacter();
-  return { version: 4, character, world, position: getLandmarks(world).spawn, hp: deriveStats(character).maxHp, completedEncounterIds: [] };
+export function createCheckpoint(world: WorldDefinition, chosen: Character = createStarterCharacter()): Checkpoint {
+  const character = {name:chosen.name,attributes:{...chosen.attributes},skills:{...chosen.skills}};
+  return { version: 5, character, world, position: getLandmarks(world).spawn, hp: deriveStats(character).maxHp, completedEncounterIds: [] };
 }
 
 export function placeSlimes(world: WorldGeometry, preserved: SlimePlacement[] = [], excluded: Position[] = [], random: () => number = Math.random): SlimePlacement[] {

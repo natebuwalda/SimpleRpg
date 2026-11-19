@@ -8,7 +8,7 @@ const transition: typeof reduce = (state, action, rng = () => .7) => reduce(stat
 const world = makeWorld();
 
 it('new game starts exploration', () => {
-  expect(transition(createSession(), { type: 'newGame', world })).toEqual({
+  expect(transition(createSession(), { type: 'newGame', world, character: makeCheckpoint().character })).toEqual({
     kind: 'exploring', checkpoint: makeCheckpoint(world),
   });
 });
@@ -41,7 +41,7 @@ it('defeat preserves checkpoint and restart creates a fresh game', () => {
   expect(transition(defeat, { type: 'restart' })).toEqual({ kind: 'exploring', checkpoint: makeCheckpoint(world) });
 });
 it('exploration updates position without mutating the old checkpoint', () => {
-  const initial = transition(createSession(), { type: 'newGame', world });
+  const initial = transition(createSession(), { type: 'newGame', world, character: makeCheckpoint().character });
   expect(transition(initial, { type: 'move', direction: 'right' })).toMatchObject({ checkpoint: { position: { x: 4, y: 3 } } });
   expect(initial).toMatchObject({ checkpoint: { position: { x: 3, y: 3 } } });
 });

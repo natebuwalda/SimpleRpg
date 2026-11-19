@@ -7,6 +7,7 @@ import { loadSave, saveGame, type MigrationResolver, type MigrationSource } from
 import type { Checkpoint } from './game/types';
 import { VIEWPORT_TILES, TILE_SIZE } from './game/viewport';
 import { generateWorld } from './game/world';
+import { createStarterCharacter } from './game/character';
 import './style.css';
 
 const ui = mountUi(document.querySelector<HTMLElement>('#app')!);
@@ -57,7 +58,7 @@ function dispatch(action: UiAction) {
   if (resolving) busy = true;
   if (action.type === 'newGame' || action.type === 'continue' || action.type === 'restart') scene.resetViewport();
   const previous = state;
-  state = transition(state, action.type === 'newGame' ? { type: 'newGame', world: generateWorld() } : action);
+  state = transition(state, action.type === 'newGame' ? { type: 'newGame', world: generateWorld(), character: createStarterCharacter() } : action);
   if (state !== previous && (state.kind === 'exploring' || state.kind === 'victory') && action.type !== 'continue' && action.type !== 'acknowledgeVictory') {
     if (storage && saveGame(storage, state.checkpoint)) {
       saved = state.checkpoint;

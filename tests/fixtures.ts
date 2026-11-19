@@ -8,5 +8,5 @@ export function makeWorld(width = 20, height = 20): WorldDefinition {
   ]};
 }
 export function makeCheckpoint(world = makeWorld()): Checkpoint {
-  return {version:4,character:createStarterCharacter(),world,position:{x:3,y:3},hp:5,completedEncounterIds:[]};
+  return {version:5,character:createStarterCharacter(),world,position:{x:3,y:3},hp:5,completedEncounterIds:[]};
 }
