@@ -28,4 +28,4 @@ An initial broad test run overlapped a prior run's trace cleanup, causing an art
 
 ## Handoff
 
-Final independent review and its single fix pass are complete. Draft PR/CI handoff follows these verified commits. Deployment, merge and physical-phone acceptance await owner direction. Main and acceptance URLs still serve their previously published versions.
+Final independent review and its single fix pass are complete. Draft [PR #6](https://github.com/natebuwalda/SimpleRpg/pull/6) is open; final-head GitHub CI is being followed. Local test/mockup servers are stopped. Deployment, merge and physical-phone acceptance await owner direction. Main and acceptance URLs still serve their previously published versions.

@@ -96,7 +96,7 @@
 - [x] Update README/manual acceptance checklist and Iteration 5 status with breaking-save behavior, ten browser-local slots, no editing, persisted defeat, same-world penalty-free Restart, storage limits and deferred systems. Do not change deployment pins or publish in this run.
 - [x] Run `npm run typecheck`, `npm test`, `npm run test:e2e`, `npm run build`, and `git diff --check`. Build/serve the combined accepted-main plus Iteration-5-acceptance artifact locally and run the verifier with the accepted main entry hash; record actual counts, smoke output and screenshots. Stop owned servers after verification; retain mockups for reference.
 - [x] Use the native workflow's one final independent whole-branch review with approved spec/plan, range, rulings and all five Review Focus cases. Reproduce important findings with failing tests and fix them in one pass; run the full relevant checks again after changes. Record limitations; no per-task agents or repeated review loops.
-- [ ] Commit verified changes, push `codex/iteration-5`, create/attach a draft PR targeting main, and follow final-head GitHub CI to completion. Finish with evidence, review decisions and any owner acceptance work. Do not deploy or merge.
+- [x] Commit verified changes, push `codex/iteration-5`, create/attach a draft PR targeting main, and follow final-head GitHub CI to completion. Finish with evidence, review decisions and any owner acceptance work. Do not deploy or merge.
 
 ## Self-review
 
