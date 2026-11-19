@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-import {checkpoint,createCharacter,startAdventure,seed,steps} from './helpers';
+import {checkpoint,createCharacter,startAdventure,seed,steps,attack} from './helpers';
 declare global { interface Window { __creationWrites:number } }
 const scholar={name:'  Moss  ',attributes:{prowess:1,cunning:5,resistance:2},skills:{combat:0,subterfuge:5,lore:0}};
 
@@ -106,4 +106,53 @@ test('name editing keeps repeated spaces and IME composition in the same input',
   await input.dispatchEvent('compositionstart');await input.fill('葉 Rowan');await input.dispatchEvent('compositionend');
   expect(await element!.evaluate(node=>node.isConnected)).toBe(true);await expect(input).toBeFocused();
   await expect(input).toHaveValue('葉 Rowan');
+});
+
+for(const viewport of [{width:320,height:568},{width:390,height:844},{width:844,height:390}])test(`creation and sheet stay usable at ${viewport.width}×${viewport.height}`,async({page})=>{
+  await page.setViewportSize(viewport);await page.goto('./');await page.getByRole('button',{name:'New Game',exact:true}).click();
+  await page.addStyleTag({content:'.description { font-family:monospace; font-size:18px; }'});
+  const input=page.getByRole('textbox',{name:'Character name'});await input.pressSequentially('W'.repeat(25));
+  await expect(input).toHaveValue('W'.repeat(24));
+  const live=await page.getByRole('status',{name:'Creation result'}).elementHandle();
+  const increase=page.getByRole('button',{name:'Increase prowess',exact:true});await increase.focus();await page.keyboard.press('Enter');
+  await expect(increase).toBeFocused();expect(await live!.evaluate(node=>node.isConnected)).toBe(true);
+  await page.getByRole('button',{name:'Decrease prowess',exact:true}).click();
+  for(const button of await page.locator('.creation-actions button').all()){
+    const box=(await button.boundingBox())!;expect(box.width).toBeGreaterThanOrEqual(48);expect(box.height).toBeGreaterThanOrEqual(48);expect(box.y+box.height).toBeLessThanOrEqual(viewport.height);
+  }
+  await createCharacter(page,{...checkpoint.character,name:'W'.repeat(24)});
+  expect(await live!.evaluate(node=>node.isConnected)).toBe(true);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.screenshot({path:`test-results/iteration-4-review-${viewport.width}.png`,fullPage:true});
+  for(const button of await page.locator('.creation-actions button').all()){
+    const box=(await button.boundingBox())!;expect(box.y+box.height).toBeLessThanOrEqual(viewport.height);
+  }
+  await page.getByRole('button',{name:'Begin adventure'}).click();await page.getByText('Character',{exact:true}).click();
+  await expect(page.getByLabel('Character name')).toHaveText('W'.repeat(24));
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.screenshot({path:`test-results/iteration-4-sheet-${viewport.width}.png`,fullPage:true});
+});
+
+test('a Combat-zero adventure retains damage, heals to its max and Restarts the same build/map',async({page})=>{
+  const character={...scholar,name:'Moss'};
+  await seed(page,{...checkpoint,character,position:{x:15,y:14},hp:3});await steps(page,'down');
+  await expect(page.locator('.combat-result')).toHaveText('Attack 1d10 vs 3d10 defense.');
+  await attack(page,[1,1,1,1, 8,1,1, 1,1]);
+  await expect(page.getByLabel('Hero health')).toHaveText('2 / 3 HP');
+  await page.getByRole('button',{name:'Run',exact:true}).click();
+  await page.reload();await page.getByRole('button',{name:'Continue',exact:true}).click();
+  await expect(page.getByLabel('Hero health')).toHaveText('2 / 3 HP');await steps(page,'down');
+  await attack(page,[10,10, 1,1,1, 1,1,1, 1,1]);await attack(page,[8, 1,1,1]);
+  await page.getByRole('button',{name:'Back to clearing'}).click();await expect(page.getByLabel('Hero health')).toHaveText('3 / 3 HP');
+  await steps(page,'left',7);await steps(page,'up',6);
+  await attack(page,[1,1,1,1, 8,8,8, 1,1]);await expect(page.getByRole('heading',{name:'Defeated',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Restart',exact:true}).click();
+  await expect(page.getByLabel('Hero health')).toHaveText('3 / 3 HP');
+  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v5')!))).toEqual({...checkpoint,character,hp:3});
+});
+
+test('repeated overwrite confirmation creates one replacement',async({page})=>{
+  await seed(page);await page.reload();await startAdventure(page);
+  await page.evaluate(()=>{let count=0;const original=Storage.prototype.setItem;Object.defineProperty(window,'__creationWrites',{get:()=>count});Storage.prototype.setItem=function(key,value){if(key==='simple-rpg.save.v5')count++;return original.call(this,key,value);};const button=document.querySelector<HTMLButtonElement>('[data-creation-action="confirm"]')!;button.click();button.click();});
+  await expect(page.getByLabel('Position')).toHaveText('3, 3');expect(await page.evaluate(()=>window.__creationWrites)).toBe(1);
 });
