@@ -30,6 +30,37 @@ button.primary:hover:not(:disabled) { background: #e3eac6; }
 .game-details summary:focus-visible { outline: 3px solid #f0d69a; outline-offset: 2px; }
 .detail-content { overflow-wrap: anywhere; padding: 0 4px 4px; }
 .detail-content p { margin: 0 0 12px; }
+.game-shell.creating { width: min(100%,560px); }
+.creating .play-area { display:block; }
+.creating .world-frame { display:none; }
+.creating .panel { padding:0; }
+.creation { display:flex; flex-direction:column; height:calc(100svh - 180px); min-height:230px; }
+.creation-body { overflow-y:auto; flex:1; min-height:0; padding:0 4px 16px; scrollbar-width:thin; }
+.creation-progress { display:flex; gap:6px; font-size:11px; color:#a4b5a7; margin-bottom:16px; }
+.creation-progress [aria-current] { color:#e3eac6; }
+.creation-name { display:block; color:#b2c1b4; font-size:13px; margin:16px 0 20px; }
+.creation-name input { display:block; width:100%; min-height:48px; margin-top:8px; padding:10px 12px; font:inherit; font-size:16px; background:#172b2b; color:#e8ebd9; border:1px solid #52605a; border-radius:8px; }
+.creation-name input:focus-visible { outline:3px solid #f0d69a; outline-offset:3px; }
+.creation h2 { font-family:inherit; font-size:14px; font-weight:600; letter-spacing:0; margin:0; }
+.creation h1 { overflow-wrap:anywhere; }
+.creation-group-title { display:flex; justify-content:space-between; gap:8px; align-items:center; }
+.creation-group-title span { color:#d5dfaa; font-size:12px; font-variant-numeric:tabular-nums; }
+.creation-rule { color:#a9bbae; font-size:12px; line-height:1.6; margin:8px 0 12px; }
+.allocation-row { display:grid; grid-template-columns:minmax(0,1fr) 48px 24px 48px; align-items:center; gap:6px; padding:12px 0; border-bottom:1px solid #344a43; }
+.allocation-row strong { display:block; font-size:15px; font-weight:500; }
+.allocation-row small { display:block; margin-top:4px; font-size:11px; line-height:1.5; color:#a3b5a6; }
+.allocation-row button { padding:0; font-size:22px; }
+.allocation-row output { text-align:center; font-size:18px; font-variant-numeric:tabular-nums; }
+.creation-derived { margin:20px 0; }
+.creation-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:14px; }
+.creation-stats div { color:#a9bbae; font-size:11px; }
+.creation-stats strong { display:block; color:#e8ebd9; font-size:22px; font-weight:500; margin-top:8px; font-variant-numeric:tabular-nums; }
+.creation-pools { display:flex; justify-content:space-between; gap:12px; margin-top:18px; font-size:13px; }
+.creation-summary { border-top:1px solid #344a43; padding-top:16px; margin-top:18px; }
+.creation-summary p { display:flex; justify-content:space-between; margin:8px 0; font-size:14px; }
+.creation-actions { display:flex; gap:10px; flex-shrink:0; padding:12px 0 0; font-size:14px; letter-spacing:0; }
+.creation-actions button { flex:1; }
+.creation-notice { font-size:14px; line-height:1.6; color:#d5dfaa; }
 footer { border-top: 1px solid #344a43; padding-top: 14px; font-size: 8px; }
 .stats { display: flex; gap: 24px; margin: 16px 0; color: #9cafa1; font-size: 10px; letter-spacing: 1px; }
 .stats strong { display: block; color: #e8ebd9; font-size: 15px; margin-top: 4px; letter-spacing: 0; }

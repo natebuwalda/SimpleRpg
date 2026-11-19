@@ -8,7 +8,7 @@ export type SlimeId = typeof SLIME_IDS[number];
 export type SlimePlacement = { id: SlimeId; position: Position };
 export type WorldGeometry = { layout: 'woodland' | 'legacy-expanded'; width: number; height: number };
 export type WorldDefinition = WorldGeometry & { version: 2; slimes: SlimePlacement[] };
-export type Checkpoint = { version: 4; character: Character; world: WorldDefinition; position: Position; hp: number; completedEncounterIds: SlimeId[] };
+export type Checkpoint = { version: 5; character: Character; world: WorldDefinition; position: Position; hp: number; completedEncounterIds: SlimeId[] };
 export type TurnRolls = { hero: OpposedRoll; slime: OpposedRoll | null };
 export type BattleState = { heroHp: number; enemyHp: number; heroPools: { attack: number; defense: number }; lastTurn: TurnRolls | null; result: 'active' | 'victory' | 'defeat' | 'escaped' };
 export type GameState =
@@ -18,9 +18,9 @@ export type GameState =
   | { kind: 'victory'; checkpoint: Checkpoint; lastTurn?: TurnRolls | null }
   | { kind: 'defeat'; checkpoint: Checkpoint; lastTurn?: TurnRolls | null };
 export type Action =
-  | { type: 'newGame'; world: WorldDefinition }
+  | { type: 'newGame'; world: WorldDefinition; character: Character }
   | { type: 'attack' | 'run' | 'acknowledgeVictory' | 'restart' }
   | { type: 'continue'; checkpoint: Checkpoint }
   | { type: 'move'; direction: Direction };
 
-export type UiAction = Exclude<Action, { type: 'newGame' }> | { type: 'newGame' };
+export type UiAction = Exclude<Action, { type: 'newGame' }> | { type: 'newGame'; character: Character; expectedSave: string };

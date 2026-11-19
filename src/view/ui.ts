@@ -3,6 +3,8 @@ import { deriveStats, getMeleePools } from '../game/character';
 import type { PoolRoll } from '../game/dice';
 import { SLIME } from '../game/battle';
 import { getRemainingSlimeCount } from '../game/world';
+import { mountCharacterCreation } from './character-creation';
+import { checkpointSignature } from '../game/save';
 
 export interface Ui {
   render(state: GameState, saveStatus: string): void;
@@ -10,11 +12,15 @@ export interface Ui {
   setBusy(busy: boolean): void;
   setSaved(checkpoint: Checkpoint | null): void;
   onTitleAction(handler: () => void): void;
+  setStarting(pending:boolean):void;
+  completeCreation():void;
+  confirmChangedSave():void;
 }
 
 function characterDetails(character: Character): string {
   const a = character.attributes, s = character.skills, stats = deriveStats(character), pools = getMeleePools(character);
   return `<details class="game-details"><summary>Character</summary><div class="detail-content">
+    <p aria-label="Character name"></p>
     <p aria-label="Character attributes">Prowess ${a.prowess} · Cunning ${a.cunning} · Resistance ${a.resistance}</p>
     <p aria-label="Character skills">Combat ${s.combat} · Subterfuge ${s.subterfuge} · Lore ${s.lore}</p>
     <p aria-label="Derived stats">Health ${stats.maxHp} · Initiative ${stats.initiative} · Resource capacity ${stats.resourceCapacity}</p>
@@ -30,8 +36,8 @@ function rollDetails(turn: TurnRolls | null | undefined): string {
     ${turn.slime ? diceText('Slime attack dice', turn.slime.attack) + diceText('Your defense dice', turn.slime.defense) : '<p>No counterattack.</p>'}
     <p>8–10 succeeds. Each original 10 adds one bonus die; bonus dice never add another. Ties favor the defender.</p></div></details>`;
 }
-function turnSummary(turn: TurnRolls | null | undefined): string {
-  if (!turn) return 'Attack 5d10 vs 3d10 defense.';
+function turnSummary(turn: TurnRolls | null | undefined, attackPool?: number): string {
+  if (!turn) return `Attack ${attackPool}d10 vs ${SLIME.defense}d10 defense.`;
   return `You: ${turn.hero.attack.successes} vs ${turn.hero.defense.successes} → ${turn.hero.damage} damage.`
     + (turn.slime ? `<br>Slime: ${turn.slime.attack.successes} vs ${turn.slime.defense.successes} → ${turn.slime.damage} damage.` : '');
 }
@@ -39,7 +45,7 @@ function turnSummary(turn: TurnRolls | null | undefined): string {
 export function mountUi(root: HTMLElement): Ui {
   root.innerHTML = `
     <main class="game-shell">
-      <header><span class="wordmark">SIMPLE RPG</span><span class="edition">ITERATION 03</span></header>
+      <header><span class="wordmark">SIMPLE RPG</span><span class="edition">ITERATION 04</span></header>
       <p id="combat-announcement" class="sr-only" role="status" aria-label="Combat result" aria-atomic="true"></p>
       <section class="play-area">
         <div class="world-frame"><div id="canvas" role="img" aria-label="A tiny woodland adventure"></div></div>
@@ -57,7 +63,9 @@ export function mountUi(root: HTMLElement): Ui {
     </main>`;
   let handler: (action: UiAction) => void = () => {};
   let saved: Checkpoint | null = null;
-  let confirming = false;
+  let creation: ReturnType<typeof mountCharacterCreation> | null = null;
+  let confirmedSave: string | null = null;
+  let focusNewAdventure=false;
   let currentState: GameState = { kind: 'title' };
   let currentStatus = '';
   let beforeTitleAction = () => {};
@@ -68,6 +76,33 @@ export function mountUi(root: HTMLElement): Ui {
   let announcedTurn: TurnRolls | null = null;
   let turnNumber = 0;
   const blockedKeys = new Set<string>();
+  function closeCreation(){
+    creation?.destroy();creation=null;root.querySelector('.game-shell')!.classList.remove('creating');
+  }
+  function commitCharacter(character:Character){
+    if(!creation || !active || currentState.kind!=='title')return;
+    handler({type:'newGame',character,expectedSave:checkpointSignature(saved)});
+  }
+  function openCreation(){
+    if(creation || currentState.kind!=='title')return;
+    root.querySelector('.game-shell')!.classList.add('creating');
+    creation=mountCharacterCreation(root.querySelector<HTMLElement>('#screen')!,{
+      onBegin(character){
+        if(!active)return;
+        beforeTitleAction();
+        if(saved){confirmedSave=checkpointSignature(saved);creation?.showOverwriteConfirmation();}
+        else commitCharacter(character);
+      },
+      onConfirm(character){
+        if(!active)return;
+        beforeTitleAction();
+        const current=checkpointSignature(saved);
+        if(current!==confirmedSave){confirmedSave=current;creation?.showOverwriteConfirmation(true);return;}
+        commitCharacter(character);
+      },
+      onCancel(){closeCreation();api.render(currentState,currentStatus);root.querySelector<HTMLButtonElement>('[data-action="newGame"]')?.focus();},
+    });
+  }
   window.addEventListener('blur', () => { active = false; pointerAllowed = false; pendingFocus = null; });
   window.addEventListener('focus', () => { active = true; });
   document.addEventListener('visibilitychange', () => {
@@ -78,6 +113,7 @@ export function mountUi(root: HTMLElement): Ui {
   root.addEventListener('pointerdown', event => { pointerAllowed = active && (!busy || !isBattleCommand(event.target)); }, true);
   root.addEventListener('pointercancel', () => { pointerAllowed = false; }, true);
   root.addEventListener('keydown', event => {
+    if(event.target instanceof Element && event.target.closest('input,textarea,select,[contenteditable="true"]'))return;
     if (event.key !== 'Enter' && event.key !== ' ') return;
     if ((busy && isBattleCommand(event.target)) || !active || event.repeat || blockedKeys.has(event.key)) {
       blockedKeys.add(event.key);
@@ -88,6 +124,7 @@ export function mountUi(root: HTMLElement): Ui {
     if (blockedKeys.has(event.key)) { event.preventDefault(); blockedKeys.delete(event.key); }
   }, true);
   root.addEventListener('click', (event) => {
+    if(creation)return;
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button');
     if (!button || button.disabled) return;
     if (!active || (event.detail > 0 && !pointerAllowed)) return;
@@ -96,23 +133,17 @@ export function mountUi(root: HTMLElement): Ui {
     if (button.dataset.direction) handler({ type: 'move', direction: button.dataset.direction as Direction });
     else if (button.dataset.action === 'continue') {
       if (saved) handler({ type: 'continue', checkpoint: saved });
-    } else if (button.dataset.action === 'newGame' && saved) {
-      confirming = true;
-      api.render(currentState, currentStatus);
-      root.querySelector<HTMLButtonElement>('[data-action="cancel"]')?.focus();
-    } else if (button.dataset.action === 'cancel') {
-      confirming = false;
-      api.render(currentState, currentStatus);
-      root.querySelector<HTMLButtonElement>('[data-action="newGame"]')?.focus();
-    } else if (button.dataset.action === 'confirm') {
-      confirming = false;
-      handler({ type: 'newGame' });
+    } else if (button.dataset.action === 'newGame') {
+      openCreation();
     } else if (button.dataset.action) handler({ type: button.dataset.action } as UiAction);
   });
   const api: Ui = {
     setSaved(checkpoint) { saved = checkpoint; },
     onTitleAction(next) { beforeTitleAction = next; },
     onAction(next) { handler = next; },
+    setStarting(value){creation?.setPending(value);},
+    completeCreation(){closeCreation();focusNewAdventure=true;},
+    confirmChangedSave(){confirmedSave=checkpointSignature(saved);creation?.showOverwriteConfirmation(true);},
     setBusy(nextBusy) {
       busy = nextBusy;
       root.querySelectorAll<HTMLButtonElement>('[data-action="attack"], [data-action="run"]').forEach(button => {
@@ -133,8 +164,8 @@ export function mountUi(root: HTMLElement): Ui {
       const focused = document.activeElement instanceof HTMLButtonElement && root.contains(document.activeElement) ? { action: document.activeElement.dataset.action, direction: document.activeElement.dataset.direction } : null;
       const saveMessage = root.querySelector('.save-status')!;
       if (saveMessage.textContent !== saveStatus) saveMessage.textContent = saveStatus;
-      if (state.kind === 'title') root.querySelector('#screen')!.innerHTML = confirming ? `
-        <div class="eyebrow">A FRESH START</div><h1>Begin again?</h1><p class="description">Starting over will replace your saved adventure.</p><div class="actions"><button data-action="cancel">Cancel</button><button data-action="confirm" class="primary">Start Over</button></div>` : `
+      if (state.kind === 'title' && creation) return;
+      if (state.kind === 'title') root.querySelector('#screen')!.innerHTML = `
         <div class="eyebrow">A LITTLE ADVENTURE</div><h1>Simple RPG</h1><p class="description">A quiet clearing. Three little slimes.<br>A journey begins with one step.</p><div class="actions"><button data-action="newGame" class="primary">New Game <span aria-hidden="true">↗</span></button><button data-action="continue" ${saved ? '' : 'disabled'}>Continue</button></div>`;
       if (state.kind === 'exploring') root.querySelector('#screen')!.innerHTML = `
         <div class="eyebrow">THE FIRST CLEARING</div><h1>Find your way.</h1>
@@ -144,7 +175,7 @@ export function mountUi(root: HTMLElement): Ui {
       if (state.kind === 'battle') root.querySelector('#screen')!.innerHTML = `
         <div class="eyebrow">A WILD ENCOUNTER</div><h1>Meadow slime</h1>
         <div class="stats"><span>HERO <strong aria-label="Hero health">${state.battle.heroHp} / ${deriveStats(state.checkpoint.character).maxHp} HP</strong></span><span>SLIME <strong aria-label="Slime health">${state.battle.enemyHp} / ${SLIME.maxHp} HP</strong></span></div>
-        <p class="description combat-result">${turnSummary(state.battle.lastTurn)}</p>
+        <p class="description combat-result">${turnSummary(state.battle.lastTurn,state.battle.heroPools.attack)}</p>
         <div class="actions"><button class="primary" data-action="attack">Attack</button><button data-action="run">Run</button></div>`;
       if (state.kind === 'victory' || state.kind === 'defeat') {
         const won = state.kind === 'victory';
@@ -155,6 +186,7 @@ export function mountUi(root: HTMLElement): Ui {
         const screen = root.querySelector('#screen')!;
         if ((state.kind === 'victory' || state.kind === 'defeat') && turn) screen.insertAdjacentHTML('beforeend', `<p class="description combat-result">${turnSummary(turn)}</p>`);
         screen.insertAdjacentHTML('beforeend', rollDetails(turn) + characterDetails(state.checkpoint.character));
+        screen.querySelector('[aria-label="Character name"]')!.textContent=state.checkpoint.character.name;
         const announcement = root.querySelector('#combat-announcement')!;
         if (turn && turn !== announcedTurn) {
           announcedTurn = turn;
@@ -166,7 +198,9 @@ export function mountUi(root: HTMLElement): Ui {
           if (announcement.textContent) announcement.textContent = '';
         }
       }
-      if (focused) {
+      if(focusNewAdventure&&state.kind==='exploring'){
+        root.querySelector<HTMLButtonElement>('[data-direction="up"]')?.focus({preventScroll:true});focusNewAdventure=false;
+      } else if (focused) {
         const selector = focused.direction ? `[data-direction="${focused.direction}"]` : `[data-action="${focused.action}"]`;
         const target = root.querySelector<HTMLButtonElement>(selector);
         if (target) target.focus({ preventScroll: true });

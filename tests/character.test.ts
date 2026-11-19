@@ -3,7 +3,7 @@ import { createStarterCharacter, deriveStats, getMeleePools, isStarterCharacter 
 
 test('starter spending produces the agreed derived stats and melee pools', () => {
   const character = createStarterCharacter();
-  expect(character).toEqual({ attributes: { prowess: 3, cunning: 3, resistance: 2 }, skills: { combat: 2, subterfuge: 2, lore: 1 } });
+  expect(character).toEqual({ name: 'Adventurer', attributes: { prowess: 3, cunning: 3, resistance: 2 }, skills: { combat: 2, subterfuge: 2, lore: 1 } });
   expect(deriveStats(character)).toEqual({ maxHp: 5, initiative: 6, resourceCapacity: 5 });
   expect(getMeleePools(character)).toEqual({ attack: 5, defense: 4 });
 });

@@ -1,6 +1,7 @@
 import { SLIME_IDS, type Checkpoint, type Position, type WorldGeometry, type WorldDefinition, type SlimePlacement } from './types';
 import { getLandmarks, getLivingEncounterAt, isWalkable } from './world';
 import { decodeRecord, validGeometry, validProgress } from './save-validation';
+import { isStarterCharacter, type CharacterRatings } from './character';
 
 export type LegacyCheckpoint = { version: 2; world: WorldGeometry & { version: 1 }; position: Position; hp: number; completedEncounterIds: 'slime-1'[] };
 export function parseOlderSave(raw: string | null): LegacyCheckpoint | null {
@@ -21,6 +22,14 @@ export function parseOlderSave(raw: string | null): LegacyCheckpoint | null {
 
 export type PlacedProgress = Omit<Checkpoint, 'version' | 'character'>;
 export type V3Checkpoint = PlacedProgress & { version: 3 };
+export function parseV4Save(raw: string | null): (PlacedProgress & {version:4;character:CharacterRatings}) | null {
+  const v=decodeRecord(raw);
+  if(!v || v.version!==4 || !isStarterCharacter(v.character))return null;
+  const progress=parsePlacedProgress(v,5);
+  if(!progress)return null;
+  const {attributes:a,skills:s}=v.character;
+  return {...progress,version:4,character:{attributes:{prowess:a.prowess,cunning:a.cunning,resistance:a.resistance},skills:{combat:s.combat,subterfuge:s.subterfuge,lore:s.lore}}};
+}
 export function parseV3Save(raw: string | null): V3Checkpoint | null {
   const v = decodeRecord(raw);
   if (!v || v.version !== 3) return null;

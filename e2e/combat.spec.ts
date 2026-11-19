@@ -23,7 +23,7 @@ test('fixed character and exact bonus dice are understandable through victory', 
   await page.getByText('Roll details', { exact: true }).click();
   await expect(page.getByLabel('Your attack dice')).toContainText('Successes: 5');
   await expect(page.getByText('No counterattack.', { exact: true })).toBeVisible();
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('simple-rpg.save.v4')!));
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('simple-rpg.save.v5')!));
   expect(saved.hp).toBe(5); expect(saved.character).toEqual(checkpoint.character);
   expect(saved).not.toHaveProperty('lastTurn');
 });
@@ -37,6 +37,7 @@ test('zero-success ties cause no damage and Run preserves prior damage', async (
   await attack(page);
   await expect(page.getByLabel('Hero health')).toHaveText('3 / 5 HP');
   await page.getByRole('button', { name: 'Run', exact: true }).tap();
+  await expect(page.getByLabel('Position')).toHaveText('15, 14');
   await expect(page.getByLabel('Hero health')).toHaveText('3 / 5 HP');
   await page.reload(); await page.getByRole('button', { name: 'Continue', exact: true }).tap();
   await expect(page.getByLabel('Hero health')).toHaveText('3 / 5 HP');
@@ -100,8 +101,8 @@ test('v3 upgrade preserves placements, progress and recovery copy through focus 
   await page.getByRole('button',{name:'Continue',exact:true}).tap();
   await expect(page.getByLabel('Position')).toHaveText('8, 8');
   await expect(page.getByLabel('Hero health')).toHaveText('2 / 5 HP');
-  const upgraded=await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v4')!));
-  expect(upgraded).toEqual({...old,version:4,character:checkpoint.character});
+  const upgraded=await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v5')!));
+  expect(upgraded).toEqual({...old,version:5,character:checkpoint.character});
   expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v3')!))).toEqual(old);
   await page.reload();await page.getByRole('button',{name:'Continue',exact:true}).tap();
   await expect(page.getByLabel('Slimes remaining')).toHaveText('2 slimes remain.');
