@@ -7,7 +7,7 @@ import { loadSave, saveGame, type MigrationResolver, type MigrationSource } from
 import type { Checkpoint } from './game/types';
 import { VIEWPORT_TILES, TILE_SIZE } from './game/viewport';
 import { generateWorld } from './game/world';
-import { createStarterCharacter } from './game/character';
+import { isValidCharacter } from './game/character';
 import './style.css';
 
 const ui = mountUi(document.querySelector<HTMLElement>('#app')!);
@@ -54,11 +54,12 @@ let active = true;
 let busy = false;
 function dispatch(action: UiAction) {
   if (!active || (busy && (action.type === 'attack' || action.type === 'run'))) return;
+  if (action.type === 'newGame' && (state.kind !== 'title' || !isValidCharacter(action.character))) return;
   const resolving = state.kind === 'battle' && (action.type === 'attack' || action.type === 'run');
   if (resolving) busy = true;
   if (action.type === 'newGame' || action.type === 'continue' || action.type === 'restart') scene.resetViewport();
   const previous = state;
-  state = transition(state, action.type === 'newGame' ? { type: 'newGame', world: generateWorld(), character: createStarterCharacter() } : action);
+  state = transition(state, action.type === 'newGame' ? { ...action, world: generateWorld() } : action);
   if (state !== previous && (state.kind === 'exploring' || state.kind === 'victory') && action.type !== 'continue' && action.type !== 'acknowledgeVictory') {
     if (storage && saveGame(storage, state.checkpoint)) {
       saved = state.checkpoint;
@@ -81,6 +82,7 @@ window.addEventListener('focus', () => { active = true; });
 document.addEventListener('visibilitychange', () => { active = !document.hidden; });
 const directions: Record<string, Direction> = { ArrowUp: 'up', w: 'up', ArrowDown: 'down', s: 'down', ArrowLeft: 'left', a: 'left', ArrowRight: 'right', d: 'right' };
 window.addEventListener('keydown', event => {
+  if(event.target instanceof Element && event.target.closest('input,textarea,select,[contenteditable="true"]'))return;
   if (event.repeat && (event.key === 'Enter' || event.key === ' ')) event.preventDefault();
   const direction = directions[event.key];
   const readingDetails = event.target instanceof Element && event.target.closest('details');

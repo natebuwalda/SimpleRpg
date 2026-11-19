@@ -3,6 +3,18 @@ export const world = {version:2,layout:'woodland',width:20,height:20,slimes:[
   {id:'slime-1',position:{x:15,y:15}}, {id:'slime-2',position:{x:8,y:8}}, {id:'slime-3',position:{x:10,y:10}},
 ]};
 export const checkpoint = {version:5,character:{name:'Adventurer',attributes:{prowess:3,cunning:3,resistance:2},skills:{combat:2,subterfuge:2,lore:1}},world,position:{x:3,y:3},hp:5,completedEncounterIds:[] as string[]};
+export async function createCharacter(page:Page, build=checkpoint.character) {
+  await page.getByRole('textbox',{name:'Character name',exact:true}).fill(build.name);
+  for(const [key,value] of Object.entries(build.attributes))for(let i=1;i<value;i++)await page.getByRole('button',{name:`Increase ${key}`,exact:true}).click();
+  await page.getByRole('button',{name:'Next: skills',exact:true}).click();
+  for(const [key,value] of Object.entries(build.skills))for(let i=0;i<value;i++)await page.getByRole('button',{name:`Increase ${key}`,exact:true}).click();
+  await page.getByRole('button',{name:'Review character',exact:true}).click();
+}
+export async function startAdventure(page:Page,build=checkpoint.character) {
+  await page.getByRole('button',{name:'New Game',exact:true}).click();
+  await createCharacter(page,build);
+  await page.getByRole('button',{name:'Begin adventure',exact:true}).click();
+}
 export async function seed(page:Page, value = checkpoint) {
   await page.goto('./');
   await page.evaluate(value => localStorage.setItem('simple-rpg.save.v5',JSON.stringify(value)), value);

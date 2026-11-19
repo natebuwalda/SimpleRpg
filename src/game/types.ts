@@ -23,4 +23,4 @@ export type Action =
   | { type: 'continue'; checkpoint: Checkpoint }
   | { type: 'move'; direction: Direction };
 
-export type UiAction = Exclude<Action, { type: 'newGame' }> | { type: 'newGame' };
+export type UiAction = Exclude<Action, { type: 'newGame' }> | { type: 'newGame'; character: Character };
