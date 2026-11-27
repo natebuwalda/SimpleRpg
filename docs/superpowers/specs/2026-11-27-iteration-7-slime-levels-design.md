@@ -1,6 +1,6 @@
 # Iteration 7: Slime levels
 
-Status: written design for owner review.
+Status: written design accepted by the owner on 2026-11-27.
 
 The current wave sets the level of every slime in the clearing. A new adventure starts at slime level 1. Once all three slimes are defeated, a successful **Find more slimes** action raises that level by one and spawns three new slimes under the existing placement rules.
 
