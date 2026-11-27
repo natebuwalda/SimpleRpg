@@ -196,7 +196,7 @@ export function mountUi(root: HTMLElement): Ui {
       const slimeLevelLabel = `<span aria-label="Slime level">Slime level ${slimeLevel}</span>`;
       const canFind = state.kind === 'exploring' && canFindMoreSlimes(state.checkpoint);
       if (state.kind === 'exploring') root.querySelector('#screen')!.innerHTML = `
-        <div class="eyebrow">${slimeLevelLabel}</div><h1>Find your way.</h1>
+        <div class="eyebrow"><span aria-label="Current wave">Wave ${slimeLevel}</span></div><h1>Find your way.</h1>
         <div class="stats"><span>HERO <strong aria-label="Hero health">${state.checkpoint.hp} / ${maxHp} HP</strong></span><span>POSITION <strong aria-label="Position">${state.checkpoint.position.x}, ${state.checkpoint.position.y}</strong></span><span>WORLD <strong aria-label="World size">${state.checkpoint.world.width} × ${state.checkpoint.world.height} tiles</strong></span></div>
         <p class="description"><span aria-label="Slimes remaining">${remainingText}</span><br>${remaining === 0 ? canFind ? 'The clearing is peaceful.' : 'There are no higher waves.' : 'Explore the clearing.'}</p>
         <nav class="dpad" aria-label="Movement"><button data-direction="up" aria-label="Move up">↑</button><button data-direction="left" aria-label="Move left">←</button><button data-direction="down" aria-label="Move down">↓</button><button data-direction="right" aria-label="Move right">→</button></nav>`;

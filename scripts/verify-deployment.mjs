@@ -72,13 +72,13 @@ try{
     await back.click();
     await page.evaluate(()=>{Math.random=()=>0;});
     await page.getByRole('button',{name:'Find more slimes',exact:true}).click();
-    await expect(page.getByLabel('Slime level',{exact:true})).toHaveText('Slime level 2');
+    await expect(page.getByLabel('Current wave',{exact:true})).toHaveText('Wave 2');
     await page.getByRole('button',{name:'Move right',exact:true}).click();
     await expect(page.getByLabel('Slime health')).toHaveText('4 / 4 HP');
     await attack(page,[...Array(10).fill(8),1,1,1,1]);
     await expect(page.locator('#screen')).toContainText('+2 XP.');
     await page.reload();await resume('Smoke progression');
-    await expect(page.getByLabel('Slime level',{exact:true})).toHaveText('Slime level 2');
+    await expect(page.getByLabel('Current wave',{exact:true})).toHaveText('Wave 2');
     await page.getByText('Character',{exact:true}).click();
     await expect(page.getByLabel('Character progression')).toContainText('Level 2 · 0 / 5 XP · 1 point available');
     return {roster:true,independentPlaythroughs:2,persistedVictoryXp:true,persistedSlimeLevel:2};

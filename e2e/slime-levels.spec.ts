@@ -3,18 +3,19 @@ import { attack, checkpoint, seed, steps } from './helpers';
 
 const cleared = { ...checkpoint, completedEncounterIds: checkpoint.world.slimes.map(slime => slime.id) };
 const currentSlimeLevel = (page: Page) => page.getByLabel('Slime level', { exact: true });
+const waveLabel = (page: Page) => page.getByLabel('Current wave', { exact: true });
 const find = (page: Page) => page.getByRole('button', { name: 'Find more slimes', exact: true });
 const resume = (page: Page) => page.getByRole('button', { name: 'Resume', exact: true }).click();
 
 test('Find creates a level two wave with four Health, four dice, and two XP', async ({ page }) => {
   await seed(page, cleared);
-  await expect(currentSlimeLevel(page)).toHaveText('Slime level 1');
+  await expect(waveLabel(page)).toHaveText('Wave 1');
   await page.evaluate(() => { Math.random = () => 0; });
   await find(page).click();
-  await expect(currentSlimeLevel(page)).toHaveText('Slime level 2');
+  await expect(waveLabel(page)).toHaveText('Wave 2');
   await page.reload();
   await resume(page);
-  await expect(currentSlimeLevel(page)).toHaveText('Slime level 2');
+  await expect(waveLabel(page)).toHaveText('Wave 2');
   await steps(page, 'right');
   await expect(currentSlimeLevel(page)).toHaveText('Slime level 2');
   await expect(page.getByLabel('Slime health')).toHaveText('4 / 4 HP');
@@ -23,7 +24,7 @@ test('Find creates a level two wave with four Health, four dice, and two XP', as
   await expect(page.locator('#screen')).toContainText('+2 XP.');
   await page.reload();
   await resume(page);
-  await expect(currentSlimeLevel(page)).toHaveText('Slime level 2');
+  await expect(waveLabel(page)).toHaveText('Wave 2');
   await page.getByText('Character', { exact:true }).click();
   await expect(page.getByLabel('Character progression')).toContainText('2 / 5 XP');
 });
@@ -34,7 +35,7 @@ test('Restart after a boosted defeat preserves advancement and restores level on
   await attack(page, [...Array(9).fill(1), ...Array(4).fill(8), ...Array(4).fill(1)]);
   await expect(page.getByRole('heading',{name:'Defeated',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Restart',exact:true}).click();
-  await expect(currentSlimeLevel(page)).toHaveText('Slime level 1');
+  await expect(waveLabel(page)).toHaveText('Wave 1');
   await expect(page.getByLabel('Hero health')).toHaveText('5 / 5 HP');
   await page.getByText('Character',{exact:true}).click();
   await expect(page.getByLabel('Character progression')).toContainText('Level 3 · 2 / 5 XP · 2 points available');
@@ -47,7 +48,7 @@ test('only one tab advances a cleared wave', async ({ page, context }) => {
   await resume(other);
   await page.bringToFront();
   await find(page).click();
-  await expect(currentSlimeLevel(page)).toHaveText('Slime level 2');
+  await expect(waveLabel(page)).toHaveText('Wave 2');
   await other.bringToFront();
   await find(other).click();
   await expect(other.getByRole('status', { name:'Save status' })).toContainText('changed in another tab');
@@ -60,7 +61,7 @@ for (const size of [{width:320,height:568},{width:390,height:844},{width:844,hei
   test(`cleared final wave has no Find action at ${size.width}x${size.height}`, async ({ page }) => {
     await page.setViewportSize(size);
     await seed(page,{...cleared,slimeLevel:1022});
-    await expect(currentSlimeLevel(page)).toHaveText('Slime level 1022');
+    await expect(waveLabel(page)).toHaveText('Wave 1022');
     await expect(page.locator('#screen')).toContainText('There are no higher waves.');
     await expect(find(page)).toHaveCount(0);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(size.width);
