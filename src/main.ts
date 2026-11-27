@@ -9,6 +9,7 @@ import {ROSTER_KEY} from './game/save';
 import type {SaveLocks} from './game/save-coordinator';
 import {VIEWPORT_TILES,TILE_SIZE} from './game/viewport';
 import './style.css';
+import { availablePoints, effectiveCharacter } from './game/progression';
 
 const ui=mountUi(document.querySelector<HTMLElement>('#app')!);
 const scene=new GameScene();let state=createSession(),selected:RosterSlot|null=null;
@@ -21,8 +22,8 @@ const unsaved='Progress cannot be saved in this browser. You can still play.';
 let saveStatus='';
 const messages:Record<Exclude<RosterResult['kind'],'saved'>,string>={full:'All 10 slots are in use. Return to characters and delete one to make room.',stale:'This adventure changed in another tab. Return to characters to load the latest save.',missing:'This character was deleted in another tab. Return to characters.',invalid:'Saved data could not be read or this change is invalid.',unavailable:unsaved,'write-failed':unsaved};
 function observation(){const o=store.read();ui.setRoster(o,canMutate&&o.status!=='unavailable');return o;}
-function render(){ui.render(state,saveStatus,dirty);scene.renderState(state);ui.setBusy(busy||pending>0);}
-function refresh(){if(state.kind!=='title')return;const o=observation();saveStatus=o.status==='invalid'?'Your roster could not be read.':o.status==='unavailable'||!canMutate?unsaved:'';render();}
+function render(){ui.render(state,saveStatus,dirty,canMutate&&!stale);scene.renderState(state);ui.setBusy(busy||pending>0);}
+function refresh(){if(state.kind!=='title')return;const o=observation();saveStatus=o.status==='invalid'?'Your roster could not be read.':o.status==='unavailable'||!canMutate?unsaved:o.legacy?'Your older save is available. It will upgrade when saving succeeds.':'';render();}
 function failed(result:Exclude<RosterResult,{kind:'saved'}>){
  // A failed read can recover in this session; failed lock acquisition cannot.
  if(result.kind==='unavailable'&&result.observation.status!=='unavailable')canMutate=false;
@@ -43,6 +44,12 @@ async function persist(){
  else{dirty=true;failed(result);}
 }
 async function process(action:UiAction){
+ if(action.type==='upgradeRoster'){
+  const result=await store.transact({type:'upgrade'});
+  refresh();
+  if(result.kind!=='saved')failed(result);
+  return;
+ }
  if(action.type==='newGame'){
   if(state.kind!=='title')return;
   const result=await store.transact({type:'create',character:action.character});
@@ -50,12 +57,32 @@ async function process(action:UiAction){
  }
  if(action.type==='resumeSlot'){
   if(state.kind!=='title')return;const o=observation(),slot=o.roster?.slots.find(s=>s.id===action.id);
-  if(slot)enter(slot);else{saveStatus='This character is no longer available.';ui.showRosterMessage(saveStatus);}return;
+  if(slot){
+   enter(slot);
+   if(o.legacy)saveStatus='Your older save is available. It will upgrade when saving succeeds.';
+  }else{saveStatus='This character is no longer available.';ui.showRosterMessage(saveStatus);}return;
+ }
+ if(action.type==='findMoreSlimes'||action.type==='spendPoint'){
+  if(!selected||state.kind!=='exploring'||dirty||stale||!canMutate)return;
+  const result=await store.transact({...action,id:selected.id,expectedRevision:selected.revision});
+  if(result.kind==='saved'&&result.slot){
+   selected=result.slot;
+   state={kind:'exploring',checkpoint:result.slot.checkpoint};
+   saveStatus='Three more slimes appeared.';
+   if(action.type==='spendPoint'){
+    const {group,key}=action.rating;
+    const hero=effectiveCharacter(state.checkpoint.character,state.checkpoint.progression);
+    const rating=group==='attributes'?hero.attributes[key]:hero.skills[key];
+    const label=key[0].toUpperCase()+key.slice(1);
+    saveStatus=`${label} raised to ${rating}. ${availablePoints(state.checkpoint.progression)} points available.`;
+   }
+  }else if(result.kind!=='saved')failed(result);
+  return;
  }
  if(action.type==='deleteSlot'||action.type==='resetRoster'||action.type==='restartSlot'||action.type==='restart'){
-  if(action.type==='restart'&&(!selected||state.kind!=='defeat'))return;
+  if(action.type==='restart'&&(!selected||state.kind!=='defeat'||dirty||stale||!canMutate))return;
   if(action.type!=='restart'&&state.kind!=='title')return;
-  const command=action.type==='resetRoster'?{type:'reset' as const,expectedRaw:action.raw}:!('id' in action)?{type:'restart' as const,id:selected!.id,expectedRevision:selected!.revision}:{type:action.type==='deleteSlot'?'delete' as const:'restart' as const,id:action.id,expectedRevision:action.revision};
+  const command=action.type==='resetRoster'?{type:'reset' as const,expectedRaw:action.raw,legacy:action.legacy}:!('id' in action)?{type:'restart' as const,id:selected!.id,expectedRevision:selected!.revision}:{type:action.type==='deleteSlot'?'delete' as const:'restart' as const,id:action.id,expectedRevision:action.revision};
   const result=await store.transact(command);
   if(result.kind==='saved'){
    if(result.slot)enter(result.slot);else{
@@ -86,6 +113,8 @@ function dispatch(action:UiAction){
  });
 }
 ui.onAction(dispatch);refresh();
+const initialSave=store.read();
+if(canMutate&&initialSave.legacy&&initialSave.status==='ready')dispatch({type:'upgradeRoster'});
 window.addEventListener('storage',refresh);
 window.addEventListener('blur',()=>{active=false;});
 window.addEventListener('focus',()=>{active=true;refresh();});

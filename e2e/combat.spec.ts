@@ -23,7 +23,7 @@ test('fixed character and exact bonus dice are understandable through victory', 
   await page.getByText('Roll details', { exact: true }).click();
   await expect(page.getByLabel('Your attack dice')).toContainText('Successes: 5');
   await expect(page.getByText('No counterattack.', { exact: true })).toBeVisible();
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('simple-rpg.save.v6')!).slots[0].checkpoint);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('simple-rpg.save.v7')!).slots[0].checkpoint);
   expect(saved.hp).toBe(5); expect(saved.character).toEqual(checkpoint.character);
   expect(saved).not.toHaveProperty('lastTurn');
 });

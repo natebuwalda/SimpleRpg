@@ -42,38 +42,38 @@
 
 **Files:** `src/game/progression.ts`, `types.ts`, `world.ts`, `session.ts`; `tests/progression.test.ts`, `tests/session.test.ts`, `tests/slime-generation.test.ts`, fixtures.
 
-- [ ] Write failing rules tests for no level at 4 XP, level 2 and one point at 5, banked points after multiple levels, distinct attribute/skill spends, Combat 5 → 6, and insufficient/invalid spends. Test a curve with costs 3 then 6, awarding 10 XP from level 1 to reach level 3 with 1 XP toward the next level.
-- [ ] Write failing session and world tests for exactly one XP per victory, unchanged XP on Run/defeat/acknowledgement, advanced combat pools and derived Health, and a peaceful clearing spawning exactly three valid positions only on request. Verify Restart restores baseline placements from a later wave and preserves progression.
-- [ ] Run targeted Vitest tests and verify failures for the missing behavior.
-- [ ] Implement the pure contracts and update fixtures to supply the new fields. Keep creation validation independent. Temporarily allow the old save adapter to round-trip the new checkpoint until Task 2 swaps envelopes; do not fabricate progression from the creation build.
-- [ ] Run targeted Vitest tests and typecheck, then commit the green rule/session changes.
+- [x] Write failing rules tests for no level at 4 XP, level 2 and one point at 5, banked points after multiple levels, distinct attribute/skill spends, Combat 5 → 6, and insufficient/invalid spends. Test a curve with costs 3 then 6, awarding 10 XP from level 1 to reach level 3 with 1 XP toward the next level.
+- [x] Write failing session and world tests for exactly one XP per victory, unchanged XP on Run/defeat/acknowledgement, advanced combat pools and derived Health, and a peaceful clearing spawning exactly three valid positions only on request. Verify Restart restores baseline placements from a later wave and preserves progression.
+- [x] Run targeted Vitest tests and verify failures for the missing behavior.
+- [x] Implement the pure contracts and update fixtures to supply the new fields. Keep creation validation independent. Temporarily allow the old save adapter to round-trip the new checkpoint until Task 2 swaps envelopes; do not fabricate progression from the creation build.
+- [x] Run targeted Vitest tests and typecheck, then commit the green rule/session changes.
 
 ## Task 2: Save upgrade and guarded transactions
 
 **Files:** `src/game/save.ts`, `save-keys.ts`, `save-validation.ts`, `roster.ts`, `roster-store.ts`; existing save/store tests plus `tests/progression-save.test.ts`.
 
-- [ ] Write failing tests upgrading a mixed v6 roster with active, cleared and defeated slots. Check exact preserved fields and level 1/0 XP, absent-only fallback, invalid-source reset, no cross-namespace reads, no overwrite of v6, and stale v6 writer behavior after v7 is saved. Exercise failed promotion and recovery under the shared lock.
-- [ ] Write failing store tests for two tabs spending or finding with the same revision, malformed investments, insufficient points, invalid placement and Health, failed writes, stale/deleted slots and Restart preserving advancement. Check other slots remain byte-equivalent after successful mutations.
-- [ ] Verify regular autosave accepts legitimate missed-save progress for multiple newly defeated slimes in the same wave, with exactly the XP that the added completions earn. Reject lost completions, changes to base build, wave, baseline or investments, and XP mismatches. Retry writes the staged checkpoint and earns no XP again.
-- [ ] Observe failing targeted tests. Implement versioned validation, migration and command-specific transactions. Keep counters and checks under the same lock, derive spending and wave results from the stored checkpoint, and make current-key reset durable. Remove the temporary adapter.
-- [ ] Run targeted tests, full unit suite and typecheck. Commit the verified persistence layer.
+- [x] Write failing tests upgrading a mixed v6 roster with active, cleared and defeated slots. Check exact preserved fields and level 1/0 XP, absent-only fallback, invalid-source reset, no cross-namespace reads, no overwrite of v6, and stale v6 writer behavior after v7 is saved. Exercise failed promotion and recovery under the shared lock.
+- [x] Write failing store tests for two tabs spending or finding with the same revision, malformed investments, insufficient points, invalid placement and Health, failed writes, stale/deleted slots and Restart preserving advancement. Check other slots remain byte-equivalent after successful mutations.
+- [x] Verify regular autosave accepts legitimate missed-save progress for multiple newly defeated slimes in the same wave, with exactly the XP that the added completions earn. Reject lost completions, changes to base build, wave, baseline or investments, and XP mismatches. Retry writes the staged checkpoint and earns no XP again.
+- [x] Observe failing targeted tests. Implement versioned validation, migration and command-specific transactions. Keep counters and checks under the same lock, derive spending and wave results from the stored checkpoint, and make current-key reset durable. Remove the temporary adapter.
+- [x] Run targeted tests, full unit suite and typecheck. Commit the verified persistence layer.
 
 ## Task 3: Player-facing progression
 
 **Files:** `src/main.ts`, `src/game/types.ts`, `src/view/ui.ts`, `src/view/roster.ts`, `src/style.css`, `e2e/helpers.ts`, new `e2e/progression.spec.ts`.
 
-- [ ] Add failing browser scenarios with deterministic encounters: win three battles and see 3/5 XP, resume the peaceful map, choose Find, win twice, see level 2 and one point, spend it on a rating of 5, then reload the same slot. Set another character aside and verify its build and XP are independent.
-- [ ] Add failing storage scenarios for an unsaved victory and an unsaved defeat. Verify Spend/Find/Restart guard before and after retry. Force a write failure on a clean Spend and Find; verify points and placements stay untouched, then retry successfully.
-- [ ] Run the targeted browser tests and see the missing UI and guards fail.
-- [ ] Wire the shared contracts, mount the actions on exploration and advancement readouts on the existing sheets, and announce rewards through the existing feedback regions. Use effective stats and melee pools everywhere the game displays or consumes them. Enter as a migrated slot only after observing its latest state. Change edition to 06.
-- [ ] Update helpers and existing browser assertions for the v7 envelope. Keep deterministic gameplay fixtures, and exercise legacy v6 only in upgrade scenarios. Run typecheck, unit and targeted browser suites, then commit the verified UI.
+- [x] Add failing browser scenarios with deterministic encounters: win three battles and see 3/5 XP, resume the peaceful map, choose Find, win twice, see level 2 and one point, spend it on a rating of 5, then reload the same slot. Set another character aside and verify its build and XP are independent.
+- [x] Add failing storage scenarios for an unsaved victory and an unsaved defeat. Verify Spend/Find/Restart guard before and after retry. Force a write failure on a clean Spend and Find; verify points and placements stay untouched, then retry successfully.
+- [x] Run the targeted browser tests and see the missing UI and guards fail.
+- [x] Wire the shared contracts, mount the actions on exploration and advancement readouts on the existing sheets, and announce rewards through the existing feedback regions. Use effective stats and melee pools everywhere the game displays or consumes them. Enter as a migrated slot only after observing its latest state. Change edition to 06.
+- [x] Update helpers and existing browser assertions for the v7 envelope. Keep deterministic gameplay fixtures, and exercise legacy v6 only in upgrade scenarios. Run typecheck, unit and targeted browser suites, then commit the verified UI.
 
 ## Task 4: Regression verification and handoff
 
 **Files:** `e2e/progression.spec.ts` and affected browser suites, `scripts/verify-deployment.mjs`, `README.md`, `docs/superpowers/iteration-6-status.md`.
 
-- [ ] Test at least one real shared-context competing mutation, repeated Find activation, reload at the fifth victory, persisted new placements, and Restart after a later-wave defeat. Confirm that a dirty multi-win recovery commits all XP exactly once. Verify 320 × 568, 390 × 844, and 844 × 390 with large text, keyboard sheet navigation, focus after spend, and touch control reachability.
-- [ ] Update the README with the shipped Iteration 5 baseline, the Iteration 6 rules, existing-save upgrade and old-tab refresh note, and a short phone acceptance checklist. Update the deployment verifier to support Iteration 5 production alongside Iteration 6 acceptance and both paths on Iteration 6. Check namespace isolation and run a deterministic progression smoke flow.
-- [ ] Run typecheck, unit and full browser suites, production and acceptance builds, and git diff whitespace checks. Smoke-test the combined local site and record actual evidence; stop local test servers after verification.
-- [ ] Conduct one independent whole-branch review against the design and five Review Focus cases. Reproduce actionable findings, address them in one fix pass, and rerun relevant verification.
+- [x] Test at least one real shared-context competing mutation, repeated Find activation, reload at the fifth victory, persisted new placements, and Restart after a later-wave defeat. Confirm that a dirty multi-win recovery commits all XP exactly once. Verify 320 × 568, 390 × 844, and 844 × 390 with large text, keyboard sheet navigation, focus after spend, and touch control reachability.
+- [x] Update the README with the shipped Iteration 5 baseline, the Iteration 6 rules, existing-save upgrade and old-tab refresh note, and a short phone acceptance checklist. Update the deployment verifier to support Iteration 5 production alongside Iteration 6 acceptance and both paths on Iteration 6. Check namespace isolation and run a deterministic progression smoke flow.
+- [x] Run typecheck, unit and full browser suites, production and acceptance builds, and git diff whitespace checks. Smoke-test the combined local site and record actual evidence; stop local test servers after verification.
+- [x] Conduct one independent whole-branch review against the design and five Review Focus cases. Reproduce actionable findings, address them in one fix pass, and rerun relevant verification.
 - [ ] Commit verified changes, push `codex/iteration-6`, open and attach a draft PR targeting main, and verify final-head CI.

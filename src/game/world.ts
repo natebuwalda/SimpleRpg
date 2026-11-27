@@ -2,6 +2,7 @@ import { SLIME_IDS, type Checkpoint, type Direction, type Position, type WorldDe
 
 import { createStarterCharacter, deriveStats, type Character } from './character';
 import { SIGHT_BUFFER } from './viewport';
+import { createProgression, effectiveCharacter } from './progression';
 export const FOREST_BORDER = SIGHT_BUFFER;
 export function generateWorld(random: () => number = Math.random): WorldDefinition {
   const geometry: WorldGeometry = { layout: 'woodland', width: 20 + Math.floor(random() * 21), height: 20 + Math.floor(random() * 21) };
@@ -24,7 +25,25 @@ export function move(world: WorldGeometry, position: Position, direction: Direct
 }
 export function createCheckpoint(world: WorldDefinition, chosen: Character = createStarterCharacter()): Checkpoint {
   const character = {name:chosen.name,attributes:{...chosen.attributes},skills:{...chosen.skills}};
-  return { version: 5, character, world, position: getLandmarks(world).spawn, hp: deriveStats(character).maxHp, completedEncounterIds: [] };
+  return {
+    version: 6, character, world, position: getLandmarks(world).spawn,
+    hp: deriveStats(character).maxHp, completedEncounterIds: [],
+    progression: createProgression(), initialSlimes: structuredClone(world.slimes),
+  };
+}
+
+export function restartCheckpoint(checkpoint: Checkpoint): Checkpoint {
+  return {
+    ...checkpoint, world: { ...checkpoint.world, slimes: structuredClone(checkpoint.initialSlimes) },
+    position: getLandmarks(checkpoint.world).spawn, completedEncounterIds: [],
+    hp: deriveStats(effectiveCharacter(checkpoint.character, checkpoint.progression)).maxHp,
+  };
+}
+
+export function findMoreSlimes(checkpoint: Checkpoint, random = Math.random): Checkpoint {
+  if (getRemainingSlimeCount(checkpoint) !== 0) return checkpoint;
+  const slimes = placeSlimes(checkpoint.world, [], [checkpoint.position], random);
+  return { ...checkpoint, world: { ...checkpoint.world, slimes }, completedEncounterIds: [] };
 }
 
 export function placeSlimes(world: WorldGeometry, preserved: SlimePlacement[] = [], excluded: Position[] = [], random: () => number = Math.random): SlimePlacement[] {

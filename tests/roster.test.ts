@@ -3,7 +3,7 @@ import {parseRoster,loadRoster,writeRoster} from '../src/game/save';
 import {getSaveKeys} from '../src/game/save-keys';
 import {makeCheckpoint} from './fixtures';
 export const slot=(i=1)=>({id:`00000000-0000-4000-8000-${String(i).padStart(12,'0')}`,revision:1,status:'active' as const,checkpoint:makeCheckpoint()});
-export const roster=(n=1)=>({version:6 as const,slots:Array.from({length:n},(_,i)=>slot(i+1))});
+export const roster=(n=1)=>({version:7 as const,slots:Array.from({length:n},(_,i)=>slot(i+1))});
 describe('combined roster',()=>{
  it('accepts zero or ten independent slots and duplicate names',()=>{
   for(const n of [0,10])expect(parseRoster(JSON.stringify(roster(n)))).toEqual(roster(n));
@@ -14,14 +14,14 @@ describe('combined roster',()=>{
   expect(parseRoster(JSON.stringify(r))).toBeNull();
  });
  it('returns canonical independent snapshots',()=>{const input:any=roster();input.extra='drop';const parsed=parseRoster(JSON.stringify(input))!;expect(parsed).toEqual(roster());parsed.slots[0].checkpoint.character.name='changed';expect(input.slots[0].checkpoint.character.name).not.toBe('changed');});
- it('ignores all historical keys and never falls back after invalid data',()=>{
-  const storage={getItem:vi.fn((key:string)=>key.endsWith('v6')?null:JSON.stringify(makeCheckpoint()))};
-  expect(loadRoster(storage).status).toBe('empty');expect(storage.getItem.mock.calls).toEqual([['simple-rpg.save.v6']]);
+ it('ignores keys older than v6 and never falls back after invalid data',()=>{
+  const storage={getItem:vi.fn((key:string)=>/\.v[67]$/.test(key)?null:JSON.stringify(makeCheckpoint()))};
+  expect(loadRoster(storage).status).toBe('empty');expect(storage.getItem.mock.calls).toEqual([['simple-rpg.save.v7'],['simple-rpg.save.v6']]);
   storage.getItem.mockImplementation(()=>'{');expect(loadRoster(storage).status).toBe('invalid');
   storage.getItem.mockImplementation(()=>{throw Error()});expect(loadRoster(storage).status).toBe('unavailable');
  });
  it('writes validated combined data only and isolates acceptance',()=>{
-  expect(getSaveKeys('/SimpleRpg/').current).toBe('simple-rpg.save.v6');expect(getSaveKeys('/SimpleRpg/acceptance/').current).toBe('simple-rpg.acceptance.save.v6');
+  expect(getSaveKeys('/SimpleRpg/').current).toBe('simple-rpg.save.v7');expect(getSaveKeys('/SimpleRpg/acceptance/').current).toBe('simple-rpg.acceptance.save.v7');
   const storage={setItem:vi.fn()};expect(writeRoster(storage,roster())).toBe(true);expect(storage.setItem).toHaveBeenCalledTimes(1);
   expect(writeRoster(storage,roster(11))).toBe(false);expect(storage.setItem).toHaveBeenCalledTimes(1);
  });

@@ -1,5 +1,5 @@
 import type { Checkpoint, WorldDefinition } from '../src/game/types';
-import { createStarterCharacter } from '../src/game/character';
+import { createCheckpoint } from '../src/game/world';
 export function makeWorld(width = 20, height = 20): WorldDefinition {
   return {version:2,layout:'woodland',width,height,slimes:[
     {id:'slime-1',position:{x:width-5,y:height-5}},
@@ -8,5 +8,5 @@ export function makeWorld(width = 20, height = 20): WorldDefinition {
   ]};
 }
 export function makeCheckpoint(world = makeWorld()): Checkpoint {
-  return {version:5,character:createStarterCharacter(),world,position:{x:3,y:3},hp:5,completedEncounterIds:[]};
+  return createCheckpoint(world);
 }

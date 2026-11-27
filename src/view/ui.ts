@@ -1,4 +1,4 @@
-import type { UiAction, Checkpoint, Direction, GameState, TurnRolls, Character } from '../game/types';
+import type { UiAction, Character, Checkpoint, Direction, GameState, TurnRolls } from '../game/types';
 import { deriveStats, getMeleePools } from '../game/character';
 import type { PoolRoll } from '../game/dice';
 import { SLIME } from '../game/battle';
@@ -7,9 +7,10 @@ import { mountCharacterCreation } from './character-creation';
 import {mountRoster} from './roster';
 import {mountConfirmation} from './confirmation';
 import type {RosterObservation} from '../game/roster';
+import {availablePoints,effectiveCharacter,hasSupportedMeleePools,progressionSummary,SLIME_XP,spendPoint,type Rating} from '../game/progression';
 
 export interface Ui {
-  render(state: GameState, saveStatus: string, unsavedProgress?:boolean): void;
+  render(state: GameState, saveStatus: string, unsavedProgress?:boolean, canSave?:boolean): void;
   isConfirming():boolean;
   onAction(handler: (action: UiAction) => void): void;
   setBusy(busy: boolean): void;
@@ -21,14 +22,28 @@ export interface Ui {
   completeCreation():void;
 }
 
-function characterDetails(character: Character): string {
+const advancementRatings = [
+  {group:'attributes',key:'prowess'}, {group:'attributes',key:'cunning'}, {group:'attributes',key:'resistance'},
+  {group:'skills',key:'combat'}, {group:'skills',key:'subterfuge'}, {group:'skills',key:'lore'},
+] as const satisfies readonly Rating[];
+
+function characterDetails(checkpoint: Checkpoint, canSpend: boolean, open: boolean): string {
+  const { progression } = checkpoint;
+  const character = effectiveCharacter(checkpoint.character, progression);
   const a = character.attributes, s = character.skills, stats = deriveStats(character), pools = getMeleePools(character);
-  return `<details class="game-details"><summary>Character</summary><div class="detail-content">
+  const points = availablePoints(progression);
+  const controls = canSpend && points > 0 ? `<div class="advancement-controls">${advancementRatings.map(rating => {
+    const {key} = rating;
+    const supported = hasSupportedMeleePools(effectiveCharacter(checkpoint.character, spendPoint(progression, rating)));
+    return `<button type="button" data-rating="${key}" ${supported?'':'disabled'}>Raise ${key[0].toUpperCase()+key.slice(1)}</button>`;
+  }).join('')}</div>` : '';
+  return `<details class="game-details" data-character-sheet ${open ? 'open' : ''}><summary>Character</summary><div class="detail-content">
     <p aria-label="Character name"></p>
+    <p aria-label="Character progression">${progressionSummary(progression)}</p>
     <p aria-label="Character attributes">Prowess ${a.prowess} · Cunning ${a.cunning} · Resistance ${a.resistance}</p>
     <p aria-label="Character skills">Combat ${s.combat} · Subterfuge ${s.subterfuge} · Lore ${s.lore}</p>
     <p aria-label="Derived stats">Health ${stats.maxHp} · Initiative ${stats.initiative} · Resource capacity ${stats.resourceCapacity}</p>
-    <p aria-label="Melee pools">Attack ${pools.attack}d10 · Defense ${pools.defense}d10</p></div></details>`;
+    <p aria-label="Melee pools">Attack ${pools.attack}d10 · Defense ${pools.defense}d10</p>${controls}</div></details>`;
 }
 function diceText(label: string, roll: PoolRoll): string {
   return `<p aria-label="${label}"><strong>${label}</strong><br>Original: ${roll.original.join(', ')}. Bonus: ${roll.bonus.join(', ') || 'none'}. Successes: ${roll.successes}.</p>`;
@@ -49,7 +64,7 @@ function turnSummary(turn: TurnRolls | null | undefined, attackPool?: number): s
 export function mountUi(root: HTMLElement): Ui {
   root.innerHTML = `
     <main class="game-shell">
-      <header><span class="wordmark">SIMPLE RPG</span><span class="edition">ITERATION 05</span></header>
+      <header><span class="wordmark">SIMPLE RPG</span><span class="edition">ITERATION 06</span></header>
       <p id="combat-announcement" class="sr-only" role="status" aria-label="Combat result" aria-atomic="true"></p>
       <section class="play-area">
         <div class="world-frame"><div id="canvas" role="img" aria-label="A tiny woodland adventure"></div></div>
@@ -66,7 +81,7 @@ export function mountUi(root: HTMLElement): Ui {
       <footer><span>A WORLD IN YOUR POCKET</span><span>TOUCH · KEYBOARD</span></footer>
     </main>`;
   let handler: (action: UiAction) => void = () => {};
-  let observation:RosterObservation={status:'empty',raw:null,roster:{version:6,slots:[]}},canMutate=false;
+  let observation:RosterObservation={status:'empty',raw:null,roster:{version:7,slots:[]}},canMutate=false;
   let roster:ReturnType<typeof mountRoster>|null=null;
   let discard:ReturnType<typeof mountConfirmation>|null=null;
   let creation: ReturnType<typeof mountCharacterCreation> | null = null;
@@ -74,6 +89,7 @@ export function mountUi(root: HTMLElement): Ui {
   let currentState: GameState = { kind: 'title' };
   let currentStatus = '';
   let currentDirty=false;
+  let currentCanSave=true;
   let busy = false;
   let active = true;
   let pointerAllowed = false;
@@ -126,7 +142,9 @@ export function mountUi(root: HTMLElement): Ui {
     if (!button || button.disabled) return;
     if (!active || (event.detail > 0 && !pointerAllowed)) return;
     pointerAllowed = false;
-    if (button.dataset.direction) handler({ type: 'move', direction: button.dataset.direction as Direction });
+    const rating = advancementRatings.find(rating => rating.key === button.dataset.rating);
+    if (rating) handler({ type: 'spendPoint', rating });
+    else if (button.dataset.direction) handler({ type: 'move', direction: button.dataset.direction as Direction });
     else if (button.dataset.action) handler({ type: button.dataset.action } as UiAction);
   });
   const api: Ui = {
@@ -139,7 +157,7 @@ export function mountUi(root: HTMLElement): Ui {
     completeCreation(){closeCreation();focusNewAdventure=true;},
     confirmDiscard(){
       if(discard)return;
-      discard=mountConfirmation(root.querySelector<HTMLElement>('#screen')!,{title:'Leave unsaved progress?',message:'Your latest progress could not be saved. Returning to characters discards these unsaved changes.',cancel:'Keep playing',confirm:'Discard unsaved progress',onCancel(){discard?.destroy();discard=null;api.render(currentState,currentStatus,currentDirty);root.querySelector<HTMLButtonElement>('[data-direction="up"],#screen [data-action]')?.focus({preventScroll:true});},onConfirm(){discard?.destroy();discard=null;handler({type:'discardProgress'});}});
+      discard=mountConfirmation(root.querySelector<HTMLElement>('#screen')!,{title:'Leave unsaved progress?',message:'Your latest progress could not be saved. Returning to characters discards these unsaved changes.',cancel:'Keep playing',confirm:'Discard unsaved progress',onCancel(){discard?.destroy();discard=null;api.render(currentState,currentStatus,currentDirty,currentCanSave);root.querySelector<HTMLButtonElement>('[data-direction="up"],#screen [data-action]')?.focus({preventScroll:true});},onConfirm(){discard?.destroy();discard=null;handler({type:'discardProgress'});}});
     },
     setBusy(nextBusy) {
       busy = nextBusy;
@@ -153,42 +171,48 @@ export function mountUi(root: HTMLElement): Ui {
         pendingFocus = null;
       }
     },
-    render(state, saveStatus, unsavedProgress=false) {
+    render(state, saveStatus, unsavedProgress=false, canSave=true) {
       const remaining = state.kind === 'title' ? 3 : getRemainingSlimeCount(state.checkpoint);
       const remainingText = `${remaining} ${remaining === 1 ? 'slime remains' : 'slimes remain'}.`;
       currentState = state;
       currentStatus = saveStatus;
       currentDirty=unsavedProgress;
-      const focused = document.activeElement instanceof HTMLButtonElement && root.contains(document.activeElement) ? { action: document.activeElement.dataset.action, direction: document.activeElement.dataset.direction } : null;
+      currentCanSave=canSave;
+      const canChange=canSave&&!unsavedProgress;
+      const keepSheetOpen=!!root.querySelector('[data-character-sheet][open]');
+      const focused = document.activeElement instanceof HTMLButtonElement && root.contains(document.activeElement) ? { action: document.activeElement.dataset.action, direction: document.activeElement.dataset.direction, rating: document.activeElement.dataset.rating } : null;
       const saveMessage = root.querySelector('[role="status"][aria-label="Save status"]')!;
       if (saveMessage.textContent !== saveStatus) saveMessage.textContent = saveStatus;
       if(discard)return;
       if(state.kind==='title'){
         root.querySelector('.game-shell')!.classList.add('roster-visible');
         if(creation)return;
-        if(!roster)roster=mountRoster(root.querySelector<HTMLElement>('#screen')!,{onCreate:openCreation,onResume(id){focusNewAdventure=true;handler({type:'resumeSlot',id});},onRestart(id,revision){focusNewAdventure=true;handler({type:'restartSlot',id,revision});},onDelete(id,revision){handler({type:'deleteSlot',id,revision});},onReset(raw){handler({type:'resetRoster',raw});}});
+        if(!roster)roster=mountRoster(root.querySelector<HTMLElement>('#screen')!,{onCreate:openCreation,onResume(id){focusNewAdventure=true;handler({type:'resumeSlot',id});},onRestart(id,revision){focusNewAdventure=true;handler({type:'restartSlot',id,revision});},onDelete(id,revision){handler({type:'deleteSlot',id,revision});},onReset(raw,legacy){handler({type:'resetRoster',raw,legacy});}});
         roster.update(observation,canMutate);return;
       }
       roster?.destroy();roster=null;root.querySelector('.game-shell')!.classList.remove('roster-visible');
+      const maxHp=deriveStats(effectiveCharacter(state.checkpoint.character,state.checkpoint.progression)).maxHp;
+      const reward=state.kind==='victory'?`+${SLIME_XP} XP.${state.levelGained?` Level ${state.checkpoint.progression.level} reached.`:''}`:'';
       if (state.kind === 'exploring') root.querySelector('#screen')!.innerHTML = `
         <div class="eyebrow">THE FIRST CLEARING</div><h1>Find your way.</h1>
-        <div class="stats"><span>HERO <strong aria-label="Hero health">${state.checkpoint.hp} / ${deriveStats(state.checkpoint.character).maxHp} HP</strong></span><span>POSITION <strong aria-label="Position">${state.checkpoint.position.x}, ${state.checkpoint.position.y}</strong></span><span>WORLD <strong aria-label="World size">${state.checkpoint.world.width} × ${state.checkpoint.world.height} tiles</strong></span></div>
+        <div class="stats"><span>HERO <strong aria-label="Hero health">${state.checkpoint.hp} / ${maxHp} HP</strong></span><span>POSITION <strong aria-label="Position">${state.checkpoint.position.x}, ${state.checkpoint.position.y}</strong></span><span>WORLD <strong aria-label="World size">${state.checkpoint.world.width} × ${state.checkpoint.world.height} tiles</strong></span></div>
         <p class="description"><span aria-label="Slimes remaining">${remainingText}</span><br>${remaining === 0 ? 'The clearing is peaceful.' : 'Explore the clearing.'}</p>
         <nav class="dpad" aria-label="Movement"><button data-direction="up" aria-label="Move up">↑</button><button data-direction="left" aria-label="Move left">←</button><button data-direction="down" aria-label="Move down">↓</button><button data-direction="right" aria-label="Move right">→</button></nav>`;
       if (state.kind === 'battle') root.querySelector('#screen')!.innerHTML = `
         <div class="eyebrow">A WILD ENCOUNTER</div><h1>Meadow slime</h1>
-        <div class="stats"><span>HERO <strong aria-label="Hero health">${state.battle.heroHp} / ${deriveStats(state.checkpoint.character).maxHp} HP</strong></span><span>SLIME <strong aria-label="Slime health">${state.battle.enemyHp} / ${SLIME.maxHp} HP</strong></span></div>
+        <div class="stats"><span>HERO <strong aria-label="Hero health">${state.battle.heroHp} / ${maxHp} HP</strong></span><span>SLIME <strong aria-label="Slime health">${state.battle.enemyHp} / ${SLIME.maxHp} HP</strong></span></div>
         <p class="description combat-result">${turnSummary(state.battle.lastTurn,state.battle.heroPools.attack)}</p>
         <div class="actions"><button class="primary" data-action="attack">Attack</button><button data-action="run">Run</button></div>`;
       if (state.kind === 'victory' || state.kind === 'defeat') {
         const won = state.kind === 'victory';
-        root.querySelector('#screen')!.innerHTML = `<div class="eyebrow">${won ? remaining === 0 ? 'CLEARING COMPLETE' : 'SLIME DEFEATED' : 'ADVENTURE INTERRUPTED'}</div><h1>${won ? 'Victory!' : 'Defeated'}</h1><p class="description">${won ? `The slime slips away. Health restored.<br>${remainingText}` : 'Even small adventures take practice.<br>Take a breath and begin again.'}</p><div class="actions"><button class="primary" data-action="${won ? 'acknowledgeVictory' : 'restart'}">${won ? 'Back to clearing' : 'Restart'}</button></div>`;
+        root.querySelector('#screen')!.innerHTML = `<div class="eyebrow">${won ? remaining === 0 ? 'CLEARING COMPLETE' : 'SLIME DEFEATED' : 'ADVENTURE INTERRUPTED'}</div><h1>${won ? 'Victory!' : 'Defeated'}</h1><p class="description">${won ? `The slime slips away. Health restored.<br>${remainingText}<br>${reward}` : 'Even small adventures take practice.<br>Take a breath and begin again.'}</p><div class="actions"><button class="primary" data-action="${won ? 'acknowledgeVictory' : 'restart'}" ${!won&&!canChange?'disabled':''}>${won ? 'Back to clearing' : 'Restart'}</button></div>`;
       }
       {
         const turn = state.kind === 'battle' ? state.battle.lastTurn : state.kind === 'victory' || state.kind === 'defeat' ? state.lastTurn : null;
         const screen = root.querySelector('#screen')!;
         if ((state.kind === 'victory' || state.kind === 'defeat') && turn) screen.insertAdjacentHTML('beforeend', `<p class="description combat-result">${turnSummary(turn)}</p>`);
-        screen.insertAdjacentHTML('beforeend', rollDetails(turn) + characterDetails(state.checkpoint.character));
+        if(state.kind==='exploring'&&remaining===0)screen.insertAdjacentHTML('beforeend',`<button class="roster-wide" data-action="findMoreSlimes" ${canChange?'':'disabled'}>Find more slimes</button>`);
+        screen.insertAdjacentHTML('beforeend', rollDetails(turn) + characterDetails(state.checkpoint,state.kind==='exploring'&&canChange,keepSheetOpen));
         if(state.kind!=='battle')screen.insertAdjacentHTML('beforeend','<button class="roster-wide return-roster" data-action="returnToRoster">Return to characters</button>');
         if(unsavedProgress&&saveStatus.includes('cannot be saved')&&state.kind!=='battle')screen.insertAdjacentHTML('beforeend','<button class="roster-wide" data-action="retrySave">Retry save</button>');
         screen.querySelector('[aria-label="Character name"]')!.textContent=state.checkpoint.character.name;
@@ -196,7 +220,7 @@ export function mountUi(root: HTMLElement): Ui {
         if (turn && turn !== announcedTurn) {
           announcedTurn = turn;
           turnNumber++;
-          announcement.textContent = `Turn ${turnNumber}. ${turnSummary(turn).replace('<br>', ' ')}`;
+          announcement.textContent = `Turn ${turnNumber}. ${turnSummary(turn).replace('<br>', ' ')}${reward?' '+reward:''}`;
         } else if (!turn) {
           announcedTurn = null;
           turnNumber = 0;
@@ -206,9 +230,11 @@ export function mountUi(root: HTMLElement): Ui {
       if(focusNewAdventure&&state.kind==='exploring'){
         root.querySelector<HTMLButtonElement>('[data-direction="up"]')?.focus({preventScroll:true});focusNewAdventure=false;
       } else if (focused) {
-        const selector = focused.direction ? `[data-direction="${focused.direction}"]` : `[data-action="${focused.action}"]`;
+        const selector = focused.rating ? `[data-rating="${focused.rating}"]` : focused.direction ? `[data-direction="${focused.direction}"]` : `[data-action="${focused.action}"]`;
         const target = root.querySelector<HTMLButtonElement>(selector);
-        if (target) target.focus({ preventScroll: true });
+        if (target&&!target.disabled) target.focus({ preventScroll: true });
+        else if(focused.rating)root.querySelector<HTMLElement>('[data-character-sheet] summary')?.focus();
+        else if(focused.action==='findMoreSlimes')root.querySelector<HTMLButtonElement>('[data-direction="up"]')?.focus();
         else root.querySelector<HTMLButtonElement>('#screen button')?.focus({ preventScroll: true });
       }
     },

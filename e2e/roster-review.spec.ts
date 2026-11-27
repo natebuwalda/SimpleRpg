@@ -3,15 +3,15 @@ import {checkpoint,seed,steps,attack,losingFaces} from './helpers';
 declare global{interface Window{__reviewFailWrites:boolean;__reviewFailReads:boolean;}}
 async function failures(page:Page){await page.evaluate(()=>{
  const get=Storage.prototype.getItem,set=Storage.prototype.setItem;
- Storage.prototype.getItem=function(key){if(window.__reviewFailReads&&key.endsWith('.save.v6'))throw Error('temporary read');return get.call(this,key)};
- Storage.prototype.setItem=function(key,value){if(window.__reviewFailWrites&&key.endsWith('.save.v6'))throw Error('temporary write');return set.call(this,key,value)};
+ Storage.prototype.getItem=function(key){if(window.__reviewFailReads&&key.endsWith('.save.v7'))throw Error('temporary read');return get.call(this,key)};
+ Storage.prototype.setItem=function(key,value){if(window.__reviewFailWrites&&key.endsWith('.save.v7'))throw Error('temporary write');return set.call(this,key,value)};
 });}
 test('discard confirmation blocks movement and saves until it closes',async({page})=>{
- await seed(page);await failures(page);const before=await page.evaluate(()=>localStorage.getItem('simple-rpg.save.v6'));
+ await seed(page);await failures(page);const before=await page.evaluate(()=>localStorage.getItem('simple-rpg.save.v7'));
  await page.evaluate(()=>window.__reviewFailWrites=true);await steps(page,'right');await page.getByRole('button',{name:'Return to characters',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Leave unsaved progress?'})).toBeVisible();await page.evaluate(()=>window.__reviewFailWrites=false);
  await page.keyboard.press('ArrowDown');await page.keyboard.press('d');await expect(page.locator('#screen')).toHaveAttribute('aria-busy','false');
- expect(await page.evaluate(()=>localStorage.getItem('simple-rpg.save.v6'))).toBe(before);
+ expect(await page.evaluate(()=>localStorage.getItem('simple-rpg.save.v7'))).toBe(before);
  await page.getByRole('button',{name:'Discard unsaved progress',exact:true}).click();await page.getByRole('button',{name:'Resume',exact:true}).click();await expect(page.getByLabel('Position')).toHaveText('3, 3');
 });
 test('temporary storage read failure recovers mutation availability without reload',async({page})=>{
@@ -23,7 +23,7 @@ test('temporary storage read failure recovers mutation availability without relo
 });
 test('failed durable Restart retries Restart rather than pretending the checkpoint is dirty',async({page})=>{
  await seed(page,{...checkpoint,position:{x:15,y:14},hp:2});await steps(page,'down');await attack(page,losingFaces);await expect(page.locator('#screen')).toHaveAttribute('aria-busy','false');
- expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v6')!).slots[0].status)).toBe('defeated');await failures(page);await page.evaluate(()=>window.__reviewFailWrites=true);
+ expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v7')!).slots[0].status)).toBe('defeated');await failures(page);await page.evaluate(()=>window.__reviewFailWrites=true);
  await page.getByRole('button',{name:'Restart',exact:true}).click();await expect(page.locator('#screen')).toHaveAttribute('aria-busy','false');await expect(page.getByRole('button',{name:'Retry save',exact:true})).toHaveCount(0);
  await page.getByRole('button',{name:'Return to characters',exact:true}).click();await expect(page.getByRole('heading',{name:'Your adventures'})).toBeVisible();
  await page.evaluate(()=>window.__reviewFailWrites=false);await page.getByRole('button',{name:'Restart',exact:true}).click();await expect(page.getByLabel('Position')).toHaveText('3, 3');await expect(page.getByLabel('Hero health')).toHaveText('5 / 5 HP');
