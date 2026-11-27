@@ -54,10 +54,11 @@ try{
   await resume('Smoke one');await expect(page.getByLabel('Position')).toHaveText('4, 3');await expect(page.getByLabel('Hero health')).toHaveText('5 / 5 HP');
   await page.reload();await resume('Smoke two');await expect(page.getByLabel('Position')).toHaveText('3, 4');await expect(page.getByLabel('Hero health')).toHaveText('7 / 7 HP');
   const edition=await page.locator('.edition').textContent();
-  const hasNewClassActions=edition==='ITERATION 11';
+  const hasCleric=edition==='ITERATION 12';
+  const hasNewClassActions=edition==='ITERATION 11'||hasCleric;
   const hasRogue=edition==='ITERATION 10'||hasNewClassActions;
   const hasInitiative=edition==='ITERATION 09'||hasRogue;
-  if(['ITERATION 06','ITERATION 07','ITERATION 08','ITERATION 09','ITERATION 10','ITERATION 11'].includes(edition)){
+  if(['ITERATION 06','ITERATION 07','ITERATION 08','ITERATION 09','ITERATION 10','ITERATION 11','ITERATION 12'].includes(edition)){
    await page.getByRole('button',{name:'Return to characters',exact:true}).click();
    await begin('Smoke progression',true,0);
    await steps(page,'right');
@@ -134,7 +135,26 @@ try{
      await expect(page.getByRole('status',{name:'Combat result'})).toContainText('3 damage (1 base + 2 Exploit)');
      verifiedClasses.push('Rogue');
     }
-    return {...checks,verifiedClasses,...(hasInitiative?{verifiedTurnOrder:true}:{}),...(hasRogue?{verifiedExploit:true}:{}),...(hasNewClassActions?{verifiedMomentum:true,verifiedNuke:true}:{})};
+    if(hasCleric){
+     await page.getByRole('button',{name:'Return to characters',exact:true}).click();
+     await begin('Smoke Cleric',false,0,'cleric');
+     const resources=page.getByLabel('Resources',{exact:true});
+     await expect(resources).toHaveText('3 / 5 Resources');
+     await steps(page,'right');
+     for(const current of [2,1]){
+      await setCombatFaces(page,Array(10).fill(1));
+      await page.getByRole('button',{name:'Heal',exact:true}).tap();
+      await expect(resources).toHaveText(`${current} / 5 Resources`);
+     }
+     await setCombatFaces(page,[8,8,8]);
+     await page.getByRole('button',{name:'Smite',exact:true}).tap();
+     await expect(page.getByRole('heading',{name:'Victory!'})).toBeVisible();
+     await expect(resources).toHaveText('2 / 5 Resources');
+     await page.reload();await resume('Smoke Cleric');
+     await expect(resources).toHaveText('2 / 5 Resources');
+     verifiedClasses.push('Cleric');
+    }
+    return {...checks,verifiedClasses,...(hasInitiative?{verifiedTurnOrder:true}:{}),...(hasRogue?{verifiedExploit:true}:{}),...(hasNewClassActions?{verifiedMomentum:true,verifiedNuke:true}:{}),...(hasCleric?{verifiedClericResources:true}:{})};
    }
    await page.reload();await resume('Smoke progression');
    await page.getByText('Character',{exact:true}).click();
@@ -144,12 +164,12 @@ try{
   return {roster:true,independentPlaythroughs:2};
  }
  const mainEdition=await open(root,expectedMainScript);
- assert.ok(['ITERATION 04','ITERATION 05','ITERATION 06','ITERATION 07','ITERATION 08','ITERATION 09','ITERATION 10','ITERATION 11'].includes(mainEdition),`Unexpected main edition: ${mainEdition}`);
+ assert.ok(['ITERATION 04','ITERATION 05','ITERATION 06','ITERATION 07','ITERATION 08','ITERATION 09','ITERATION 10','ITERATION 11','ITERATION 12'].includes(mainEdition),`Unexpected main edition: ${mainEdition}`);
  const mainChecks=await exercise();
  const mainSaves=await snapshot('simple-rpg.save.');
  const acceptance=new URL('acceptance/',root);
  const acceptanceEdition=await open(acceptance);
- assert.equal(acceptanceEdition,'ITERATION 11','Acceptance must serve Iteration 11');
+ assert.equal(acceptanceEdition,'ITERATION 12','Acceptance must serve Iteration 12');
  const acceptanceChecks=await exercise();
  assert.deepEqual(await snapshot('simple-rpg.save.'),mainSaves,'Acceptance changed main saves');
  const acceptanceSaves=await snapshot('simple-rpg.acceptance.save.');

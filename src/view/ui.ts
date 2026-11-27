@@ -1,12 +1,12 @@
 import type { UiAction, Character, Checkpoint, Direction, GameState, BattleState, TurnRolls } from '../game/types';
 import { deriveStats } from '../game/character';
-import { CLASS_ACTION_DEFINITIONS, CLASS_DEFINITIONS, OFFENSIVE_ACTIONS, getCombatPools, offenseFor } from '../game/combat-actions';
+import { CLASS_ACTION_DEFINITIONS, CLASS_DEFINITIONS, OFFENSIVE_ACTIONS, getCombatPools, offenseFor, type ClassAction } from '../game/combat-actions';
 import type { PoolRoll } from '../game/dice';
 import { canUseCombatCommand, getBattlePools } from '../game/battle';
 import { slimeStats } from '../game/slime';
 import { canFindMoreSlimes, getRemainingSlimeCount } from '../game/world';
 import { mountCharacterCreation } from './character-creation';
-import { classActionDetails } from './class-action';
+import { classActionDetails, resourceText } from './class-action';
 import {mountRoster} from './roster';
 import {mountConfirmation} from './confirmation';
 import type {RosterObservation} from '../game/roster';
@@ -56,6 +56,11 @@ function stacksAdded(successes: number): string {
   return `${successes} ${successes === 1 ? 'stack' : 'stacks'} added.`;
 }
 
+function resourceActionSummary(kind: 'heal' | 'smite', amount: number, current: number): string {
+  const effect = kind === 'heal' ? `Heal: ${amount} HP restored. Spent` : `Smite: ${amount} direct damage. Gained`;
+  return `${effect} 1 Resource. ${current} remaining.`;
+}
+
 function rollDetails(turn: TurnRolls | null | undefined): string {
   if (!turn) return '';
   const exchanges = turn.map(entry => {
@@ -64,6 +69,10 @@ function rollDetails(turn: TurnRolls | null | undefined): string {
     }
     if (entry.kind === 'momentum') return '<p>Momentum gained. No roll.</p>';
     if (entry.kind === 'nuke') return `<p>Nuke dealt ${entry.damage} direct damage. No roll.</p>`;
+    if (entry.kind === 'heal' || entry.kind === 'smite') {
+      return diceText(`${CLASS_ACTION_DEFINITIONS[entry.kind].label} dice`, entry.roll)
+        + `<p>${resourceActionSummary(entry.kind, entry.amount, entry.currentResources)}</p>`;
+    }
     if (entry.attacker === 'slime') {
       return diceText('Slime attack dice', entry.roll.attack) + diceText('Your defense dice', entry.roll.defense);
     }
@@ -80,6 +89,7 @@ function turnSummary(turn: TurnRolls, separator = '<br>'): string {
     if (entry.kind === 'exploit') return `Exploit: ${stacksAdded(entry.roll.successes)}`;
     if (entry.kind === 'momentum') return `Momentum: 1 stack gained (${entry.stacks} total).`;
     if (entry.kind === 'nuke') return `Nuke: ${entry.damage} direct damage.`;
+    if (entry.kind === 'heal' || entry.kind === 'smite') return resourceActionSummary(entry.kind, entry.amount, entry.currentResources);
     const { attacker, roll, exploitBonus } = entry;
     const damage = exploitBonus > 0n
       ? `${BigInt(roll.damage) + exploitBonus} damage (${roll.damage} base + ${exploitBonus} Exploit)`
@@ -88,19 +98,30 @@ function turnSummary(turn: TurnRolls, separator = '<br>'): string {
   }).join(separator);
 }
 function turnOrderDetails({ turnOrder, classAction }: BattleState): string {
-  const label = CLASS_ACTION_DEFINITIONS[classAction.kind].label;
-  const value = classAction.kind === 'nuke'
-    ? `<span aria-label="Nuke damage">${label} · ${classAction.damage} damage</span>`
-    : `<span aria-label="${label} stacks">${label} stacks · ${classAction.stacks}</span>`;
+  let value: string;
+  if (classAction.kind === 'cleric') {
+    value = `<span aria-label="Resources">${resourceText(classAction.currentResources, classAction.maxResources)}</span>`;
+  } else {
+    const label = CLASS_ACTION_DEFINITIONS[classAction.kind].label;
+    value = classAction.kind === 'nuke'
+      ? `<span aria-label="Nuke damage">${label} · ${classAction.damage} damage</span>`
+      : `<span aria-label="${label} stacks">${label} stacks · ${classAction.stacks}</span>`;
+  }
   return `<section class="turn-order"><div class="turn-order-heading"><h2 id="turn-order-label">Turn Order</h2>${value}</div><ol aria-labelledby="turn-order-label">
     ${turnOrder.map(({ combatant, successes }) => `<li>${combatant === 'hero' ? 'You' : 'Meadow slime'} · ${successes} ${successes === 1 ? 'success' : 'successes'}</li>`).join('')}
   </ol></section>`;
 }
 
+const unavailableReasons: Partial<Record<ClassAction, string>> = {
+  exploit: 'Exploit requires acting before the target.',
+  heal: 'Heal requires at least one Resource.',
+  smite: 'Resources are full.',
+};
+
 export function mountUi(root: HTMLElement): Ui {
   root.innerHTML = `
     <main class="game-shell">
-      <header><span class="wordmark">SIMPLE RPG</span><span class="wave-indicator" aria-label="Current wave" hidden></span><span class="edition">ITERATION 11</span></header>
+      <header><span class="wordmark">SIMPLE RPG</span><span class="wave-indicator" aria-label="Current wave" hidden></span><span class="edition">ITERATION 12</span></header>
       <p id="combat-announcement" class="sr-only" role="status" aria-label="Combat result" aria-atomic="true"></p>
       <section class="play-area">
         <div class="world-frame"><div id="canvas" role="img" aria-label="A tiny woodland adventure"></div></div>
@@ -117,7 +138,7 @@ export function mountUi(root: HTMLElement): Ui {
       <footer><span>A WORLD IN YOUR POCKET</span><span>TOUCH · KEYBOARD</span></footer>
     </main>`;
   let handler: (action: UiAction) => void = () => {};
-  let observation:RosterObservation={status:'empty',raw:null,roster:{version:10,slots:[]}},canMutate=false;
+  let observation:RosterObservation={status:'empty',raw:null,roster:{version:11,slots:[]}},canMutate=false;
   let roster:ReturnType<typeof mountRoster>|null=null;
   let discard:ReturnType<typeof mountConfirmation>|null=null;
   let creation: ReturnType<typeof mountCharacterCreation> | null = null;
@@ -203,7 +224,11 @@ export function mountUi(root: HTMLElement): Ui {
       });
       root.querySelector('#screen')!.setAttribute('aria-busy', String(busy));
       if (!busy && pendingFocus) {
-        if (active && document.activeElement === document.body) root.querySelector<HTMLButtonElement>(`[data-action="${pendingFocus}"]`)?.focus({ preventScroll: true });
+        if (active && document.activeElement === document.body) {
+          const target = root.querySelector<HTMLButtonElement>(`[data-action="${pendingFocus}"]`);
+          const next = target && !target.disabled ? target : root.querySelector<HTMLButtonElement>('#screen button:not(:disabled)');
+          next?.focus({ preventScroll: true });
+        }
         pendingFocus = null;
       }
     },
@@ -230,7 +255,10 @@ export function mountUi(root: HTMLElement): Ui {
         roster.update(observation,canMutate);return;
       }
       roster?.destroy();roster=null;root.querySelector('.game-shell')!.classList.remove('roster-visible');
-      const maxHp=deriveStats(effectiveCharacter(state.checkpoint.character,state.checkpoint.progression)).maxHp;
+      const { maxHp, resourceCapacity } = deriveStats(effectiveCharacter(state.checkpoint.character,state.checkpoint.progression));
+      const { currentResources } = state.checkpoint;
+      const checkpointResources = currentResources === undefined ? ''
+        : `<p class="battle-pools" aria-label="Resources">${resourceText(currentResources, resourceCapacity)}</p>`;
       const reward=state.kind==='victory'?`+${state.xpAwarded} XP.${state.levelGained?` Level ${state.checkpoint.progression.level} reached.`:''}`:'';
       const slimeLevel = state.checkpoint.slimeLevel;
       const slimeLevelLabel = `<span aria-label="Slime level">Slime level ${slimeLevel}</span>`;
@@ -238,23 +266,27 @@ export function mountUi(root: HTMLElement): Ui {
       if (state.kind === 'exploring') root.querySelector('#screen')!.innerHTML = `
         <h1>Find your way.</h1>
         <div class="stats"><span>HERO <strong aria-label="Hero health">${state.checkpoint.hp} / ${maxHp} HP</strong></span><span>POSITION <strong aria-label="Position">${state.checkpoint.position.x}, ${state.checkpoint.position.y}</strong></span><span>WORLD <strong aria-label="World size">${state.checkpoint.world.width} × ${state.checkpoint.world.height} tiles</strong></span></div>
-        <p class="description"><span aria-label="Slimes remaining">${remainingText}</span><br>${remaining === 0 ? canFind ? 'The clearing is peaceful.' : 'There are no higher waves.' : 'Explore the clearing.'}</p>
+        ${checkpointResources}<p class="description"><span aria-label="Slimes remaining">${remainingText}</span><br>${remaining === 0 ? canFind ? 'The clearing is peaceful.' : 'There are no higher waves.' : 'Explore the clearing.'}</p>
         <nav class="dpad" aria-label="Movement"><button data-direction="up" aria-label="Move up">↑</button><button data-direction="left" aria-label="Move left">←</button><button data-direction="down" aria-label="Move down">↓</button><button data-direction="right" aria-label="Move right">→</button></nav>`;
       if (state.kind === 'battle') {
         const { battle } = state;
-        const { kind: classAction } = battle.classAction;
-        const classActionBlocked = !canUseCombatCommand(battle, classAction);
+        const isCleric = battle.classAction.kind === 'cleric';
+        const actions = CLASS_DEFINITIONS[state.checkpoint.character.classId].classActions;
+        const unavailable = actions.filter(action => !canUseCombatCommand(battle, action));
+        const actionButtons = actions.map(action => {
+          const blocked = !canUseCombatCommand(battle, action);
+          return `<button data-combat-command data-action="${action}" ${blocked ? `disabled data-unavailable aria-describedby="${action}-reason"` : ''}>${CLASS_ACTION_DEFINITIONS[action].label}</button>`;
+        }).join('');
         const pools = getBattlePools(battle);
         root.querySelector('#screen')!.innerHTML = `
         <div class="eyebrow">${slimeLevelLabel}</div><h1>Meadow slime</h1>
         <div class="stats"><span>HERO <strong aria-label="Hero health">${state.battle.heroHp} / ${maxHp} HP</strong></span><span>SLIME <strong aria-label="Slime health">${state.battle.enemyHp} / ${slimeStats(state.battle.slimeLevel).maxHp} HP</strong></span></div>
         ${turnOrderDetails(state.battle)}
         <p class="description combat-result">${battle.lastTurn ? turnSummary(battle.lastTurn) : `${OFFENSIVE_ACTIONS[battle.offense].label} ${pools.attack}d10 vs ${slimeStats(battle.slimeLevel).defense}d10 defense.`}</p>
-        <div class="actions"><button class="primary" data-combat-command data-action="${battle.offense}">${OFFENSIVE_ACTIONS[battle.offense].label}</button>
-          <button data-combat-command data-action="${classAction}" ${classActionBlocked ? 'disabled data-unavailable aria-describedby="exploit-reason"' : ''}>${CLASS_ACTION_DEFINITIONS[classAction].label}</button>
-          <button data-combat-command data-action="run">Run</button></div>
-        ${classAction === 'momentum' ? `<p class="battle-pools" aria-label="Battle Melee and Defense">Melee ${pools.attack}d10 · Defense ${pools.defense}d10</p>` : ''}
-        ${classActionBlocked ? '<p class="exploit-reason" id="exploit-reason">Exploit requires acting before the target.</p>' : ''}`;
+        <div class="actions${isCleric ? ' cleric-actions' : ''}"><button class="primary" data-combat-command data-action="${battle.offense}">${OFFENSIVE_ACTIONS[battle.offense].label}</button>
+          ${actionButtons}<button data-combat-command data-action="run">Run</button></div>
+        ${battle.classAction.kind === 'momentum' ? `<p class="battle-pools" aria-label="Battle Melee and Defense">Melee ${pools.attack}d10 · Defense ${pools.defense}d10</p>` : ''}
+        ${unavailable.map(action => `<p class="action-reason" id="${action}-reason">${unavailableReasons[action]}</p>`).join('')}`;
       }
       if (state.kind === 'victory' || state.kind === 'defeat') {
         const won = state.kind === 'victory';
@@ -263,6 +295,7 @@ export function mountUi(root: HTMLElement): Ui {
       {
         const turn = state.kind === 'battle' ? state.battle.lastTurn : state.kind === 'victory' || state.kind === 'defeat' ? state.lastTurn : null;
         const screen = root.querySelector('#screen')!;
+        if (state.kind === 'victory') screen.insertAdjacentHTML('beforeend', checkpointResources);
         if ((state.kind === 'victory' || state.kind === 'defeat') && turn) screen.insertAdjacentHTML('beforeend', `<p class="description combat-result">${turnSummary(turn)}</p>`);
         if(canFind)screen.insertAdjacentHTML('beforeend',`<button class="roster-wide" data-action="findMoreSlimes" ${canChange?'':'disabled'}>Find more slimes</button>`);
         screen.insertAdjacentHTML('beforeend', rollDetails(turn) + characterDetails(state.checkpoint,state.kind==='exploring'&&canChange,keepSheetOpen));

@@ -1,12 +1,12 @@
 import {deriveStats} from '../game/character';
 import {CLASS_DEFINITIONS,OFFENSIVE_ACTIONS,getCombatPools,offenseFor} from '../game/combat-actions';
 import {MAX_CHARACTERS,type LegacyRosterVersion,type RosterObservation} from '../game/roster';
-import {classActionDetails} from './class-action';
+import {classActionDetails,resourceText} from './class-action';
 import {mountConfirmation} from './confirmation';
 import {effectiveCharacter,progressionSummary} from '../game/progression';
 type Callbacks={onCreate():void;onResume(id:string):void;onRestart(id:string,revision:number):void;onDelete(id:string,revision:number):void;onReset(raw:string,legacy?:LegacyRosterVersion):void};
 export function mountRoster(root:HTMLElement,callbacks:Callbacks){
- let observation:RosterObservation={status:'empty',raw:null,roster:{version:10,slots:[]}},canMutate=false,pending=false;
+ let observation:RosterObservation={status:'empty',raw:null,roster:{version:11,slots:[]}},canMutate=false,pending=false;
  let rendered=false;
  let selected:string|null=null,mode:'list'|'detail'|'delete'|'reset'='list',source:string|null=null,message='';
  let resetLegacy:LegacyRosterVersion|undefined;
@@ -28,7 +28,7 @@ export function mountRoster(root:HTMLElement,callbacks:Callbacks){
   }else if(mode==='detail'&&slot){
    const {progression}=slot.checkpoint;
    const c=effectiveCharacter(slot.checkpoint.character,progression),stats=deriveStats(c),offense=offenseFor(c.classId),pools=getCombatPools(c,offense);
-   root.innerHTML=`<div class="eyebrow">CHARACTER & ADVENTURE</div><h1 tabindex="-1" data-name></h1><p class="description" aria-label="Character class">${CLASS_DEFINITIONS[c.classId].label}</p><p class="description" aria-label="Character progression">${progressionSummary(progression)}</p><p class="description">${slot.status==='defeated'?'Defeated':`${slot.checkpoint.hp} / ${stats.maxHp} Health`} · ${slot.checkpoint.completedEncounterIds.length} / 3 slimes defeated</p><div class="roster-sheet">${[...Object.entries(c.attributes),...Object.entries(c.skills)].map(([key,value])=>`<p><span>${key[0].toUpperCase()+key.slice(1)}</span><strong>${value}</strong></p>`).join('')}</div><p class="description">Health ${stats.maxHp} · Initiative ${stats.initiative} · Resource capacity ${stats.resourceCapacity}<br>${OFFENSIVE_ACTIONS[offense].label} ${pools.attack}d10 · Defense ${pools.defense}d10</p>${classActionDetails(c)}<button class="primary roster-wide" data-roster="play" data-focus="detail-play">${slot.status==='defeated'?'Restart adventure':'Resume adventure'}</button><div class="actions"><button data-roster="back" data-focus="detail-back">Back</button><button class="danger" data-roster="delete" data-focus="detail-delete">Delete character</button></div><p class="roster-message" role="status"></p>`;
+   root.innerHTML=`<div class="eyebrow">CHARACTER & ADVENTURE</div><h1 tabindex="-1" data-name></h1><p class="description" aria-label="Character class">${CLASS_DEFINITIONS[c.classId].label}</p><p class="description" aria-label="Character progression">${progressionSummary(progression)}</p><p class="description">${slot.status==='defeated'?'Defeated':`${slot.checkpoint.hp} / ${stats.maxHp} Health`} · ${slot.checkpoint.completedEncounterIds.length} / 3 slimes defeated</p><div class="roster-sheet">${[...Object.entries(c.attributes),...Object.entries(c.skills)].map(([key,value])=>`<p><span>${key[0].toUpperCase()+key.slice(1)}</span><strong>${value}</strong></p>`).join('')}</div><p class="description">Health ${stats.maxHp} · Initiative ${stats.initiative} · Resource capacity ${stats.resourceCapacity}<br>${OFFENSIVE_ACTIONS[offense].label} ${pools.attack}d10 · Defense ${pools.defense}d10</p>${slot.checkpoint.currentResources === undefined ? '' : `<p aria-label="Resources">${resourceText(slot.checkpoint.currentResources, stats.resourceCapacity)}</p>`}${classActionDetails(c)}<button class="primary roster-wide" data-roster="play" data-focus="detail-play">${slot.status==='defeated'?'Restart adventure':'Resume adventure'}</button><div class="actions"><button data-roster="back" data-focus="detail-back">Back</button><button class="danger" data-roster="delete" data-focus="detail-delete">Delete character</button></div><p class="roster-message" role="status"></p>`;
    root.querySelector('[data-name]')!.textContent=c.name;
    root.querySelector<HTMLButtonElement>('[data-roster="play"]')!.disabled=slot.status==='defeated'&&!canMutate;
    root.querySelector<HTMLButtonElement>('[data-roster="delete"]')!.disabled=!canMutate;

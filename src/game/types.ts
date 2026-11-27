@@ -11,20 +11,24 @@ export type SlimeId = typeof SLIME_IDS[number];
 export type SlimePlacement = { id: SlimeId; position: Position };
 export type WorldGeometry = { layout: 'woodland' | 'legacy-expanded'; width: number; height: number };
 export type WorldDefinition = WorldGeometry & { version: 2; slimes: SlimePlacement[] };
-export type Checkpoint = { version: 9; character: Character; world: WorldDefinition; position: Position; hp: number; completedEncounterIds: SlimeId[]; progression: Progression; initialSlimes: SlimePlacement[]; slimeLevel: number };
+export type Checkpoint = { version: 10; character: Character; world: WorldDefinition; position: Position; hp: number; currentResources?: number; completedEncounterIds: SlimeId[]; progression: Progression; initialSlimes: SlimePlacement[]; slimeLevel: number };
 export type Combatant = 'hero' | 'slime';
 export type InitiativeResult = { combatant: Combatant; rawInitiative: number; successes: number };
 export type TurnOrder = readonly [InitiativeResult, InitiativeResult];
+type ResourceActionRoll = { roll: PoolRoll; amount: number; currentResources: number };
 export type TurnRolls = readonly (
   | { kind: 'attack'; attacker: Combatant; roll: OpposedRoll; exploitBonus: bigint }
   | { kind: 'exploit'; roll: PoolRoll }
   | { kind: 'momentum'; stacks: bigint }
   | { kind: 'nuke'; damage: number }
+  | ({ kind: 'heal' } & ResourceActionRoll)
+  | ({ kind: 'smite' } & ResourceActionRoll)
 )[];
 export type BattleClassAction =
   | { kind: 'momentum'; stacks: bigint }
   | { kind: 'nuke'; damage: number }
-  | { kind: 'exploit'; pool: number; stacks: bigint };
+  | { kind: 'exploit'; pool: number; stacks: bigint }
+  | { kind: 'cleric'; pool: number; maxHp: number; maxResources: number; currentResources: number };
 export type BattleState = { offense: OffensiveAction; heroHp: number; enemyHp: number; slimeLevel: number; heroPools: { attack: number; defense: number }; turnOrder: TurnOrder; classAction: BattleClassAction; lastTurn: TurnRolls | null; result: 'active' | 'victory' | 'defeat' | 'escaped' };
 export type GameState =
   | { kind: 'title' }

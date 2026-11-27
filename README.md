@@ -5,7 +5,7 @@ A small browser RPG built with TypeScript, Phaser and Vite. Each roster characte
 **[Play SimpleRpg](https://natebuwalda.github.io/SimpleRpg/)** — main follows accepted releases. Iteration 5 shipped in [PR #6](https://github.com/natebuwalda/SimpleRpg/pull/6).
 **[Acceptance game](https://natebuwalda.github.io/SimpleRpg/acceptance/)** — separately pinned candidate, with isolated browser saves.
 
-Iteration 11 adds Momentum for Warriors and Nuke for Wizards.
+Iteration 12 adds the Cleric class and persistent Resources.
 
 ## Development
 
@@ -15,7 +15,7 @@ Playwright traces use the OS temporary directory to avoid OneDrive locks. `PLAYW
 
 ## Characters and playthroughs
 
-The roster lists up to ten characters in creation order. **New Character** opens Attributes, Skills and Review. Choose Warrior, Wizard, or Rogue on the Attributes step. The class is permanent once the adventure begins. A name must be nonblank, trimmed, and at most 24 UTF-16 code units. Attributes Prowess/Cunning/Resistance start at 1 with five additional points; skills Combat/Subterfuge/Lore start at 0 with a separate five points. Each rating caps at five and each budget must be spent completely. Combat 0 is valid for every class. Back preserves the draft; Cancel or refresh discards it without taking a slot. Begin adventure saves a new character and fresh world together before entering play.
+The roster lists up to ten characters in creation order. **New Character** opens Attributes, Skills and Review. Choose Warrior, Wizard, Rogue, or Cleric on the Attributes step. The class is permanent once the adventure begins. A name must be nonblank, trimmed, and at most 24 UTF-16 code units. Attributes Prowess/Cunning/Resistance start at 1 with five additional points; skills Combat/Subterfuge/Lore start at 0 with a separate five points. Each rating caps at five and each budget must be spent completely. Combat 0 is valid for every class. Back preserves the draft; Cancel or refresh discards it without taking a slot. Begin adventure saves a new character and fresh world together before entering play.
 
 At ten slots, creation is disabled; existing playthroughs still Resume/Restart. **View** shows the read-only build and adventure summary. Characters cannot be edited. Duplicate names are allowed; each slot has its own internal identity. **Delete character** requires confirmation and permanently deletes both character and adventure.
 
@@ -25,9 +25,9 @@ At ten slots, creation is disabled; existing playthroughs still Resume/Restart. 
 
 Tap directions or use arrows/WASD, one tile per press. Worlds independently choose width/height 20–40, with three stationary slimes on distinct traversable tiles away from the hero's start. The panel shows 10x10 tiles and scrolls to retain three visible tiles ahead. A three-tile impassable forest border remains; paths are decoration and there is no fog.
 
-Health = Prowess + Resistance; Initiative = Prowess + Cunning; resource capacity = Cunning + Resistance. Initiative determines combat turn order. Resources are displayed on the sheet. **Character** shows the named build and derived values.
+Health = Prowess + Resistance; Initiative = Prowess + Cunning; resource capacity = Cunning + Resistance. Initiative determines combat turn order. Clerics spend and restore Resources in combat. **Character** shows the named build and derived values.
 
-Warriors and Rogues roll Melee with Prowess + Combat. Wizards roll Magic with Prowess + Lore. All attacks roll against the slime's current Defense pool. Each 8–10 is a success. An original 10 keeps its success and grants one bonus die, which never chains. Ones do nothing. Ties favor the defender; positive margin is damage. Slimes attack against Resistance + Combat. Zero damage is valid. **Roll details** shows original and bonus dice in the order attacks resolved. Victory fully heals the hero and removes only that slime.
+Warriors, Rogues, and Clerics roll Melee with Prowess + Combat. Wizards roll Magic with Prowess + Lore. All attacks roll against the slime's current Defense pool. Each 8–10 is a success. An original 10 keeps its success and grants one bonus die, which never chains. Ones do nothing. Ties favor the defender; positive margin is damage. Slimes attack against Resistance + Combat. Zero damage is valid. **Roll details** shows original and bonus dice in the order attacks resolved. Victory fully heals the hero and removes only that slime.
 
 Before the first action, both sides roll initiative. The player rolls Prowess + Cunning. Slimes start with 3 initiative dice and gain one each level. The roll is capped at 1,024 dice. Most successes go first, followed by highest raw Initiative on a tie, then the player on an exact tie. **Turn Order** stays visible for the encounter. Player actions resolve at the player's place in the order. A lethal hit skips the defeated combatant's turn. If the slime goes first and the player survives a hit while choosing Run, the player escapes with the damage they took.
 
@@ -37,9 +37,11 @@ A Wizard can use **Nuke** for Cunning + Lore direct damage on their turn. It byp
 
 A Rogue who acts before the target can use **Exploit** for their turn. Roll Cunning + Subterfuge, up to 1,024 dice, and add one stack per success. The target takes its normal turn. A damaging Melee hit adds all stacks as bonus damage and clears them. A miss or tie keeps the stacks. Stacks clear at the end of the encounter.
 
+Clerics start or Restart with half of maximum Resources, rounded up. **Heal** rolls Resistance + Lore to restore one HP per success, up to current Resources and missing HP, then spends one Resource. **Smite** uses the same pool for direct damage, up to the unused capacity, then restores one Resource. The one-point change still happens on zero successes. Heal is available above zero Resources and Smite below maximum. Victory and escape carry the resulting Resources into the next encounter.
+
 ## Saves and limits
 
-The current game upgrades supported Iteration 5–9 rosters to v10. Characters created before classes existed become Warriors. Existing Warriors and Wizards keep their classes. Builds, adventures, and earned advancement carry over. Iteration 5 characters begin at player level 1 and 0 XP. Refresh older tabs so future play uses the upgraded roster.
+The current game upgrades supported Iteration 5–11 rosters to v11. Characters created before classes existed become Warriors. Existing Warriors and Wizards keep their classes. Builds, adventures, and earned advancement carry over. Iteration 5 characters begin at player level 1 and 0 XP. Refresh older tabs so future play uses the upgraded roster.
 
 Saves remain browser/device-local and do not sync. Clearing browser data loses them. Main and acceptance use distinct keys. Every write uses a browser Web Lock and re-reads current data; different characters' updates merge, while an outdated tab stops saving a changed/deleted character. A deleted character is never recreated by stale autosave.
 
@@ -68,4 +70,4 @@ For phone acceptance, clear wave 1, choose Find more slimes and check the next b
 
 GitHub Pages serves `/SimpleRpg/` and pinned `/SimpleRpg/acceptance/`. Checks run on pushes/PRs. Publish game repeats checks, builds both paths and deploys after success. `ACCEPTANCE_REF` stores the acceptance commit; manual input can override it. See [acceptance hosting](docs/superpowers/acceptance-hosting.md).
 
-With Playwright Chromium installed, run `node scripts/verify-deployment.mjs https://natebuwalda.github.io/SimpleRpg/ [expected-main-entry]`. The verifier exercises independent roster slots, higher-wave XP and reload, all three classes, turn order, Momentum, Nuke, Exploit, and separation between the main and acceptance saves.
+With Playwright Chromium installed, run `node scripts/verify-deployment.mjs https://natebuwalda.github.io/SimpleRpg/ [expected-main-entry]`. The verifier exercises independent roster slots, higher-wave XP and reload, all four classes, turn order, the class actions, Cleric Resources, and separation between the main and acceptance saves.
