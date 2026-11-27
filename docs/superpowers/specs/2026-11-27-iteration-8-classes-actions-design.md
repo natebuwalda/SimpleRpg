@@ -1,6 +1,6 @@
 # Iteration 8: Warrior, Wizard, and combat actions
 
-Status: written design for owner review.
+Status: owner approved the design on 2026-11-27.
 
 Give players a class choice that makes Combat and Lore useful for different offensive builds. A Warrior uses **Melee**. A Wizard uses **Magic**. Both can **Run**. All existing characters become Warriors.
 
