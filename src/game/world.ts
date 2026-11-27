@@ -25,9 +25,9 @@ export function move(world: WorldGeometry, position: Position, direction: Direct
   return isWalkable(world, next) ? next : position;
 }
 export function createCheckpoint(world: WorldDefinition, chosen: Character = createStarterCharacter()): Checkpoint {
-  const character = {name:chosen.name,attributes:{...chosen.attributes},skills:{...chosen.skills}};
+  const character = {name:chosen.name,classId:chosen.classId,attributes:{...chosen.attributes},skills:{...chosen.skills}};
   return {
-    version: 7, character, world, position: getLandmarks(world).spawn, slimeLevel: FIRST_SLIME_LEVEL,
+    version: 8, character, world, position: getLandmarks(world).spawn, slimeLevel: FIRST_SLIME_LEVEL,
     hp: deriveStats(character).maxHp, completedEncounterIds: [],
     progression: createProgression(), initialSlimes: structuredClone(world.slimes),
   };

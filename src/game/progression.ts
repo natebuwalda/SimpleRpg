@@ -1,4 +1,5 @@
-import { getMeleePools, type Character, type CharacterRatings } from './character';
+import type { Character, CharacterRatings } from './character';
+import { getCombatPools, offenseFor } from './combat-actions';
 
 const attributeKeys = ['prowess', 'cunning', 'resistance'] as const;
 const skillKeys = ['combat', 'subterfuge', 'lore'] as const;
@@ -8,7 +9,7 @@ export type Rating =
 export type Progression = { level: number; xp: number; investments: CharacterRatings };
 
 // Combat retains individual die faces for the roll log.
-export const MAX_MELEE_POOL = 1024;
+export const MAX_COMBAT_POOL = 1024;
 const MAX_PLAYER_LEVEL = Number.MAX_SAFE_INTEGER - 10;
 export function xpToNextLevel(_level: number): number { return 5; }
 
@@ -57,6 +58,7 @@ export function effectiveCharacter(base: Character, { investments }: Progression
   const { attributes, skills } = base;
   return {
     name: base.name,
+    classId: base.classId,
     attributes: {
       prowess: attributes.prowess + investments.attributes.prowess,
       cunning: attributes.cunning + investments.attributes.cunning,
@@ -70,9 +72,9 @@ export function effectiveCharacter(base: Character, { investments }: Progression
   };
 }
 
-export function hasSupportedMeleePools(character: Character): boolean {
-  const {attack, defense} = getMeleePools(character);
-  return attack <= MAX_MELEE_POOL && defense <= MAX_MELEE_POOL;
+export function hasSupportedCombatPools(character: Character): boolean {
+  const {attack, defense} = getCombatPools(character, offenseFor(character.classId));
+  return attack <= MAX_COMBAT_POOL && defense <= MAX_COMBAT_POOL;
 }
 
 export function spendPoint(progress: Progression, rating: Rating): Progression {

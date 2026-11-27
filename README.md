@@ -5,7 +5,7 @@ A small browser RPG built with TypeScript, Phaser and Vite. Each roster characte
 **[Play SimpleRpg](https://natebuwalda.github.io/SimpleRpg/)** — main follows accepted releases. Iteration 5 shipped in [PR #6](https://github.com/natebuwalda/SimpleRpg/pull/6).
 **[Acceptance game](https://natebuwalda.github.io/SimpleRpg/acceptance/)** — separately pinned candidate, with isolated browser saves.
 
-Iteration 7 gives each slime wave a level.
+Iteration 8 adds Warrior and Wizard classes. Each slime wave has a level.
 
 ## Development
 
@@ -15,7 +15,7 @@ Playwright traces use the OS temporary directory to avoid OneDrive locks. `PLAYW
 
 ## Characters and playthroughs
 
-The roster lists up to ten characters in creation order. **New Character** opens Attributes, Skills and Review. A name must be nonblank, trimmed, and at most 24 UTF-16 code units. Attributes Prowess/Cunning/Resistance start at 1 with five additional points; skills Combat/Subterfuge/Lore start at 0 with a separate five points. Each rating caps at five and each budget must be spent completely. Combat 0 is valid, although only melee is playable. Back preserves the draft; Cancel or refresh discards it without taking a slot. Begin adventure saves a new character and fresh world together before entering play.
+The roster lists up to ten characters in creation order. **New Character** opens Attributes, Skills and Review. Choose Warrior or Wizard on the Attributes step. The class is permanent once the adventure begins. A name must be nonblank, trimmed, and at most 24 UTF-16 code units. Attributes Prowess/Cunning/Resistance start at 1 with five additional points; skills Combat/Subterfuge/Lore start at 0 with a separate five points. Each rating caps at five and each budget must be spent completely. Combat 0 is valid for both classes. Back preserves the draft; Cancel or refresh discards it without taking a slot. Begin adventure saves a new character and fresh world together before entering play.
 
 At ten slots, creation is disabled; existing playthroughs still Resume/Restart. **View** shows the read-only build and adventure summary. Characters cannot be edited. Duplicate names are allowed; each slot has its own internal identity. **Delete character** requires confirmation and permanently deletes both character and adventure.
 
@@ -27,11 +27,11 @@ Tap directions or use arrows/WASD, one tile per press. Worlds independently choo
 
 Health = Prowess + Resistance; Initiative = Prowess + Cunning; resource capacity = Cunning + Resistance. Initiative and resources are read-only for now. **Character** shows the named build and derived values.
 
-Attack rolls Prowess + Combat against slime Defense 3d10. Each 8–10 is a success. An original 10 keeps its success and grants one bonus die, which never chains. Ones do nothing. Ties favor the defender; positive margin is damage. A surviving 3-Health slime attacks with 3d10 against Resistance + Combat. The hero acts first; lethal attacks skip the counterattack. Zero damage is valid. **Roll details** shows original/bonus dice and finishing exchanges. Run always succeeds and preserves damage. Victory fully heals the hero and removes only that slime.
+Warriors roll Melee with Prowess + Combat. Wizards roll Magic with Prowess + Lore. Both roll against the slime's current Defense pool. Each 8–10 is a success. An original 10 keeps its success and grants one bonus die, which never chains. Ones do nothing. Ties favor the defender; positive margin is damage. A surviving 3-Health slime attacks with 3d10 against Resistance + Combat. The hero acts first; lethal attacks skip the counterattack. Zero damage is valid. **Roll details** shows original/bonus dice and finishing exchanges. Run always succeeds and preserves damage. Victory fully heals the hero and removes only that slime.
 
 ## Saves and limits
 
-Iteration 7 upgrades Iteration 5 and 6 rosters to v8. Existing slimes start at level 1, with the current wave and original placements preserved. Iteration 6 characters keep earned advancement. Iteration 5 characters begin at player level 1 and 0 XP. Refresh older tabs when switching to Iteration 7 so future play is saved to the upgraded roster.
+Iteration 8 upgrades supported Iteration 5–7 rosters to v9. Existing characters become Warriors and keep their builds, adventure, and earned advancement. Iteration 7 saves also keep the current wave level. Iteration 5 characters begin at player level 1 and 0 XP. Refresh older tabs when switching to Iteration 8 so future play uses the upgraded roster.
 
 Saves remain browser/device-local and do not sync. Clearing browser data loses them. Main and acceptance use distinct keys. Every write uses a browser Web Lock and re-reads current data; different characters' updates merge, while an outdated tab stops saving a changed/deleted character. A deleted character is never recreated by stale autosave.
 
@@ -60,4 +60,4 @@ For phone acceptance, clear wave 1, choose Find more slimes and check the next b
 
 GitHub Pages serves `/SimpleRpg/` and pinned `/SimpleRpg/acceptance/`. Checks run on pushes/PRs. Publish game repeats checks, builds both paths and deploys after success. `ACCEPTANCE_REF` stores the acceptance commit; manual input can override it. See [acceptance hosting](docs/superpowers/acceptance-hosting.md).
 
-With Playwright Chromium installed, run `node scripts/verify-deployment.mjs https://natebuwalda.github.io/SimpleRpg/ [expected-main-entry]`. The verifier exercises independent roster slots, the higher-wave XP reward and reload on Iteration 7, and separation between the main and acceptance saves.
+With Playwright Chromium installed, run `node scripts/verify-deployment.mjs https://natebuwalda.github.io/SimpleRpg/ [expected-main-entry]`. The verifier exercises independent roster slots, the higher-wave XP reward and reload on Iterations 7 and 8, both classes on Iteration 8, and separation between the main and acceptance saves.

@@ -1,3 +1,4 @@
+import type { CombatCommand, OffensiveAction } from './combat-actions';
 import type { Character } from './character';
 import type { OpposedRoll } from './dice';
 import type { Progression, Rating } from './progression';
@@ -10,9 +11,9 @@ export type SlimeId = typeof SLIME_IDS[number];
 export type SlimePlacement = { id: SlimeId; position: Position };
 export type WorldGeometry = { layout: 'woodland' | 'legacy-expanded'; width: number; height: number };
 export type WorldDefinition = WorldGeometry & { version: 2; slimes: SlimePlacement[] };
-export type Checkpoint = { version: 7; character: Character; world: WorldDefinition; position: Position; hp: number; completedEncounterIds: SlimeId[]; progression: Progression; initialSlimes: SlimePlacement[]; slimeLevel: number };
+export type Checkpoint = { version: 8; character: Character; world: WorldDefinition; position: Position; hp: number; completedEncounterIds: SlimeId[]; progression: Progression; initialSlimes: SlimePlacement[]; slimeLevel: number };
 export type TurnRolls = { hero: OpposedRoll; slime: OpposedRoll | null };
-export type BattleState = { heroHp: number; enemyHp: number; slimeLevel: number; heroPools: { attack: number; defense: number }; lastTurn: TurnRolls | null; result: 'active' | 'victory' | 'defeat' | 'escaped' };
+export type BattleState = { offense: OffensiveAction; heroHp: number; enemyHp: number; slimeLevel: number; heroPools: { attack: number; defense: number }; lastTurn: TurnRolls | null; result: 'active' | 'victory' | 'defeat' | 'escaped' };
 export type GameState =
   | { kind: 'title' }
   | { kind: 'exploring'; checkpoint: Checkpoint }
@@ -21,7 +22,8 @@ export type GameState =
   | { kind: 'defeat'; checkpoint: Checkpoint; lastTurn?: TurnRolls | null };
 export type Action =
   | { type: 'newGame'; world: WorldDefinition; character: Character }
-  | { type: 'attack' | 'run' | 'acknowledgeVictory' | 'restart' | 'returnToRoster' }
+  | { type: CombatCommand }
+  | { type: 'acknowledgeVictory' | 'restart' | 'returnToRoster' }
   | { type: 'resumeDefeat'; checkpoint: Checkpoint }
   | { type: 'continue'; checkpoint: Checkpoint }
   | { type: 'move'; direction: Direction };

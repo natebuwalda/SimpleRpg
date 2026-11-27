@@ -16,12 +16,12 @@ test('slime stats scale from the original baseline within the recorded dice limi
 test('level two uses four dice on defense and attack', () => {
   const checkpoint = makeCheckpoint();
   const battle = createBattle(checkpoint.hp, checkpoint.character, 2);
-  const turn = resolveTurn(battle, 'attack', () => 0);
+  const turn = resolveTurn(battle, 'melee', () => 0);
   expect(turn.enemyHp).toBe(4);
   expect(turn.lastTurn?.hero.defense.original).toHaveLength(4);
   expect(turn.lastTurn?.slime?.attack.original).toHaveLength(4);
   let roll = 0;
-  expect(resolveTurn(battle, 'attack', () => roll++ < 5 ? .8 : 0)).toMatchObject({ result: 'victory', lastTurn: { slime: null } });
+  expect(resolveTurn(battle, 'melee', () => roll++ < 5 ? .8 : 0)).toMatchObject({ result: 'victory', lastTurn: { slime: null } });
 });
 
 test('Find advances only a cleared wave and Restart restores level one', () => {
@@ -45,7 +45,7 @@ test('a level eleven victory can grant three player levels at once', () => {
   checkpoint.progression.investments.skills.combat = 14;
   const battle = transition({ kind: 'exploring', checkpoint }, { type: 'move', direction: 'right' });
   let roll = 0;
-  const won = transition(battle, { type: 'attack' }, () => roll++ < 19 ? .8 : 0);
+  const won = transition(battle, { type: 'melee' }, () => roll++ < 19 ? .8 : 0);
   expect(won).toMatchObject({ kind: 'victory', xpAwarded: 11, levelGained: true, checkpoint: { progression: { level: 18, xp: 0 } } });
 });
 
@@ -58,7 +58,7 @@ test('the final slime wave is clearable within the recorded dice limit', () => {
   checkpoint.progression.investments.skills.combat = 1019;
   const battle = transition({ kind: 'exploring', checkpoint }, { type: 'move', direction: 'right' });
   let roll = 0;
-  const won = transition(battle, { type: 'attack' }, () => roll++ < 1024 ? .8 : 0);
+  const won = transition(battle, { type: 'melee' }, () => roll++ < 1024 ? .8 : 0);
   expect(won).toMatchObject({ kind: 'victory', xpAwarded: 1022 });
   if (won.kind !== 'victory') throw Error('Expected a victory');
   expect(won.lastTurn?.hero.defense.original).toHaveLength(1024);
@@ -72,6 +72,6 @@ test('victory reports credited rather than nominal XP at the player numeric limi
   checkpoint.progression.xp = 4;
   const battle = transition({ kind: 'exploring', checkpoint }, { type: 'move', direction: 'right' });
   let roll = 0;
-  expect(transition(battle, { type: 'attack' }, () => roll++ < 5 ? .8 : 0))
+  expect(transition(battle, { type: 'melee' }, () => roll++ < 5 ? .8 : 0))
     .toMatchObject({ kind:'victory', xpAwarded:0, checkpoint:{progression:checkpoint.progression} });
 });

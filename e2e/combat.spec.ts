@@ -9,7 +9,7 @@ test('fixed character and exact bonus dice are understandable through victory', 
   await expect(page.getByLabel('Character attributes')).toContainText('Resistance 2');
   await expect(page.getByLabel('Character skills')).toHaveText('Combat 2 · Subterfuge 2 · Lore 1');
   await expect(page.getByLabel('Derived stats')).toHaveText('Health 5 · Initiative 6 · Resource capacity 5');
-  await expect(page.getByLabel('Melee pools')).toHaveText('Attack 5d10 · Defense 4d10');
+  await expect(page.getByLabel('Combat pools')).toHaveText('Melee 5d10 · Defense 4d10');
   await steps(page, 'down');
   // One original ten and a bonus ten: two successes; defense gets one.
   await attack(page, [10,1,1,1,1, 10, 8,1,1, 1,1,1, 1,1,1,1]);
@@ -23,7 +23,7 @@ test('fixed character and exact bonus dice are understandable through victory', 
   await page.getByText('Roll details', { exact: true }).click();
   await expect(page.getByLabel('Your attack dice')).toContainText('Successes: 5');
   await expect(page.getByText('No counterattack.', { exact: true })).toBeVisible();
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('simple-rpg.save.v8')!).slots[0].checkpoint);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('simple-rpg.save.v9')!).slots[0].checkpoint);
   expect(saved.hp).toBe(5); expect(saved.character).toEqual(checkpoint.character);
   expect(saved).not.toHaveProperty('lastTurn');
 });

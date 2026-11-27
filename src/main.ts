@@ -1,3 +1,4 @@
+import { isCombatCommand } from './game/combat-actions';
 import Phaser from 'phaser';
 import {GameScene} from './view/GameScene';
 import {mountUi} from './view/ui';
@@ -102,8 +103,8 @@ async function process(action:UiAction){
  if(state!==previous&&state.kind!=='title'&&state.kind!=='battle'&&action.type!=='acknowledgeVictory')await persist();
 }
 function dispatch(action:UiAction){
- if(!active||pending>0||(ui.isConfirming()&&action.type!=='discardProgress')||(busy&&(action.type==='attack'||action.type==='run')))return;
- const resolving=state.kind==='battle'&&(action.type==='attack'||action.type==='run');
+ if(!active||pending>0||(ui.isConfirming()&&action.type!=='discardProgress')||(busy&&isCombatCommand(action.type)))return;
+ const resolving=state.kind==='battle'&&isCombatCommand(action.type);
  let done=false,delayDone=!resolving;
  const unlock=()=>{if(resolving&&done&&delayDone)busy=false;ui.setBusy(busy||pending>0);};
  if(resolving){busy=true;window.setTimeout(()=>{delayDone=true;unlock();},300);}

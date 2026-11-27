@@ -34,9 +34,9 @@ test('winning grants one XP once, and entering battle uses the effective build',
   expect(battle).toMatchObject({ kind: 'battle', battle: { heroPools: { attack: 6 } } });
   expect(transition(battle, { type: 'run' })).toMatchObject({ checkpoint: { progression: checkpoint.progression } });
   let roll = 0;
-  const won = transition(battle, { type: 'attack' }, () => roll++ < 6 ? .8 : 0);
+  const won = transition(battle, { type: 'melee' }, () => roll++ < 6 ? .8 : 0);
   expect(won).toMatchObject({ kind: 'victory', checkpoint: { progression: { level: 2, xp: 1 }, completedEncounterIds: ['slime-1'] } });
-  expect(transition(won, { type: 'attack' })).toBe(won);
+  expect(transition(won, { type: 'melee' })).toBe(won);
   expect(transition(won, { type: 'acknowledgeVictory' })).toMatchObject({ checkpoint: { progression: { xp: 1 } } });
 });
 

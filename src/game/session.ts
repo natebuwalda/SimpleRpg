@@ -1,3 +1,4 @@
+import { isCombatCommand } from './combat-actions';
 import type { Action, GameState } from './types';
 import { createCheckpoint, getLivingEncounterAt, move, restartCheckpoint } from './world';
 import { deriveStats, isValidCharacter } from './character';
@@ -23,8 +24,9 @@ export function transition(state: GameState, action: Action, rng: RandomSource =
     }
     return { kind: 'exploring', checkpoint: { ...state.checkpoint, position } };
   }
-  if (state.kind === 'battle' && (action.type === 'attack' || action.type === 'run')) {
+  if (state.kind === 'battle' && isCombatCommand(action.type)) {
     const battle = resolveTurn(state.battle, action.type, rng);
+    if (battle === state.battle) return state;
     if (battle.result === 'escaped') return { kind: 'exploring', checkpoint: { ...state.checkpoint, position: state.returnPosition, hp: battle.heroHp } };
     if (battle.result === 'victory') {
       const { checkpoint } = state;

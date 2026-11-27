@@ -1,14 +1,16 @@
 import type { BattleState, Character } from './types';
-import { getMeleePools } from './character';
+import { getCombatPools, offenseFor, type CombatCommand } from './combat-actions';
 import { rollOpposed, type RandomSource } from './dice';
 import { FIRST_SLIME_LEVEL, slimeStats } from './slime';
 
 export function createBattle(heroHp: number, character: Character, slimeLevel = FIRST_SLIME_LEVEL): BattleState {
-  return { heroHp, slimeLevel, enemyHp: slimeStats(slimeLevel).maxHp, heroPools: getMeleePools(character), lastTurn: null, result: 'active' };
+  const offense = offenseFor(character.classId);
+  return { offense, heroHp, slimeLevel, enemyHp: slimeStats(slimeLevel).maxHp, heroPools: getCombatPools(character, offense), lastTurn: null, result: 'active' };
 }
-export function resolveTurn(state: BattleState, command: 'attack' | 'run', rng: RandomSource = Math.random): BattleState {
+export function resolveTurn(state: BattleState, command: CombatCommand, rng: RandomSource = Math.random): BattleState {
   if (state.result !== 'active') return state;
   if (command === 'run') return { ...state, result: 'escaped' };
+  if (command !== state.offense) return state;
   const enemy = slimeStats(state.slimeLevel);
   const hero = rollOpposed(state.heroPools.attack, enemy.defense, rng);
   const enemyHp = Math.max(0, state.enemyHp - hero.damage);

@@ -1,7 +1,7 @@
-import { MAX_MELEE_POOL } from './progression';
+import { MAX_COMBAT_POOL } from './progression';
 
 export const FIRST_SLIME_LEVEL = 1;
-export const MAX_SLIME_LEVEL = MAX_MELEE_POOL - 2;
+export const MAX_SLIME_LEVEL = MAX_COMBAT_POOL - 2;
 
 export function isSlimeLevel(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value)
