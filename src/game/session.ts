@@ -20,7 +20,7 @@ export function transition(state: GameState, action: Action, rng: RandomSource =
     const encounter = getLivingEncounterAt(state.checkpoint, position);
     if (encounter) {
       const hero = effectiveCharacter(state.checkpoint.character, state.checkpoint.progression);
-      return { kind: 'battle', checkpoint: state.checkpoint, returnPosition: state.checkpoint.position, battle: createBattle(state.checkpoint.hp, hero, state.checkpoint.slimeLevel), encounterId: encounter.id };
+      return { kind: 'battle', checkpoint: state.checkpoint, returnPosition: state.checkpoint.position, battle: createBattle(state.checkpoint.hp, hero, state.checkpoint.slimeLevel, rng), encounterId: encounter.id };
     }
     return { kind: 'exploring', checkpoint: { ...state.checkpoint, position } };
   }

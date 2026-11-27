@@ -8,7 +8,7 @@ const world=makeWorld();
 function enter(hp=3):GameState{
   const state=transition(createSession(),{type:'newGame',world,character});
   if(state.kind!=='exploring')throw Error('Expected exploring');
-  return transition({...state,checkpoint:{...state.checkpoint,hp,position:{x:14,y:15},completedEncounterIds:['slime-2']}},{type:'move',direction:'right'});
+  return transition({...state,checkpoint:{...state.checkpoint,hp,position:{x:14,y:15},completedEncounterIds:['slime-2']}},{type:'move',direction:'right'},()=>0);
 }
 test('nonstarter New Game copies the character and rejects illegal budgets',()=>{
   const input=structuredClone(character),state=transition(createSession(),{type:'newGame',world,character:input});

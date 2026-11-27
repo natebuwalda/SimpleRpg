@@ -12,8 +12,11 @@ export type SlimePlacement = { id: SlimeId; position: Position };
 export type WorldGeometry = { layout: 'woodland' | 'legacy-expanded'; width: number; height: number };
 export type WorldDefinition = WorldGeometry & { version: 2; slimes: SlimePlacement[] };
 export type Checkpoint = { version: 8; character: Character; world: WorldDefinition; position: Position; hp: number; completedEncounterIds: SlimeId[]; progression: Progression; initialSlimes: SlimePlacement[]; slimeLevel: number };
-export type TurnRolls = { hero: OpposedRoll; slime: OpposedRoll | null };
-export type BattleState = { offense: OffensiveAction; heroHp: number; enemyHp: number; slimeLevel: number; heroPools: { attack: number; defense: number }; lastTurn: TurnRolls | null; result: 'active' | 'victory' | 'defeat' | 'escaped' };
+export type Combatant = 'hero' | 'slime';
+export type InitiativeResult = { combatant: Combatant; rawInitiative: number; successes: number };
+export type TurnOrder = readonly [InitiativeResult, InitiativeResult];
+export type TurnRolls = readonly { attacker: Combatant; roll: OpposedRoll }[];
+export type BattleState = { offense: OffensiveAction; heroHp: number; enemyHp: number; slimeLevel: number; heroPools: { attack: number; defense: number }; turnOrder: TurnOrder; lastTurn: TurnRolls | null; result: 'active' | 'victory' | 'defeat' | 'escaped' };
 export type GameState =
   | { kind: 'title' }
   | { kind: 'exploring'; checkpoint: Checkpoint }

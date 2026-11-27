@@ -24,10 +24,10 @@ test('unauthorized attacks consume neither turns nor RNG, and Magic uses the usu
   const rng = vi.fn(() => 0);
   expect(transition(state, { type: 'melee' }, rng)).toBe(state);
   expect(rng).not.toHaveBeenCalled();
-  const battle = createBattle(5, checkpoint.character);
+  const battle = createBattle(5, checkpoint.character, 1, () => 0);
   expect(resolveTurn(battle, 'magic', rng)).toMatchObject({ result: 'active', enemyHp: 3 });
   let die = 0;
-  expect(resolveTurn(battle, 'magic', () => die++ < 4 ? .8 : 0)).toMatchObject({ result: 'victory', lastTurn: { slime: null } });
+  expect(resolveTurn(battle, 'magic', () => die++ < 4 ? .8 : 0)).toMatchObject({ result: 'victory', lastTurn: [{ attacker: 'hero' }] });
 });
 
 test('creation requires an explicitly chosen class', () => {
