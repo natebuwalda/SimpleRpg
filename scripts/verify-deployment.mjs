@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {chromium,expect} from '@playwright/test';
-import {createCharacter,checkpoint} from '../e2e/helpers.ts';
+import {attack,createCharacter,checkpoint} from '../e2e/helpers.ts';
 
 const root=new URL(process.argv[2]??'http://127.0.0.1:4181/SimpleRpg/');
 const expectedMainScript=process.argv[3],browser=await chromium.launch({headless:true});
@@ -17,12 +17,12 @@ try{
   if(url.pathname.includes('acceptance'))assert.ok(html.includes('/SimpleRpg/acceptance/assets/'));
   return await page.locator('.edition').innerText();
  }
- async function begin(name='Adventurer',warrior=false){
+ async function begin(name='Adventurer',warrior=false,worldRoll=.5){
   const roster=await page.getByRole('button',{name:'New Character',exact:true}).count()>0;
   await page.getByRole('button',{name:roster?'New Character':'New Game',exact:true}).click();
   await createCharacter(page,warrior?{name,attributes:{prowess:5,cunning:1,resistance:2},skills:{combat:5,subterfuge:0,lore:0}}:{...checkpoint.character,name});
   // Keep generated fixtures reproducible and clear of the first movement tile.
-  await page.evaluate(()=>{window.__smokeRandom=Math.random;Math.random=()=>.5;});
+  await page.evaluate(roll=>{window.__smokeRandom=Math.random;Math.random=()=>roll;},worldRoll);
   await page.getByRole('button',{name:'Begin adventure',exact:true}).click();
   await expect(page.getByLabel('Position')).toHaveText('3, 3');
   await expect(page.locator('#screen')).toHaveAttribute('aria-busy','false');
@@ -53,12 +53,27 @@ try{
   await expect(page.getByLabel('Roster capacity')).toHaveText('2 / 10 slots');
   await resume('Smoke one');await expect(page.getByLabel('Position')).toHaveText('4, 3');await expect(page.getByLabel('Hero health')).toHaveText('5 / 5 HP');
   await page.reload();await resume('Smoke two');await expect(page.getByLabel('Position')).toHaveText('3, 4');await expect(page.getByLabel('Hero health')).toHaveText('7 / 7 HP');
+  if(await page.locator('.edition').textContent()==='ITERATION 06'){
+   await page.getByRole('button',{name:'Return to characters',exact:true}).click();
+   await begin('Smoke progression',true,0);
+   await page.getByRole('button',{name:'Move right',exact:true}).click();
+   await attack(page,[...Array(10).fill(8),1,1,1]);
+   await expect(page.locator('#screen')).toContainText('+1 XP.');
+   await page.reload();await resume('Smoke progression');
+   await page.getByText('Character',{exact:true}).click();
+   await expect(page.getByLabel('Character progression')).toContainText('1 / 5 XP');
+   return {roster:true,independentPlaythroughs:2,persistedVictoryXp:true};
+  }
   return {roster:true,independentPlaythroughs:2};
  }
- const mainEdition=await open(root,expectedMainScript),mainChecks=await exercise();
+ const mainEdition=await open(root,expectedMainScript);
+ assert.ok(['ITERATION 04','ITERATION 05','ITERATION 06'].includes(mainEdition),`Unexpected main edition: ${mainEdition}`);
+ const mainChecks=await exercise();
  const mainSaves=await snapshot('simple-rpg.save.');
  const acceptance=new URL('acceptance/',root);
- const acceptanceEdition=await open(acceptance),acceptanceChecks=await exercise();
+ const acceptanceEdition=await open(acceptance);
+ assert.equal(acceptanceEdition,'ITERATION 06','Acceptance must serve Iteration 6');
+ const acceptanceChecks=await exercise();
  assert.deepEqual(await snapshot('simple-rpg.save.'),mainSaves,'Acceptance changed main saves');
  const acceptanceSaves=await snapshot('simple-rpg.acceptance.save.');
  assert.ok(Object.keys(acceptanceSaves).length>0,'No acceptance save');

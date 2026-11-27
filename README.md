@@ -1,11 +1,11 @@
 # SimpleRpg
 
-A small browser RPG built with TypeScript, Phaser and Vite. Iteration 5 adds a roster of up to ten characters, each with an independent saved playthrough.
+A small browser RPG built with TypeScript, Phaser and Vite. Each roster character has an independent saved playthrough.
 
-**[Play SimpleRpg](https://natebuwalda.github.io/SimpleRpg/)** — main follows accepted releases; Iteration 4 was accepted and merged in [PR #5](https://github.com/natebuwalda/SimpleRpg/pull/5).
+**[Play SimpleRpg](https://natebuwalda.github.io/SimpleRpg/)** — main follows accepted releases. Iteration 5 shipped in [PR #6](https://github.com/natebuwalda/SimpleRpg/pull/6).
 **[Acceptance game](https://natebuwalda.github.io/SimpleRpg/acceptance/)** — separately pinned candidate, with isolated browser saves.
 
-Iteration 5 is being prepared on its feature branch. Deployment, physical-phone acceptance and merge await owner direction; these links keep their previously published versions until deployment is requested.
+Iteration 6 adds repeat waves and character progression.
 
 ## Development
 
@@ -31,13 +31,19 @@ Attack rolls Prowess + Combat against slime Defense 3d10. Each 8–10 is a succe
 
 ## Saves and limits
 
-**Breaking change:** Iteration 5 ignores all older single-adventure saves. There is no migration or automatic roster import. The new v6 save holds every character/playthrough in one document. Old keys may remain in browser storage but are never loaded.
+Iteration 6 upgrades Iteration 5 rosters to v7. Existing characters begin at level 1 with 0 XP and retain their maps, builds, Health and encounter progress. Saves older than Iteration 5 are ignored. Refresh any open Iteration 5 tabs when switching to Iteration 6 so future play is saved to the upgraded roster.
 
 Saves remain browser/device-local and do not sync. Clearing browser data loses them. Main and acceptance use distinct keys. Every write uses a browser Web Lock and re-reads current data; different characters' updates merge, while an outdated tab stops saving a changed/deleted character. A deleted character is never recreated by stale autosave.
 
 Creation, deletion, Restart and confirmed roster reset require a successful write. Failed creation keeps its draft; other failures retain the relevant screen and allow retry/back. Gameplay can continue in memory after autosave failure with a warning and Retry save. Leaving unsaved progress requires confirmation. Browsers without usable storage/locks cannot create/delete/Restart, but readable active characters can resume read-only. Unreadable combined saves offer a separately confirmed reset rather than silently clearing progress.
 
-No editing, leveling, XP, classes, specializations, gear, resource spending, import/export, accounts, synchronization or multiplayer. No hash or anti-cheat mechanism. Network is needed to load the game; offline loading is not guaranteed.
+## Advancement
+
+Each slime victory earns 1 XP. Every 5 XP grants a level and one advancement point. Open **Character** during exploration to spend a point on any Attribute or Skill, or bank it for later. Ratings can rise above their creation cap. Raising maximum Health leaves current Health unchanged until the next heal.
+
+After clearing all three slimes, select **Find more slimes** to start another wave on the same map. Reload preserves current placements. Restart after defeat restores the original placements and full Health while preserving levels, XP and points. If an autosave fails, use **Retry save** before spending a point, finding more slimes or restarting.
+
+For phone acceptance, clear a wave, choose Find more slimes and win twice more. Check that level 2 grants a point, then spend it, reload, and verify the new rating. Confirm that defeat and Restart retain advancement, while another roster slot keeps its own progress.
 
 ## Iteration 5 manual acceptance
 
@@ -54,4 +60,4 @@ No editing, leveling, XP, classes, specializations, gear, resource spending, imp
 
 GitHub Pages serves `/SimpleRpg/` and pinned `/SimpleRpg/acceptance/`. Checks run on pushes/PRs. Publish game repeats checks, builds both paths and deploys after success. `ACCEPTANCE_REF` stores the acceptance commit; manual input can override it. See [acceptance hosting](docs/superpowers/acceptance-hosting.md).
 
-With Playwright Chromium installed, run `node scripts/verify-deployment.mjs https://natebuwalda.github.io/SimpleRpg/ [expected-main-entry]`. The verifier supports accepted Iteration 4 and new Iteration 5, exercises two independent slots on roster builds, and checks namespace isolation and runtime/assets.
+With Playwright Chromium installed, run `node scripts/verify-deployment.mjs https://natebuwalda.github.io/SimpleRpg/ [expected-main-entry]`. The verifier exercises independent roster slots, victory XP on Iteration 6, and separation between the main and acceptance saves.

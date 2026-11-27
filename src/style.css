@@ -45,6 +45,8 @@ button.primary:hover:not(:disabled) { background: #e3eac6; }
 .roster-visible h1,.confirmation h1 { overflow-wrap:anywhere; }
 .danger { color:#ffd0bd; }
 .return-roster { margin-top:20px; }
+.advancement-controls { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.advancement-controls button { padding:8px; overflow-wrap:anywhere; }
 .confirmation .actions button { min-width:0;overflow-wrap:anywhere; }
 .creating .play-area { display:block; }
 .creating .world-frame { display:none; }
