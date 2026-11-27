@@ -6,28 +6,28 @@ import { scriptedFaces, losingFaces } from './rolls';
 const battle = (hp = 5) => createBattle(hp, createStarterCharacter());
 const noRoll = () => { throw Error('Unexpected roll'); };
 it('uses hero 5/4 and slime 3/3 pools and records each opposed margin', () => {
-  const first = resolveTurn(battle(), 'attack', scriptedFaces(8,8,8,1,1, 8,1,1, 8,8,8, 1,1,1,1));
+  const first = resolveTurn(battle(), 'melee', scriptedFaces(8,8,8,1,1, 8,1,1, 8,8,8, 1,1,1,1));
   expect(first).toMatchObject({ heroHp: 2, enemyHp: 1, result: 'active', heroPools: { attack: 5, defense: 4 } });
   expect(first.lastTurn?.hero).toEqual({ attack: { original: [8,8,8,1,1], bonus: [], successes: 3 }, defense: { original: [8,1,1], bonus: [], successes: 1 }, damage: 2 });
   expect(first.lastTurn?.slime).toMatchObject({ attack: { original: [8,8,8], successes: 3 }, defense: { original: [1,1,1,1], successes: 0 }, damage: 3 });
 });
 it('lethal attacks clamp slime Health and never roll a counterattack', () => {
-  const victory = resolveTurn(battle(2), 'attack', scriptedFaces(8,8,8,8,8, 1,1,1));
+  const victory = resolveTurn(battle(2), 'melee', scriptedFaces(8,8,8,8,8, 1,1,1));
   expect(victory).toMatchObject({ heroHp: 2, enemyHp: 0, result: 'victory', lastTurn: { slime: null } });
   expect(resolveTurn(victory, 'run', noRoll)).toBe(victory);
-  expect(resolveTurn(victory, 'attack', noRoll)).toBe(victory);
+  expect(resolveTurn(victory, 'melee', noRoll)).toBe(victory);
 });
 it('run succeeds without rolling', () => {
   expect(resolveTurn(battle(), 'run', noRoll)).toMatchObject({ heroHp: 5, enemyHp: 3, result: 'escaped', lastTurn: null });
 });
 it('defeat clamps hero Health and terminal states consume no dice', () => {
-  const defeated = resolveTurn(battle(1), 'attack', scriptedFaces(...losingFaces));
+  const defeated = resolveTurn(battle(1), 'melee', scriptedFaces(...losingFaces));
   expect(defeated).toMatchObject({ heroHp: 0, enemyHp: 3, result: 'defeat' });
-  expect(resolveTurn(defeated, 'attack', noRoll)).toBe(defeated);
+  expect(resolveTurn(defeated, 'melee', noRoll)).toBe(defeated);
 });
 it('ties, misses and winning defenses never deal damage', () => {
-  const tied = resolveTurn(battle(), 'attack', scriptedFaces(...Array(15).fill(1)));
+  const tied = resolveTurn(battle(), 'melee', scriptedFaces(...Array(15).fill(1)));
   expect(tied).toMatchObject({ heroHp: 5, enemyHp: 3, result: 'active' });
-  const defended = resolveTurn(battle(), 'attack', scriptedFaces(1,1,1,1,1, 8,8,8, 1,1,1, 8,8,8,8));
+  const defended = resolveTurn(battle(), 'melee', scriptedFaces(1,1,1,1,1, 8,8,8, 1,1,1, 8,8,8,8));
   expect(defended).toMatchObject({ heroHp: 5, enemyHp: 3, result: 'active' });
 });

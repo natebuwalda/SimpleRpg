@@ -1,12 +1,15 @@
+import type { ClassId } from '../src/game/combat-actions';
 import { expect, type Page } from '@playwright/test';
 export const world = {version:2,layout:'woodland',width:20,height:20,slimes:[
   {id:'slime-1',position:{x:15,y:15}}, {id:'slime-2',position:{x:8,y:8}}, {id:'slime-3',position:{x:10,y:10}},
 ]};
-export const checkpoint = {version:7,slimeLevel:1,progression:{level:1,xp:0,investments:{attributes:{prowess:0,cunning:0,resistance:0},skills:{combat:0,subterfuge:0,lore:0}}},initialSlimes:world.slimes,character:{name:'Adventurer',attributes:{prowess:3,cunning:3,resistance:2},skills:{combat:2,subterfuge:2,lore:1}},world,position:{x:3,y:3},hp:5,completedEncounterIds:[] as string[]};
+export const checkpoint = {version:8,slimeLevel:1,progression:{level:1,xp:0,investments:{attributes:{prowess:0,cunning:0,resistance:0},skills:{combat:0,subterfuge:0,lore:0}}},initialSlimes:world.slimes,character:{classId:'warrior' as ClassId,name:'Adventurer',attributes:{prowess:3,cunning:3,resistance:2},skills:{combat:2,subterfuge:2,lore:1}},world,position:{x:3,y:3},hp:5,completedEncounterIds:[] as string[]};
 export const slotId='00000000-0000-4000-8000-000000000001';
-export function wrapCheckpoint(value=checkpoint){return {version:8,slots:[{id:slotId,revision:1,status:'active',checkpoint:{...value,initialSlimes:value.world===world?value.initialSlimes:value.world.slimes}}]};}
-export async function createCharacter(page:Page, build=checkpoint.character) {
+export function wrapCheckpoint(value=checkpoint){return {version:9,slots:[{id:slotId,revision:1,status:'active',checkpoint:{...value,initialSlimes:value.world===world?value.initialSlimes:value.world.slimes}}]};}
+export async function createCharacter(page:Page, build: Omit<typeof checkpoint.character,'classId'> & {classId?:ClassId}=checkpoint.character) {
   await page.getByRole('textbox',{name:'Character name',exact:true}).fill(build.name);
+  const classPicker = page.getByRole('combobox', { name: 'Class', exact: true });
+  if (await classPicker.count()) await classPicker.selectOption(build.classId ?? 'warrior');
   for(const [key,value] of Object.entries(build.attributes))for(let i=1;i<value;i++)await page.getByRole('button',{name:`Increase ${key}`,exact:true}).click();
   await page.getByRole('button',{name:'Next: skills',exact:true}).click();
   for(const [key,value] of Object.entries(build.skills))for(let i=0;i<value;i++)await page.getByRole('button',{name:`Increase ${key}`,exact:true}).click();
@@ -21,7 +24,7 @@ export async function startAdventure(page:Page,build=checkpoint.character) {
 }
 export async function seed(page:Page, value = checkpoint) {
   await page.goto('./');
-  await page.evaluate(value => localStorage.setItem('simple-rpg.save.v8',JSON.stringify(value)), wrapCheckpoint(value));
+  await page.evaluate(value => localStorage.setItem('simple-rpg.save.v9',JSON.stringify(value)), wrapCheckpoint(value));
   await page.reload();
   await page.getByRole('button',{name:'Resume',exact:true}).tap();
   await expect(page.getByLabel('Position')).toBeVisible();
@@ -33,7 +36,7 @@ export async function steps(page:Page, direction:string, count=1) {
 export async function enterBattle(page:Page) {
   await seed(page);
   await steps(page,'right',12); await steps(page,'down',12);
-  await expect(page.getByRole('button',{name:'Attack',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Melee',exact:true})).toBeVisible();
   await setCombatFaces(page, [...tradingFaces, 8,8,8,8,8,1,1,1]);
 }
 
@@ -54,10 +57,10 @@ export async function setCombatFaces(page: Page, faces: number[]): Promise<void>
   }, faces);
 }
 export async function attack(page: Page, faces = tradingFaces): Promise<void> {
-  await expect(page.getByRole('button', { name: 'Attack', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(Attack|Melee|Magic)$/ })).toBeEnabled();
   const result=page.getByRole('status',{name:'Combat result'}),before=await result.textContent();
   await setCombatFaces(page, faces);
-  await page.getByRole('button', { name: 'Attack', exact: true }).tap();
+  await page.getByRole('button', { name: /^(Attack|Melee|Magic)$/ }).tap();
   await expect(result).not.toHaveText(before??'');
   await page.evaluate(() => { Math.random = window.__combatOriginal!; });
 }

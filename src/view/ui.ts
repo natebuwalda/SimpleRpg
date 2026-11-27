@@ -1,5 +1,6 @@
 import type { UiAction, Character, Checkpoint, Direction, GameState, TurnRolls } from '../game/types';
-import { deriveStats, getMeleePools } from '../game/character';
+import { deriveStats } from '../game/character';
+import { CLASS_DEFINITIONS, OFFENSIVE_ACTIONS, getCombatPools, offenseFor } from '../game/combat-actions';
 import type { PoolRoll } from '../game/dice';
 import { slimeStats } from '../game/slime';
 import { canFindMoreSlimes, getRemainingSlimeCount } from '../game/world';
@@ -7,7 +8,7 @@ import { mountCharacterCreation } from './character-creation';
 import {mountRoster} from './roster';
 import {mountConfirmation} from './confirmation';
 import type {RosterObservation} from '../game/roster';
-import {availablePoints,effectiveCharacter,hasSupportedMeleePools,progressionSummary,spendPoint,type Rating} from '../game/progression';
+import {availablePoints,effectiveCharacter,hasSupportedCombatPools,progressionSummary,spendPoint,type Rating} from '../game/progression';
 
 export interface Ui {
   render(state: GameState, saveStatus: string, unsavedProgress?:boolean, canSave?:boolean): void;
@@ -30,11 +31,11 @@ const advancementRatings = [
 function characterDetails(checkpoint: Checkpoint, canSpend: boolean, open: boolean): string {
   const { progression } = checkpoint;
   const character = effectiveCharacter(checkpoint.character, progression);
-  const a = character.attributes, s = character.skills, stats = deriveStats(character), pools = getMeleePools(character);
+  const a = character.attributes, s = character.skills, stats = deriveStats(character), offense = offenseFor(character.classId), pools = getCombatPools(character, offense);
   const points = availablePoints(progression);
   const controls = canSpend && points > 0 ? `<div class="advancement-controls">${advancementRatings.map(rating => {
     const {key} = rating;
-    const supported = hasSupportedMeleePools(effectiveCharacter(checkpoint.character, spendPoint(progression, rating)));
+    const supported = hasSupportedCombatPools(effectiveCharacter(checkpoint.character, spendPoint(progression, rating)));
     return `<button type="button" data-rating="${key}" ${supported?'':'disabled'}>Raise ${key[0].toUpperCase()+key.slice(1)}</button>`;
   }).join('')}</div>` : '';
   return `<details class="game-details" data-character-sheet ${open ? 'open' : ''}><summary>Character</summary><div class="detail-content">
@@ -43,7 +44,8 @@ function characterDetails(checkpoint: Checkpoint, canSpend: boolean, open: boole
     <p aria-label="Character attributes">Prowess ${a.prowess} · Cunning ${a.cunning} · Resistance ${a.resistance}</p>
     <p aria-label="Character skills">Combat ${s.combat} · Subterfuge ${s.subterfuge} · Lore ${s.lore}</p>
     <p aria-label="Derived stats">Health ${stats.maxHp} · Initiative ${stats.initiative} · Resource capacity ${stats.resourceCapacity}</p>
-    <p aria-label="Melee pools">Attack ${pools.attack}d10 · Defense ${pools.defense}d10</p>${controls}</div></details>`;
+    <p aria-label="Character class">${CLASS_DEFINITIONS[character.classId].label}</p>
+    <p aria-label="Combat pools">${OFFENSIVE_ACTIONS[offense].label} ${pools.attack}d10 · Defense ${pools.defense}d10</p>${controls}</div></details>`;
 }
 function diceText(label: string, roll: PoolRoll): string {
   return `<p aria-label="${label}"><strong>${label}</strong><br>Original: ${roll.original.join(', ')}. Bonus: ${roll.bonus.join(', ') || 'none'}. Successes: ${roll.successes}.</p>`;
@@ -63,7 +65,7 @@ function turnSummary(turn: TurnRolls): string {
 export function mountUi(root: HTMLElement): Ui {
   root.innerHTML = `
     <main class="game-shell">
-      <header><span class="wordmark">SIMPLE RPG</span><span class="wave-indicator" aria-label="Current wave" hidden></span><span class="edition">ITERATION 07</span></header>
+      <header><span class="wordmark">SIMPLE RPG</span><span class="wave-indicator" aria-label="Current wave" hidden></span><span class="edition">ITERATION 08</span></header>
       <p id="combat-announcement" class="sr-only" role="status" aria-label="Combat result" aria-atomic="true"></p>
       <section class="play-area">
         <div class="world-frame"><div id="canvas" role="img" aria-label="A tiny woodland adventure"></div></div>
@@ -80,7 +82,7 @@ export function mountUi(root: HTMLElement): Ui {
       <footer><span>A WORLD IN YOUR POCKET</span><span>TOUCH · KEYBOARD</span></footer>
     </main>`;
   let handler: (action: UiAction) => void = () => {};
-  let observation:RosterObservation={status:'empty',raw:null,roster:{version:8,slots:[]}},canMutate=false;
+  let observation:RosterObservation={status:'empty',raw:null,roster:{version:9,slots:[]}},canMutate=false;
   let roster:ReturnType<typeof mountRoster>|null=null;
   let discard:ReturnType<typeof mountConfirmation>|null=null;
   let creation: ReturnType<typeof mountCharacterCreation> | null = null;
@@ -121,7 +123,7 @@ export function mountUi(root: HTMLElement): Ui {
     active = !document.hidden;
     if (!active) { pointerAllowed = false; pendingFocus = null; }
   });
-  const isBattleCommand = (target: EventTarget | null) => target instanceof Element && !!target.closest('[data-action="attack"], [data-action="run"]');
+  const isBattleCommand = (target: EventTarget | null) => target instanceof Element && !!target.closest('[data-action="melee"], [data-action="magic"], [data-action="run"]');
   root.addEventListener('pointerdown', event => { pointerAllowed = active && (!busy || !isBattleCommand(event.target)); }, true);
   root.addEventListener('pointercancel', () => { pointerAllowed = false; }, true);
   root.addEventListener('keydown', event => {
@@ -160,7 +162,7 @@ export function mountUi(root: HTMLElement): Ui {
     },
     setBusy(nextBusy) {
       busy = nextBusy;
-      root.querySelectorAll<HTMLButtonElement>('[data-action="attack"], [data-action="run"]').forEach(button => {
+      root.querySelectorAll<HTMLButtonElement>('[data-action="melee"], [data-action="magic"], [data-action="run"]').forEach(button => {
         if (busy && document.activeElement === button) pendingFocus = button.dataset.action!;
         button.disabled = busy;
       });
@@ -206,8 +208,8 @@ export function mountUi(root: HTMLElement): Ui {
       if (state.kind === 'battle') root.querySelector('#screen')!.innerHTML = `
         <div class="eyebrow">${slimeLevelLabel}</div><h1>Meadow slime</h1>
         <div class="stats"><span>HERO <strong aria-label="Hero health">${state.battle.heroHp} / ${maxHp} HP</strong></span><span>SLIME <strong aria-label="Slime health">${state.battle.enemyHp} / ${slimeStats(state.battle.slimeLevel).maxHp} HP</strong></span></div>
-        <p class="description combat-result">${state.battle.lastTurn ? turnSummary(state.battle.lastTurn) : `Attack ${state.battle.heroPools.attack}d10 vs ${slimeStats(state.battle.slimeLevel).defense}d10 defense.`}</p>
-        <div class="actions"><button class="primary" data-action="attack">Attack</button><button data-action="run">Run</button></div>`;
+        <p class="description combat-result">${state.battle.lastTurn ? turnSummary(state.battle.lastTurn) : `${OFFENSIVE_ACTIONS[state.battle.offense].label} ${state.battle.heroPools.attack}d10 vs ${slimeStats(state.battle.slimeLevel).defense}d10 defense.`}</p>
+        <div class="actions"><button class="primary" data-action="${state.battle.offense}">${OFFENSIVE_ACTIONS[state.battle.offense].label}</button><button data-action="run">Run</button></div>`;
       if (state.kind === 'victory' || state.kind === 'defeat') {
         const won = state.kind === 'victory';
         root.querySelector('#screen')!.innerHTML = `<div class="eyebrow">${won ? remaining === 0 ? 'CLEARING COMPLETE' : 'SLIME DEFEATED' : 'ADVENTURE INTERRUPTED'}</div><h1>${won ? 'Victory!' : 'Defeated'}</h1><p class="description">${won ? `The slime slips away. Health restored.<br>${remainingText}<br>${reward}` : 'Even small adventures take practice.<br>Take a breath and begin again.'}</p><div class="actions"><button class="primary" data-action="${won ? 'acknowledgeVictory' : 'restart'}" ${!won&&!canChange?'disabled':''}>${won ? 'Back to clearing' : 'Restart'}</button></div>`;

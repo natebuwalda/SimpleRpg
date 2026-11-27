@@ -57,8 +57,8 @@ button.primary:hover:not(:disabled) { background: #e3eac6; }
 .creation-progress { display:flex; gap:6px; font-size:11px; color:#a4b5a7; margin-bottom:16px; }
 .creation-progress [aria-current] { color:#e3eac6; }
 .creation-name { display:block; color:#b2c1b4; font-size:13px; margin:16px 0 20px; }
-.creation-name input { display:block; width:100%; min-height:48px; margin-top:8px; padding:10px 12px; font:inherit; font-size:16px; background:#172b2b; color:#e8ebd9; border:1px solid #52605a; border-radius:8px; }
-.creation-name input:focus-visible { outline:3px solid #f0d69a; outline-offset:3px; }
+.creation-name :is(input, select) { display:block; width:100%; min-height:48px; margin-top:8px; padding:10px 12px; font:inherit; font-size:16px; background:#172b2b; color:#e8ebd9; border:1px solid #52605a; border-radius:8px; }
+.creation-name :is(input, select):focus-visible { outline:3px solid #f0d69a; outline-offset:3px; }
 .creation h2 { font-family:inherit; font-size:14px; font-weight:600; letter-spacing:0; margin:0; }
 .creation h1 { overflow-wrap:anywhere; }
 .creation-group-title { display:flex; justify-content:space-between; gap:8px; align-items:center; }

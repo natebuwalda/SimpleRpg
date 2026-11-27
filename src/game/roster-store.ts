@@ -4,7 +4,7 @@ import {MAX_CHARACTERS,type LegacyRosterVersion,type RosterObservation,type Rost
 import type {Character,Checkpoint,WorldDefinition} from './types';
 import {isValidCharacter} from './character';
 import {createCheckpoint,findMoreSlimes,generateWorld,restartCheckpoint} from './world';
-import {awardXp,effectiveCharacter,hasSupportedMeleePools,spendPoint,type Rating} from './progression';
+import {awardXp,effectiveCharacter,hasSupportedCombatPools,spendPoint,type Rating} from './progression';
 import {slimeStats} from './slime';
 
 export type RosterCommand=
@@ -32,7 +32,7 @@ export function createRosterStore(storage:Pick<Storage,'getItem'|'setItem'>|null
    }else if(command.type==='reset'){
     if(observation.raw!==command.expectedRaw||observation.legacy!==command.legacy)return fail('stale');
     if(observation.status!=='invalid')return fail('invalid');
-    roster={version:8,slots:[]};
+    roster={version:9,slots:[]};
    }else{
     if(!roster)return fail('invalid');
     if(command.type==='create'){
@@ -59,7 +59,7 @@ export function createRosterStore(storage:Pick<Storage,'getItem'|'setItem'>|null
         if(checkpoint===previous.checkpoint)return fail('invalid');
        }else if(command.type==='spendPoint'){
         const progression=spendPoint(previous.checkpoint.progression,command.rating);
-        if(progression===previous.checkpoint.progression||!hasSupportedMeleePools(effectiveCharacter(previous.checkpoint.character,progression)))return fail('invalid');
+        if(progression===previous.checkpoint.progression||!hasSupportedCombatPools(effectiveCharacter(previous.checkpoint.character,progression)))return fail('invalid');
         checkpoint={...previous.checkpoint,progression};
        }else{
        const parsed=parseCheckpoint(JSON.stringify(command.checkpoint));

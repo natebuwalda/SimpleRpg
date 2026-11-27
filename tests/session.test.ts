@@ -22,7 +22,7 @@ it('entering an encounter blocks movement until battle ends', () => {
   expect(transition(battle, { type: 'move', direction: 'right' })).toEqual(battle);
 });
 it('victory heals and clears the encounter once', () => {
-  const victory = transition(transition(encounter(2), { type: 'attack' }), { type: 'attack' });
+  const victory = transition(transition(encounter(2), { type: 'melee' }), { type: 'melee' });
   expect(victory).toMatchObject({ kind: 'victory', checkpoint: { hp: 5, position: { x: 14, y: 15 }, completedEncounterIds: ['slime-1'] } });
   expect(victory).toMatchObject({ lastTurn: { hero: { damage: 2 }, slime: null } });
   if (victory.kind !== 'victory') throw Error('Expected victory');
@@ -36,7 +36,7 @@ it('escape keeps the encounter available', () => {
   expect(transition(escaped, { type: 'move', direction: 'right' }).kind).toBe('battle');
 });
 it('defeat preserves checkpoint and restart creates a fresh game', () => {
-  const defeat = transition(encounter(2), { type: 'attack' }, scriptedFaces(...losingFaces));
+  const defeat = transition(encounter(2), { type: 'melee' }, scriptedFaces(...losingFaces));
   expect(defeat).toMatchObject({ kind: 'defeat', checkpoint: { hp: 2 } });
   expect(transition(defeat, { type: 'restart' })).toEqual({ kind: 'exploring', checkpoint: makeCheckpoint(world) });
 });

@@ -8,11 +8,11 @@ import { makeCheckpoint } from './fixtures';
 import type { Checkpoint } from '../src/game/types';
 
 const id = '00000000-0000-4000-8000-000000000001';
-const key = 'game.save.v8';
+const key = 'game.save.v9';
 const locks: SaveLocks = { request: async (_name, run) => run() };
 
 function fixture(checkpoint: Checkpoint) {
-  const data = new Map([[key, JSON.stringify({ version: 8, slots: [{ id, revision: 1, status: 'active', checkpoint }] })]]);
+  const data = new Map([[key, JSON.stringify({ version: 9, slots: [{ id, revision: 1, status: 'active', checkpoint }] })]]);
   let blocked = false;
   const storage = {
     getItem: (name: string) => data.get(name) ?? null,

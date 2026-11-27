@@ -5,8 +5,8 @@ import { enterBattle, seed, checkpoint, attack, losingFaces, setCombatFaces, sta
 test('attack resolves one turn per activation', async ({ page }) => {
   await enterBattle(page);
   await page.evaluate(() => {
-    document.querySelector<HTMLButtonElement>('[data-action="attack"]')!.click();
-    document.querySelector<HTMLButtonElement>('[data-action="attack"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-action="melee"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-action="melee"]')!.click();
   });
   await expect(page.getByLabel('Hero health')).toHaveText('3 / 5 HP');
   await expect(page.getByLabel('Slime health')).toHaveText('1 / 3 HP');
@@ -28,7 +28,7 @@ test('run returns to safe tile', async ({ page }) => {
   await page.getByRole('button', { name: 'Run', exact: true }).tap();
   await expect(page.getByLabel('Position')).toHaveText('15, 14');
   await page.getByRole('button', { name: 'Move down' }).tap();
-  await expect(page.getByRole('button', { name: 'Attack', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Melee', exact: true })).toBeVisible();
 });
 
 test('title fits phone', async ({ page }) => {
@@ -129,7 +129,7 @@ test('battle ignores commands while hidden and resumes cleanly', async ({ page }
   await page.evaluate(() => {
     Object.defineProperty(document, 'hidden', { configurable: true, value: true });
     document.dispatchEvent(new Event('visibilitychange'));
-    document.querySelector<HTMLButtonElement>('[data-action="attack"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-action="melee"]')!.click();
   });
   await expect(page.getByLabel('Slime health')).toHaveText('3 / 3 HP');
   await page.evaluate(() => {
@@ -163,7 +163,7 @@ test('a press begun during resolution cannot queue an attack', async ({ page }) 
   await page.clock.install({ time: now });
   await page.clock.pauseAt(new Date(now.getTime() + 60_000));
   await attack(page);
-  const button = page.getByRole('button', { name: 'Attack', exact: true });
+  const button = page.getByRole('button', { name: 'Melee', exact: true });
   const box = (await button.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
@@ -177,7 +177,7 @@ test('a press begun during resolution cannot queue an attack', async ({ page }) 
 
 test('keyboard focus survives battle resolution', async ({ page }) => {
   await enterBattle(page);
-  const attack = page.getByRole('button', { name: 'Attack', exact: true });
+  const attack = page.getByRole('button', { name: 'Melee', exact: true });
   await attack.focus();
   await page.keyboard.press('Enter');
   await expect(attack).toBeEnabled();
@@ -189,7 +189,7 @@ test('keyboard focus survives battle resolution', async ({ page }) => {
 
 test('space held during resolution cannot queue an attack', async ({ page }) => {
   await enterBattle(page);
-  const attack = page.getByRole('button', { name: 'Attack', exact: true });
+  const attack = page.getByRole('button', { name: 'Melee', exact: true });
   const now = new Date();
   await page.clock.install({ time: now });
   await page.clock.pauseAt(new Date(now.getTime() + 60_000));

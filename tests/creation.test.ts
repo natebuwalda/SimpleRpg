@@ -1,12 +1,14 @@
 import { expect, test } from 'vitest';
-import { createCharacterDraft, remainingPoints, allocatePoint, finishCharacter } from '../src/game/creation';
-import { deriveStats, getMeleePools, isValidCharacter, isStarterCharacter, type Character } from '../src/game/character';
+import { createCharacterDraft, remainingPoints, allocatePoint, finishCharacter, type CharacterDraft } from '../src/game/creation';
+import { deriveStats, isValidCharacter, isStarterCharacter, type Character } from '../src/game/character';
 
-const scholar: Character = { name:'Moss', attributes:{prowess:1,cunning:5,resistance:2}, skills:{combat:0,subterfuge:5,lore:0} };
-const warrior: Character = { name:'Fern', attributes:{prowess:5,cunning:1,resistance:2}, skills:{combat:5,subterfuge:0,lore:0} };
+import { getCombatPools } from '../src/game/combat-actions';
+
+const scholar: Character = {classId:'warrior', name:'Moss', attributes:{prowess:1,cunning:5,resistance:2}, skills:{combat:0,subterfuge:5,lore:0} };
+const warrior: Character = {classId:'warrior', name:'Fern', attributes:{prowess:5,cunning:1,resistance:2}, skills:{combat:5,subterfuge:0,lore:0} };
 test('base draft has independent five-point budgets', () => {
   const draft=createCharacterDraft();
-  expect(draft).toEqual({name:'',attributes:{prowess:1,cunning:1,resistance:1},skills:{combat:0,subterfuge:0,lore:0}});
+  expect(draft).toEqual({name:'',classId:null,attributes:{prowess:1,cunning:1,resistance:1},skills:{combat:0,subterfuge:0,lore:0}});
   expect(remainingPoints(draft,'attributes')).toBe(5);expect(remainingPoints(draft,'skills')).toBe(5);
   expect(finishCharacter(draft)).toBeNull();
 });
@@ -29,15 +31,15 @@ test('allocation reclaims points and rejects base, maximum and budget violations
 test('different valid builds derive actual Health and melee pools, including Combat zero', () => {
   expect(isValidCharacter(scholar)).toBe(true);expect(isValidCharacter(warrior)).toBe(true);
   expect(deriveStats(scholar)).toEqual({maxHp:3,initiative:6,resourceCapacity:7});
-  expect(getMeleePools(scholar)).toEqual({attack:1,defense:2});
-  expect(deriveStats(warrior).maxHp).toBe(7);expect(getMeleePools(warrior)).toEqual({attack:10,defense:7});
+  expect(getCombatPools(scholar, 'melee')).toEqual({attack:1,defense:2});
+  expect(deriveStats(warrior).maxHp).toBe(7);expect(getCombatPools(warrior, 'melee')).toEqual({attack:10,defense:7});
   expect(isStarterCharacter(scholar)).toBe(false);
 });
 test('both independent budgets can allocate the original two/two/one spend', () => {
-  let draft={...createCharacterDraft(),name:'Rowan'};
+  let draft: CharacterDraft={...createCharacterDraft(),name:'Rowan',classId:'warrior'};
   for(const key of ['prowess','prowess','cunning','cunning','resistance'] as const)draft=allocatePoint(draft,{group:'attributes',key,delta:1});
   for(const key of ['combat','combat','subterfuge','subterfuge','lore'] as const)draft=allocatePoint(draft,{group:'skills',key,delta:1});
-  expect(finishCharacter(draft)).toEqual({name:'Rowan',attributes:{prowess:3,cunning:3,resistance:2},skills:{combat:2,subterfuge:2,lore:1}});
+  expect(finishCharacter(draft)).toEqual({name:'Rowan',classId:'warrior',attributes:{prowess:3,cunning:3,resistance:2},skills:{combat:2,subterfuge:2,lore:1}});
 });
 test('finishing trims names and copies all nested ratings', () => {
   const draft={...scholar,name:'  Moss & <b>葉</b>  '};

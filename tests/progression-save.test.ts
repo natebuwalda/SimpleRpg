@@ -5,7 +5,7 @@ import { awardXp, createProgression } from '../src/game/progression';
 import { makeCheckpoint } from './fixtures';
 
 const id = '00000000-0000-4000-8000-000000000001';
-const key = 'game.save.v8';
+const key = 'game.save.v9';
 function oldSave() {
   const { progression, initialSlimes, ...previous } = makeCheckpoint();
   const checkpoint = { ...previous, version: 5, hp: 2 };
@@ -19,14 +19,14 @@ function oldSave() {
 test('v6 upgrade preserves all slots and never awards historical XP', () => {
   const old = oldSave();
   const upgraded = upgradeRoster(JSON.stringify(old))!;
-  expect(upgraded.version).toBe(8);
+  expect(upgraded.version).toBe(9);
   expect(upgraded.slots).toEqual(old.slots.map(slot => ({
-    ...slot, checkpoint: { ...slot.checkpoint, slimeLevel: 1, version: 7, initialSlimes: slot.checkpoint.world.slimes, progression: createProgression() },
+    ...slot, checkpoint: { ...slot.checkpoint, slimeLevel: 1, version: 8, initialSlimes: slot.checkpoint.world.slimes, progression: createProgression() },
   })));
   expect(loadRoster({ getItem: name => name === key ? 'broken' : JSON.stringify(old) }, key).status).toBe('invalid');
 });
 
-test('failed upgrade preserves legacy data and a late legacy write cannot replace v8', async () => {
+test('failed upgrade preserves legacy data and a late legacy write cannot replace v9', async () => {
   const original = JSON.stringify(oldSave());
   const values = new Map([['game.save.v6', original]]);
   let blocked = true;
@@ -47,7 +47,7 @@ test('failed upgrade preserves legacy data and a late legacy write cannot replac
 test('autosave accepts accumulated victories once and guards transactional spends and waves', async () => {
   const checkpoint = makeCheckpoint();
   checkpoint.progression = awardXp(createProgression(), 4);
-  let raw = JSON.stringify({ version: 8, slots: [{ id, revision: 1, status: 'active', checkpoint }] });
+  let raw = JSON.stringify({ version: 9, slots: [{ id, revision: 1, status: 'active', checkpoint }] });
   const store = createRosterStore({ getItem: () => raw, setItem: (_key, next) => { raw = next; } }, { request: async (_name, fn) => fn() }, key, { newWaveRandom: () => 0 });
   const cleared = { ...checkpoint, completedEncounterIds: checkpoint.world.slimes.map(s => s.id) };
   const update = { type: 'update', id, expectedRevision: 1, checkpoint: cleared, status: 'active' } as const;
@@ -81,7 +81,7 @@ test('a spend at the dice pool limit does not consume the point', async () => {
   const checkpoint = makeCheckpoint();
   checkpoint.progression.level = 1021;
   checkpoint.progression.investments.skills.combat = 1019;
-  const raw = JSON.stringify({ version: 8, slots: [{ id, revision: 1, status: 'active', checkpoint }] });
+  const raw = JSON.stringify({ version: 9, slots: [{ id, revision: 1, status: 'active', checkpoint }] });
   const store = createRosterStore({ getItem: () => raw, setItem: () => { throw Error('Unexpected write'); } }, { request: async (_name, fn) => fn() }, key);
   expect(store.read().roster?.slots).toHaveLength(1);
   expect((await store.transact({ type:'spendPoint', id, expectedRevision:1, rating:{group:'skills',key:'combat'} })).kind).toBe('invalid');

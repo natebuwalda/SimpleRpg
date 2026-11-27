@@ -1,17 +1,16 @@
+import { isClassId, type ClassId } from './combat-actions';
+
 export type CharacterRatings = {
   attributes: { prowess: number; cunning: number; resistance: number };
   skills: { combat: number; subterfuge: number; lore: number };
 };
-export type Character = CharacterRatings & { name: string };
+export type Character = CharacterRatings & { name: string; classId: ClassId };
 
 export function createStarterCharacter(): Character {
-  return { name: 'Adventurer', attributes: { prowess: 3, cunning: 3, resistance: 2 }, skills: { combat: 2, subterfuge: 2, lore: 1 } };
+  return { name: 'Adventurer', classId: 'warrior', attributes: { prowess: 3, cunning: 3, resistance: 2 }, skills: { combat: 2, subterfuge: 2, lore: 1 } };
 }
 export function deriveStats({ attributes: a }: CharacterRatings) {
   return { maxHp: a.prowess + a.resistance, initiative: a.prowess + a.cunning, resourceCapacity: a.cunning + a.resistance };
-}
-export function getMeleePools({ attributes: a, skills: s }: CharacterRatings) {
-  return { attack: a.prowess + s.combat, defense: a.resistance + s.combat };
 }
 export function isStarterCharacter(value: unknown): value is CharacterRatings {
   if (!value || typeof value !== 'object') return false;
@@ -25,6 +24,7 @@ export function isValidCharacter(value: unknown): value is Character {
   if (!value || typeof value !== 'object') return false;
   const v = value as Partial<Character>;
   if (typeof v.name !== 'string' || !v.name.length || v.name.length > 24 || v.name !== v.name.trim()) return false;
+  if (!isClassId(v.classId)) return false;
   const validGroup = (group: unknown, keys: string[], base: number, total: number) => {
     if (!group || typeof group !== 'object' || Array.isArray(group)) return false;
     const values = keys.map(key => (group as Record<string, unknown>)[key]);
