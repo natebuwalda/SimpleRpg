@@ -1,13 +1,13 @@
 import {deriveStats,getMeleePools} from '../game/character';
-import {MAX_CHARACTERS,type RosterObservation} from '../game/roster';
+import {MAX_CHARACTERS,type LegacyRosterVersion,type RosterObservation} from '../game/roster';
 import {mountConfirmation} from './confirmation';
 import {effectiveCharacter,progressionSummary} from '../game/progression';
-type Callbacks={onCreate():void;onResume(id:string):void;onRestart(id:string,revision:number):void;onDelete(id:string,revision:number):void;onReset(raw:string,legacy?:true):void};
+type Callbacks={onCreate():void;onResume(id:string):void;onRestart(id:string,revision:number):void;onDelete(id:string,revision:number):void;onReset(raw:string,legacy?:LegacyRosterVersion):void};
 export function mountRoster(root:HTMLElement,callbacks:Callbacks){
- let observation:RosterObservation={status:'empty',raw:null,roster:{version:7,slots:[]}},canMutate=false,pending=false;
+ let observation:RosterObservation={status:'empty',raw:null,roster:{version:8,slots:[]}},canMutate=false,pending=false;
  let rendered=false;
  let selected:string|null=null,mode:'list'|'detail'|'delete'|'reset'='list',source:string|null=null,message='';
- let resetLegacy:true|undefined;
+ let resetLegacy:LegacyRosterVersion|undefined;
  let confirmation:ReturnType<typeof mountConfirmation>|null=null;
  const controller=new AbortController();
  const find=()=>observation.roster?.slots.find(s=>s.id===selected);

@@ -1,10 +1,11 @@
 import {createSaveCoordinator,type SaveLocks} from './save-coordinator';
 import {loadRoster,parseCheckpoint,writeRoster} from './save';
-import {MAX_CHARACTERS,type RosterObservation,type RosterSave,type RosterSlot} from './roster';
+import {MAX_CHARACTERS,type LegacyRosterVersion,type RosterObservation,type RosterSave,type RosterSlot} from './roster';
 import type {Character,Checkpoint,WorldDefinition} from './types';
 import {isValidCharacter} from './character';
 import {createCheckpoint,findMoreSlimes,generateWorld,restartCheckpoint} from './world';
-import {awardXp,effectiveCharacter,hasSupportedMeleePools,SLIME_XP,spendPoint,type Rating} from './progression';
+import {awardXp,effectiveCharacter,hasSupportedMeleePools,spendPoint,type Rating} from './progression';
+import {slimeStats} from './slime';
 
 export type RosterCommand=
  |{type:'create';character:Character}
@@ -14,7 +15,7 @@ export type RosterCommand=
  |{type:'findMoreSlimes';id:string;expectedRevision:number}
  |{type:'spendPoint';id:string;expectedRevision:number;rating:Rating}
  |{type:'upgrade'}
- |{type:'reset';expectedRaw:string;legacy?:true};
+ |{type:'reset';expectedRaw:string;legacy?:LegacyRosterVersion};
 export type RosterResult={kind:'saved';roster:RosterSave;slot:RosterSlot|null}
  |{kind:'full'|'stale'|'missing'|'invalid'|'unavailable'|'write-failed';observation:RosterObservation};
 export function createRosterStore(storage:Pick<Storage,'getItem'|'setItem'>|null,locks:SaveLocks|undefined,key:string,dependencies:{newId?:()=>string;newWorld?:()=>WorldDefinition;newWaveRandom?:()=>number}={}){
@@ -31,7 +32,7 @@ export function createRosterStore(storage:Pick<Storage,'getItem'|'setItem'>|null
    }else if(command.type==='reset'){
     if(observation.raw!==command.expectedRaw||observation.legacy!==command.legacy)return fail('stale');
     if(observation.status!=='invalid')return fail('invalid');
-    roster={version:7,slots:[]};
+    roster={version:8,slots:[]};
    }else{
     if(!roster)return fail('invalid');
     if(command.type==='create'){
@@ -80,8 +81,8 @@ export function createRosterStore(storage:Pick<Storage,'getItem'|'setItem'>|null
 
 function validUpdate(previous:Checkpoint,next:Checkpoint):boolean{
  const same=(a:unknown,b:unknown)=>JSON.stringify(a)===JSON.stringify(b);
- if(!same(previous.character,next.character)||!same(previous.world,next.world)||!same(previous.initialSlimes,next.initialSlimes))return false;
+ if(previous.slimeLevel!==next.slimeLevel||!same(previous.character,next.character)||!same(previous.world,next.world)||!same(previous.initialSlimes,next.initialSlimes))return false;
  if(!previous.completedEncounterIds.every(id=>next.completedEncounterIds.includes(id)))return false;
  const wins=next.completedEncounterIds.length-previous.completedEncounterIds.length;
- return same(awardXp(previous.progression,wins*SLIME_XP),next.progression);
+ return same(awardXp(previous.progression,wins*slimeStats(previous.slimeLevel).xp),next.progression);
 }

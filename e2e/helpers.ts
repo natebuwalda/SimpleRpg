@@ -2,9 +2,9 @@ import { expect, type Page } from '@playwright/test';
 export const world = {version:2,layout:'woodland',width:20,height:20,slimes:[
   {id:'slime-1',position:{x:15,y:15}}, {id:'slime-2',position:{x:8,y:8}}, {id:'slime-3',position:{x:10,y:10}},
 ]};
-export const checkpoint = {version:6,progression:{level:1,xp:0,investments:{attributes:{prowess:0,cunning:0,resistance:0},skills:{combat:0,subterfuge:0,lore:0}}},initialSlimes:world.slimes,character:{name:'Adventurer',attributes:{prowess:3,cunning:3,resistance:2},skills:{combat:2,subterfuge:2,lore:1}},world,position:{x:3,y:3},hp:5,completedEncounterIds:[] as string[]};
+export const checkpoint = {version:7,slimeLevel:1,progression:{level:1,xp:0,investments:{attributes:{prowess:0,cunning:0,resistance:0},skills:{combat:0,subterfuge:0,lore:0}}},initialSlimes:world.slimes,character:{name:'Adventurer',attributes:{prowess:3,cunning:3,resistance:2},skills:{combat:2,subterfuge:2,lore:1}},world,position:{x:3,y:3},hp:5,completedEncounterIds:[] as string[]};
 export const slotId='00000000-0000-4000-8000-000000000001';
-export function wrapCheckpoint(value=checkpoint){return {version:7,slots:[{id:slotId,revision:1,status:'active',checkpoint:{...value,initialSlimes:value.world===world?value.initialSlimes:value.world.slimes}}]};}
+export function wrapCheckpoint(value=checkpoint){return {version:8,slots:[{id:slotId,revision:1,status:'active',checkpoint:{...value,initialSlimes:value.world===world?value.initialSlimes:value.world.slimes}}]};}
 export async function createCharacter(page:Page, build=checkpoint.character) {
   await page.getByRole('textbox',{name:'Character name',exact:true}).fill(build.name);
   for(const [key,value] of Object.entries(build.attributes))for(let i=1;i<value;i++)await page.getByRole('button',{name:`Increase ${key}`,exact:true}).click();
@@ -21,7 +21,7 @@ export async function startAdventure(page:Page,build=checkpoint.character) {
 }
 export async function seed(page:Page, value = checkpoint) {
   await page.goto('./');
-  await page.evaluate(value => localStorage.setItem('simple-rpg.save.v7',JSON.stringify(value)), wrapCheckpoint(value));
+  await page.evaluate(value => localStorage.setItem('simple-rpg.save.v8',JSON.stringify(value)), wrapCheckpoint(value));
   await page.reload();
   await page.getByRole('button',{name:'Resume',exact:true}).tap();
   await expect(page.getByLabel('Position')).toBeVisible();

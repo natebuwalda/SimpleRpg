@@ -3,7 +3,8 @@ import { createCheckpoint, getLivingEncounterAt, move, restartCheckpoint } from 
 import { deriveStats, isValidCharacter } from './character';
 import type { RandomSource } from './dice';
 import { createBattle, resolveTurn } from './battle';
-import { awardXp, effectiveCharacter, SLIME_XP } from './progression';
+import { creditXp, effectiveCharacter } from './progression';
+import { slimeStats } from './slime';
 
 export function createSession(): GameState { return { kind: 'title' }; }
 export function transition(state: GameState, action: Action, rng: RandomSource = Math.random): GameState {
@@ -18,7 +19,7 @@ export function transition(state: GameState, action: Action, rng: RandomSource =
     const encounter = getLivingEncounterAt(state.checkpoint, position);
     if (encounter) {
       const hero = effectiveCharacter(state.checkpoint.character, state.checkpoint.progression);
-      return { kind: 'battle', checkpoint: state.checkpoint, returnPosition: state.checkpoint.position, battle: createBattle(state.checkpoint.hp, hero), encounterId: encounter.id };
+      return { kind: 'battle', checkpoint: state.checkpoint, returnPosition: state.checkpoint.position, battle: createBattle(state.checkpoint.hp, hero, state.checkpoint.slimeLevel), encounterId: encounter.id };
     }
     return { kind: 'exploring', checkpoint: { ...state.checkpoint, position } };
   }
@@ -28,9 +29,9 @@ export function transition(state: GameState, action: Action, rng: RandomSource =
     if (battle.result === 'victory') {
       const { checkpoint } = state;
       const completed = checkpoint.completedEncounterIds.includes(state.encounterId);
-      const progression = completed ? checkpoint.progression : awardXp(checkpoint.progression, SLIME_XP);
+      const { progression, creditedXp } = creditXp(checkpoint.progression, completed ? 0 : slimeStats(battle.slimeLevel).xp);
       return {
-        kind: 'victory', lastTurn: battle.lastTurn, levelGained: progression.level > checkpoint.progression.level,
+        kind: 'victory', lastTurn: battle.lastTurn, xpAwarded: creditedXp, levelGained: progression.level > checkpoint.progression.level,
         checkpoint: {
           ...checkpoint, progression, position: state.returnPosition,
           hp: deriveStats(effectiveCharacter(checkpoint.character, progression)).maxHp,

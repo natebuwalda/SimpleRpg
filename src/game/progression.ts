@@ -7,9 +7,9 @@ export type Rating =
   | { group: 'skills'; key: typeof skillKeys[number] };
 export type Progression = { level: number; xp: number; investments: CharacterRatings };
 
-export const SLIME_XP = 1;
 // Combat retains individual die faces for the roll log.
 export const MAX_MELEE_POOL = 1024;
+const MAX_PLAYER_LEVEL = Number.MAX_SAFE_INTEGER - 10;
 export function xpToNextLevel(_level: number): number { return 5; }
 
 export function createProgression(): Progression {
@@ -20,14 +20,24 @@ export function createProgression(): Progression {
 }
 
 export function awardXp(progress: Progression, amount: number, cost = xpToNextLevel): Progression {
-  if (!Number.isSafeInteger(amount) || amount <= 0 || !Number.isSafeInteger(progress.xp + amount)) return progress;
+  return creditXp(progress, amount, cost).progression;
+}
+
+export function creditXp(progress: Progression, amount: number, cost = xpToNextLevel): { progression: Progression; creditedXp: number } {
+  if (!Number.isSafeInteger(amount) || amount <= 0 || !Number.isSafeInteger(progress.xp + amount)) {
+    return { progression: progress, creditedXp: 0 };
+  }
   let { level, xp } = progress;
   xp += amount;
   while (true) {
     const threshold = cost(level);
-    if (!Number.isSafeInteger(threshold) || threshold <= 0) return progress;
-    if (xp < threshold) return { ...progress, level, xp };
-    if (level >= Number.MAX_SAFE_INTEGER - 10) return progress;
+    if (!Number.isSafeInteger(threshold) || threshold <= 0) return { progression: progress, creditedXp: 0 };
+    if (xp < threshold) return { progression: { ...progress, level, xp }, creditedXp: amount };
+    if (level === MAX_PLAYER_LEVEL) {
+      const cappedXp = threshold - 1;
+      const creditedXp = amount - (xp - cappedXp);
+      return { progression: creditedXp > 0 ? { ...progress, level, xp: cappedXp } : progress, creditedXp };
+    }
     xp -= threshold;
     level++;
   }
@@ -81,7 +91,7 @@ export function parseProgression(value: unknown): Progression | null {
   if (!value || typeof value !== 'object') return null;
   const input = value as Partial<Progression>;
   const { level, xp, investments } = input;
-  if (typeof level !== 'number' || !Number.isSafeInteger(level) || level < 1 || level > Number.MAX_SAFE_INTEGER - 10
+  if (typeof level !== 'number' || !Number.isSafeInteger(level) || level < 1 || level > MAX_PLAYER_LEVEL
     || typeof xp !== 'number' || !Number.isSafeInteger(xp) || xp < 0 || xp >= xpToNextLevel(level)) return null;
   const result = createProgression();
   let remaining = level - 1;
