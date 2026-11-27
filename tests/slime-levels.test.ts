@@ -18,8 +18,10 @@ test('level two uses four dice on defense and attack', () => {
   const battle = createBattle(checkpoint.hp, checkpoint.character, 2, () => 0);
   const turn = resolveTurn(battle, 'melee', () => 0);
   expect(turn.enemyHp).toBe(4);
-  expect(turn.lastTurn?.[0].roll.defense.original).toHaveLength(4);
-  expect(turn.lastTurn?.[1].roll.attack.original).toHaveLength(4);
+  expect(turn.lastTurn).toMatchObject([
+    { kind: 'attack', roll: { defense: { original: Array(4).fill(1) } } },
+    { kind: 'attack', roll: { attack: { original: Array(4).fill(1) } } },
+  ]);
   let roll = 0;
   expect(resolveTurn(battle, 'melee', () => roll++ < 5 ? .8 : 0)).toMatchObject({ result: 'victory', lastTurn: [{ attacker: 'hero' }] });
 });
@@ -63,7 +65,9 @@ test('the final slime wave is clearable within the recorded dice limit', () => {
   const won = transition(battle, { type: 'melee' }, () => roll++ < 1024 ? .8 : 0);
   expect(won).toMatchObject({ kind: 'victory', xpAwarded: 1022 });
   if (won.kind !== 'victory') throw Error('Expected a victory');
-  expect(won.lastTurn?.[0].roll.defense.original).toHaveLength(1024);
+  const attack = won.lastTurn?.[0];
+  if (attack?.kind !== 'attack') throw Error('Expected a hero attack');
+  expect(attack.roll.defense.original).toHaveLength(1024);
   expect(findMoreSlimes(won.checkpoint)).toBe(won.checkpoint);
 });
 

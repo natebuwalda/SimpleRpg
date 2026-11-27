@@ -44,12 +44,12 @@ test('four wins across two waves unlock a spend and save the effective build', a
 
 test('failed wave generation and spending preserve the durable checkpoint', async ({ page }) => {
   await seed(page, { ...checkpoint, completedEncounterIds: checkpoint.world.slimes.map(s => s.id), progression: { ...checkpoint.progression, level: 2 } });
-  const read = () => page.evaluate(() => localStorage.getItem('simple-rpg.save.v9'));
+  const read = () => page.evaluate(() => localStorage.getItem('simple-rpg.save.v10'));
   const before = await read();
   await page.evaluate(() => {
     const original = Storage.prototype.setItem;
     Storage.prototype.setItem = function (key, value) {
-      if (key === 'simple-rpg.save.v9') throw Error('quota');
+      if (key === 'simple-rpg.save.v10') throw Error('quota');
       original.call(this, key, value);
     };
   });
@@ -85,7 +85,7 @@ test('two open tabs cannot spend the same point twice', async ({page,context}) =
   await second.bringToFront();
   await second.getByRole('button', {name:'Raise Prowess', exact:true}).click();
   await expect(second.getByRole('status', {name:'Save status'})).toContainText('changed in another tab');
-  const progress=await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v9')!).slots[0].checkpoint.progression);
+  const progress=await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v10')!).slots[0].checkpoint.progression);
   expect(progress.investments).toMatchObject({attributes:{prowess:0},skills:{combat:1}});
 });
 
@@ -96,7 +96,7 @@ test('Retry save commits two pending victories exactly once', async ({page}) => 
     const original = Storage.prototype.setItem;
     window.restoreProgressionTestWrites = () => { Storage.prototype.setItem = original; };
     Storage.prototype.setItem = function (key, value) {
-      if (key.endsWith('.v9')) throw Error('quota');
+      if (key.endsWith('.v10')) throw Error('quota');
       original.call(this, key, value);
     };
   });
@@ -130,7 +130,7 @@ test('an Iteration 5 peaceful adventure upgrades and can spawn a new wave', asyn
   await expect(page.getByRole('button',{name:'Find more slimes'})).toBeEnabled();
   await page.getByText('Character',{exact:true}).click();
   await expect(page.getByLabel('Character progression')).toContainText('Level 1 · 0 / 5 XP');
-  const upgraded=await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v9')!));
+  const upgraded=await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v10')!));
   expect(upgraded.slots[0].checkpoint.initialSlimes).toEqual(initialSlimes);
   expect(upgraded.slots[0].checkpoint.completedEncounterIds).toEqual(oldCheckpoint.completedEncounterIds);
 });

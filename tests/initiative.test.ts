@@ -39,7 +39,7 @@ test('existing high-Cunning saves roll at most 1,024 player dice and keep the ra
   checkpoint.slimeLevel = 1022;
   checkpoint.progression.level = 2001;
   checkpoint.progression.investments.attributes.cunning = 2000;
-  const raw = JSON.stringify({ version: 9, slots: [{
+  const raw = JSON.stringify({ version: 10, slots: [{
     id: '00000000-0000-4000-8000-000000000001', revision: 1, status: 'active', checkpoint,
   }] });
   const saved = parseRoster(raw)?.slots[0].checkpoint;
@@ -78,7 +78,7 @@ test('attacks are logged in order and a defeated combatant never acts', () => {
   expect(held).not.toHaveBeenCalled();
   const round = resolveTurn(battle, 'melee', miss);
   expect(round.turnOrder).toBe(battle.turnOrder);
-  expect(round.lastTurn?.map(entry => entry.attacker)).toEqual(['slime', 'hero']);
+  expect(round.lastTurn?.map(entry => entry.kind === 'attack' ? entry.attacker : entry.kind)).toEqual(['slime', 'hero']);
   expect(resolveTurn(slimeFirst(1), 'melee', scriptedFaces(8,1,1, 1,1,1,1))).toMatchObject({
     result: 'defeat', heroHp: 0, lastTurn: [{ attacker: 'slime', roll: { damage: 1 } }],
   });

@@ -2,18 +2,18 @@ import type {Checkpoint} from './types';
 import {decodeRecord,parsePlacedProgress,parsePlacements} from './save-validation';
 import {deriveStats,isValidCharacter} from './character';
 import {getSaveKeys} from './save-keys';
-import {MAX_CHARACTERS,type RosterSave,type RosterObservation} from './roster';
+import {MAX_CHARACTERS,type LegacyRosterVersion,type RosterSave,type RosterObservation} from './roster';
 import {createProgression,effectiveCharacter,hasSupportedCombatPools,parseProgression} from './progression';
 import { FIRST_SLIME_LEVEL, isSlimeLevel } from './slime';
 export const ROSTER_KEY=getSaveKeys(import.meta.env.BASE_URL).current;
 export function parseCheckpoint(raw: string | null): Checkpoint | null {
-  return decodeCheckpoint(raw, 8);
+  return decodeCheckpoint(raw, 9);
 }
 function decodeCheckpoint(raw: string | null, version: number): Checkpoint | null {
   const v = decodeRecord(raw);
   if (!v || v.version !== version || !v.character || typeof v.character !== 'object' || Array.isArray(v.character)) return null;
   const stored = version < 8 ? { ...v.character, classId: 'warrior' } : v.character;
-  if (!isValidCharacter(stored)) return null;
+  if (!isValidCharacter(stored) || (version < 9 && stored.classId === 'rogue')) return null;
   const {name,classId,attributes:a,skills:s}=stored;
   const character={name,classId,attributes:{prowess:a.prowess,cunning:a.cunning,resistance:a.resistance},skills:{combat:s.combat,subterfuge:s.subterfuge,lore:s.lore}};
   const progression = version === 5 ? createProgression() : parseProgression(v.progression);
@@ -24,19 +24,19 @@ function decodeCheckpoint(raw: string | null, version: number): Checkpoint | nul
   const progress = parsePlacedProgress(v, deriveStats(hero).maxHp);
   if (!progress) return null;
   const initialSlimes = parsePlacements(progress.world, version === 5 ? progress.world.slimes : v.initialSlimes);
-  return initialSlimes ? { ...progress, version: 8, character, progression, initialSlimes, slimeLevel } : null;
+  return initialSlimes ? { ...progress, version: 9, character, progression, initialSlimes, slimeLevel } : null;
 }
 
 export function parseRoster(raw:string|null):RosterSave|null{
-  return decodeRoster(raw, 9);
+  return decodeRoster(raw, 10);
 }
 
 export function upgradeRoster(raw: string | null): RosterSave | null {
   const version = decodeRecord(raw)?.version;
-  return version === 6 || version === 7 || version === 8 ? decodeRoster(raw, version) : null;
+  return version === 6 || version === 7 || version === 8 || version === 9 ? decodeRoster(raw, version) : null;
 }
 
-function decodeRoster(raw: string | null, version: 6 | 7 | 8 | 9): RosterSave | null {
+function decodeRoster(raw: string | null, version: LegacyRosterVersion | RosterSave['version']): RosterSave | null {
   const value=decodeRecord(raw);
   if(!value||value.version!==version||!Array.isArray(value.slots)||value.slots.length>MAX_CHARACTERS)return null;
   const ids=new Set<string>(),slots:RosterSave['slots']=[];
@@ -46,7 +46,7 @@ function decodeRoster(raw: string | null, version: 6 | 7 | 8 | 9): RosterSave | 
     const checkpoint=decodeCheckpoint(JSON.stringify(item.checkpoint), version - 1);if(!checkpoint)return null;
     ids.add(item.id);slots.push({id:item.id,revision:item.revision,status:item.status,checkpoint});
   }
-  return {version:9,slots};
+  return {version:10,slots};
 }
 export function loadRoster(storage:Pick<Storage,'getItem'>,key=ROSTER_KEY):RosterObservation{
   try {
@@ -55,16 +55,16 @@ export function loadRoster(storage:Pick<Storage,'getItem'>,key=ROSTER_KEY):Roste
       const roster = parseRoster(raw);
       return { status: roster ? 'ready' : 'invalid', raw, roster };
     }
-    if (key.endsWith('.v9')) {
-      for (const legacy of [8, 7, 6] as const) {
-        const previous = storage.getItem(key.replace(/\.v9$/, `.v${legacy}`));
+    if (key.endsWith('.v10')) {
+      for (const legacy of [9, 8, 7, 6] as const) {
+        const previous = storage.getItem(key.replace(/\.v10$/, `.v${legacy}`));
         if (previous !== null) {
           const roster = decodeRoster(previous, legacy);
           return { status: roster ? 'ready' : 'invalid', raw: previous, roster, legacy };
         }
       }
     }
-    return { status: 'empty', raw, roster: { version: 9, slots: [] } };
+    return { status: 'empty', raw, roster: { version: 10, slots: [] } };
   }catch{return {status:'unavailable',raw:null,roster:null};}
 }
 export function writeRoster(storage:Pick<Storage,'setItem'>,save:RosterSave,key=ROSTER_KEY):boolean{

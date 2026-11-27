@@ -1,4 +1,4 @@
-import { MAX_COMBAT_POOL } from './progression';
+import { MAX_COMBAT_POOL } from './dice';
 
 export const FIRST_SLIME_LEVEL = 1;
 export const MAX_SLIME_LEVEL = MAX_COMBAT_POOL - 2;

@@ -1,5 +1,6 @@
 import type { Character, CharacterRatings } from './character';
 import { getCombatPools, offenseFor } from './combat-actions';
+import { MAX_COMBAT_POOL } from './dice';
 
 const attributeKeys = ['prowess', 'cunning', 'resistance'] as const;
 const skillKeys = ['combat', 'subterfuge', 'lore'] as const;
@@ -8,8 +9,6 @@ export type Rating =
   | { group: 'skills'; key: typeof skillKeys[number] };
 export type Progression = { level: number; xp: number; investments: CharacterRatings };
 
-// Combat retains individual die faces for the roll log.
-export const MAX_COMBAT_POOL = 1024;
 const MAX_PLAYER_LEVEL = Number.MAX_SAFE_INTEGER - 10;
 export function xpToNextLevel(_level: number): number { return 5; }
 

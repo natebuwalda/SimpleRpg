@@ -21,6 +21,9 @@ h1, h2 { font-family: 'Space Grotesk', sans-serif; margin: 8px 0; font-size: cla
 p { line-height: 1.5; }
 .description { color: #b2c1b4; margin: 10px 0 20px; font-size: 14px; }
 .turn-order { border-left: 2px solid #59725b; margin: 8px 0; padding-left: 10px; }
+.turn-order-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.turn-order-heading span, .exploit-reason { font-size: 13px; color: #b2c1b4; overflow-wrap: anywhere; min-width: 0; }
+.exploit-reason { margin: 6px 0 0; }
 .turn-order h2 { font: inherit; font-size: 14px; font-weight: 700; letter-spacing: normal; margin: 0; }
 .turn-order ol { color: #b2c1b4; font-size: 14px; line-height: 1.4; margin: 0; padding-left: 22px; }
 .turn-order + .combat-result { margin: 8px 0 8px; }
