@@ -1,6 +1,6 @@
 # Iteration 6: Player levels and repeat slime encounters
 
-Status: draft for owner review.
+Status: owner approved the design on 2026-11-27.
 
 ## Goal and agreed rules
 
