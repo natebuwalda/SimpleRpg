@@ -6,17 +6,17 @@ import { makeCheckpoint } from './fixtures';
 
 const scholar:Character={name:'Moss',attributes:{prowess:1,cunning:5,resistance:2},skills:{combat:0,subterfuge:5,lore:0}};
 const warrior:Character={name:'Fern',attributes:{prowess:5,cunning:1,resistance:2},skills:{combat:5,subterfuge:0,lore:0}};
-test.each([[scholar,3],[warrior,7]] as const)('v6 retains allocated character and its Health range %j', (character,maxHp)=>{
+test.each([[scholar,3],[warrior,7]] as const)('v7 retains allocated character and its Health range %j', (character,maxHp)=>{
   for(let hp=1;hp<=maxHp;hp++){
-    const cp={...makeCheckpoint(),version:6 as const,character,hp,completedEncounterIds:['slime-2' as const]};
-    let value='';expect(writeRoster({setItem(key,raw){expect(key).toBe('simple-rpg.save.v7');value=raw;}},{version:7,slots:[{id:'00000000-0000-4000-8000-000000000001',revision:1,status:'active',checkpoint:cp}]})).toBe(true);
+    const cp={...makeCheckpoint(),version:7 as const,character,hp,completedEncounterIds:['slime-2' as const]};
+    let value='';expect(writeRoster({setItem(key,raw){expect(key).toBe('simple-rpg.save.v8');value=raw;}},{version:8,slots:[{id:'00000000-0000-4000-8000-000000000001',revision:1,status:'active',checkpoint:cp}]})).toBe(true);
     expect(parseSave(JSON.stringify(JSON.parse(value).slots[0].checkpoint))).toEqual(cp);
   }
-  for(const hp of [0,maxHp+1,1.5])expect(parseSave(JSON.stringify({...makeCheckpoint(),version:6,character,hp}))).toBeNull();
+  for(const hp of [0,maxHp+1,1.5])expect(parseSave(JSON.stringify({...makeCheckpoint(),version:7,character,hp}))).toBeNull();
 });
 test('checkpoint construction copies the chosen build and derives its full Health',()=>{
   const input=structuredClone(scholar), cp=createCheckpoint(makeCheckpoint().world,input);
-  expect(cp).toMatchObject({version:6,hp:3,character:scholar});
+  expect(cp).toMatchObject({version:7,hp:3,character:scholar});
   input.attributes.prowess=5;input.skills.combat=5;input.name='Changed';
   expect(cp.character).toEqual(scholar);
 });

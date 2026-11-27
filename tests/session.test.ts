@@ -54,6 +54,6 @@ it('restart preserves a rectangular world definition', () => {
 it('roster return and persisted defeat preserve checkpoints without a battle exit',()=>{
  const title=createSession(),cp=makeCheckpoint();
  expect(transition(title,{type:'resumeDefeat',checkpoint:cp})).toEqual({kind:'defeat',checkpoint:cp});
- for(const kind of ['exploring','victory','defeat'] as const)expect(transition({kind,checkpoint:cp},{type:'returnToRoster'})).toEqual(title);
+ for(const kind of ['exploring','victory','defeat'] as const)expect(transition({kind,checkpoint:cp,xpAwarded:1},{type:'returnToRoster'})).toEqual(title);
  const battle=encounter();expect(transition(battle,{type:'returnToRoster'})).toEqual(battle);
 });

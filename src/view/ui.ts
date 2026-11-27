@@ -1,13 +1,13 @@
 import type { UiAction, Character, Checkpoint, Direction, GameState, TurnRolls } from '../game/types';
 import { deriveStats, getMeleePools } from '../game/character';
 import type { PoolRoll } from '../game/dice';
-import { SLIME } from '../game/battle';
-import { getRemainingSlimeCount } from '../game/world';
+import { slimeStats } from '../game/slime';
+import { canFindMoreSlimes, getRemainingSlimeCount } from '../game/world';
 import { mountCharacterCreation } from './character-creation';
 import {mountRoster} from './roster';
 import {mountConfirmation} from './confirmation';
 import type {RosterObservation} from '../game/roster';
-import {availablePoints,effectiveCharacter,hasSupportedMeleePools,progressionSummary,SLIME_XP,spendPoint,type Rating} from '../game/progression';
+import {availablePoints,effectiveCharacter,hasSupportedMeleePools,progressionSummary,spendPoint,type Rating} from '../game/progression';
 
 export interface Ui {
   render(state: GameState, saveStatus: string, unsavedProgress?:boolean, canSave?:boolean): void;
@@ -55,8 +55,7 @@ function rollDetails(turn: TurnRolls | null | undefined): string {
     ${turn.slime ? diceText('Slime attack dice', turn.slime.attack) + diceText('Your defense dice', turn.slime.defense) : '<p>No counterattack.</p>'}
     <p>8–10 succeeds. Each original 10 adds one bonus die; bonus dice never add another. Ties favor the defender.</p></div></details>`;
 }
-function turnSummary(turn: TurnRolls | null | undefined, attackPool?: number): string {
-  if (!turn) return `Attack ${attackPool}d10 vs ${SLIME.defense}d10 defense.`;
+function turnSummary(turn: TurnRolls): string {
   return `You: ${turn.hero.attack.successes} vs ${turn.hero.defense.successes} → ${turn.hero.damage} damage.`
     + (turn.slime ? `<br>Slime: ${turn.slime.attack.successes} vs ${turn.slime.defense.successes} → ${turn.slime.damage} damage.` : '');
 }
@@ -64,7 +63,7 @@ function turnSummary(turn: TurnRolls | null | undefined, attackPool?: number): s
 export function mountUi(root: HTMLElement): Ui {
   root.innerHTML = `
     <main class="game-shell">
-      <header><span class="wordmark">SIMPLE RPG</span><span class="edition">ITERATION 06</span></header>
+      <header><span class="wordmark">SIMPLE RPG</span><span class="edition">ITERATION 07</span></header>
       <p id="combat-announcement" class="sr-only" role="status" aria-label="Combat result" aria-atomic="true"></p>
       <section class="play-area">
         <div class="world-frame"><div id="canvas" role="img" aria-label="A tiny woodland adventure"></div></div>
@@ -81,7 +80,7 @@ export function mountUi(root: HTMLElement): Ui {
       <footer><span>A WORLD IN YOUR POCKET</span><span>TOUCH · KEYBOARD</span></footer>
     </main>`;
   let handler: (action: UiAction) => void = () => {};
-  let observation:RosterObservation={status:'empty',raw:null,roster:{version:7,slots:[]}},canMutate=false;
+  let observation:RosterObservation={status:'empty',raw:null,roster:{version:8,slots:[]}},canMutate=false;
   let roster:ReturnType<typeof mountRoster>|null=null;
   let discard:ReturnType<typeof mountConfirmation>|null=null;
   let creation: ReturnType<typeof mountCharacterCreation> | null = null;
@@ -192,16 +191,19 @@ export function mountUi(root: HTMLElement): Ui {
       }
       roster?.destroy();roster=null;root.querySelector('.game-shell')!.classList.remove('roster-visible');
       const maxHp=deriveStats(effectiveCharacter(state.checkpoint.character,state.checkpoint.progression)).maxHp;
-      const reward=state.kind==='victory'?`+${SLIME_XP} XP.${state.levelGained?` Level ${state.checkpoint.progression.level} reached.`:''}`:'';
+      const reward=state.kind==='victory'?`+${state.xpAwarded} XP.${state.levelGained?` Level ${state.checkpoint.progression.level} reached.`:''}`:'';
+      const slimeLevel = state.checkpoint.slimeLevel;
+      const slimeLevelLabel = `<span aria-label="Slime level">Slime level ${slimeLevel}</span>`;
+      const canFind = state.kind === 'exploring' && canFindMoreSlimes(state.checkpoint);
       if (state.kind === 'exploring') root.querySelector('#screen')!.innerHTML = `
-        <div class="eyebrow">THE FIRST CLEARING</div><h1>Find your way.</h1>
+        <div class="eyebrow">${slimeLevelLabel}</div><h1>Find your way.</h1>
         <div class="stats"><span>HERO <strong aria-label="Hero health">${state.checkpoint.hp} / ${maxHp} HP</strong></span><span>POSITION <strong aria-label="Position">${state.checkpoint.position.x}, ${state.checkpoint.position.y}</strong></span><span>WORLD <strong aria-label="World size">${state.checkpoint.world.width} × ${state.checkpoint.world.height} tiles</strong></span></div>
-        <p class="description"><span aria-label="Slimes remaining">${remainingText}</span><br>${remaining === 0 ? 'The clearing is peaceful.' : 'Explore the clearing.'}</p>
+        <p class="description"><span aria-label="Slimes remaining">${remainingText}</span><br>${remaining === 0 ? canFind ? 'The clearing is peaceful.' : 'There are no higher waves.' : 'Explore the clearing.'}</p>
         <nav class="dpad" aria-label="Movement"><button data-direction="up" aria-label="Move up">↑</button><button data-direction="left" aria-label="Move left">←</button><button data-direction="down" aria-label="Move down">↓</button><button data-direction="right" aria-label="Move right">→</button></nav>`;
       if (state.kind === 'battle') root.querySelector('#screen')!.innerHTML = `
-        <div class="eyebrow">A WILD ENCOUNTER</div><h1>Meadow slime</h1>
-        <div class="stats"><span>HERO <strong aria-label="Hero health">${state.battle.heroHp} / ${maxHp} HP</strong></span><span>SLIME <strong aria-label="Slime health">${state.battle.enemyHp} / ${SLIME.maxHp} HP</strong></span></div>
-        <p class="description combat-result">${turnSummary(state.battle.lastTurn,state.battle.heroPools.attack)}</p>
+        <div class="eyebrow">${slimeLevelLabel}</div><h1>Meadow slime</h1>
+        <div class="stats"><span>HERO <strong aria-label="Hero health">${state.battle.heroHp} / ${maxHp} HP</strong></span><span>SLIME <strong aria-label="Slime health">${state.battle.enemyHp} / ${slimeStats(state.battle.slimeLevel).maxHp} HP</strong></span></div>
+        <p class="description combat-result">${state.battle.lastTurn ? turnSummary(state.battle.lastTurn) : `Attack ${state.battle.heroPools.attack}d10 vs ${slimeStats(state.battle.slimeLevel).defense}d10 defense.`}</p>
         <div class="actions"><button class="primary" data-action="attack">Attack</button><button data-action="run">Run</button></div>`;
       if (state.kind === 'victory' || state.kind === 'defeat') {
         const won = state.kind === 'victory';
@@ -211,7 +213,7 @@ export function mountUi(root: HTMLElement): Ui {
         const turn = state.kind === 'battle' ? state.battle.lastTurn : state.kind === 'victory' || state.kind === 'defeat' ? state.lastTurn : null;
         const screen = root.querySelector('#screen')!;
         if ((state.kind === 'victory' || state.kind === 'defeat') && turn) screen.insertAdjacentHTML('beforeend', `<p class="description combat-result">${turnSummary(turn)}</p>`);
-        if(state.kind==='exploring'&&remaining===0)screen.insertAdjacentHTML('beforeend',`<button class="roster-wide" data-action="findMoreSlimes" ${canChange?'':'disabled'}>Find more slimes</button>`);
+        if(canFind)screen.insertAdjacentHTML('beforeend',`<button class="roster-wide" data-action="findMoreSlimes" ${canChange?'':'disabled'}>Find more slimes</button>`);
         screen.insertAdjacentHTML('beforeend', rollDetails(turn) + characterDetails(state.checkpoint,state.kind==='exploring'&&canChange,keepSheetOpen));
         if(state.kind!=='battle')screen.insertAdjacentHTML('beforeend','<button class="roster-wide return-roster" data-action="returnToRoster">Return to characters</button>');
         if(unsavedProgress&&saveStatus.includes('cannot be saved')&&state.kind!=='battle')screen.insertAdjacentHTML('beforeend','<button class="roster-wide" data-action="retrySave">Retry save</button>');

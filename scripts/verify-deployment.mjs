@@ -53,12 +53,36 @@ try{
   await expect(page.getByLabel('Roster capacity')).toHaveText('2 / 10 slots');
   await resume('Smoke one');await expect(page.getByLabel('Position')).toHaveText('4, 3');await expect(page.getByLabel('Hero health')).toHaveText('5 / 5 HP');
   await page.reload();await resume('Smoke two');await expect(page.getByLabel('Position')).toHaveText('3, 4');await expect(page.getByLabel('Hero health')).toHaveText('7 / 7 HP');
-  if(await page.locator('.edition').textContent()==='ITERATION 06'){
+  const edition=await page.locator('.edition').textContent();
+  if(edition==='ITERATION 06'||edition==='ITERATION 07'){
    await page.getByRole('button',{name:'Return to characters',exact:true}).click();
    await begin('Smoke progression',true,0);
    await page.getByRole('button',{name:'Move right',exact:true}).click();
    await attack(page,[...Array(10).fill(8),1,1,1]);
    await expect(page.locator('#screen')).toContainText('+1 XP.');
+   if(edition==='ITERATION 07'){
+    const back=page.getByRole('button',{name:'Back to clearing',exact:true});
+    for(let remaining=2;remaining>0;remaining--){
+     await back.click();
+     await page.getByRole('button',{name:'Move right',exact:true}).click();
+     await expect(page.locator('#screen')).toHaveAttribute('aria-busy','false');
+     await page.getByRole('button',{name:'Move right',exact:true}).click();
+     await attack(page,[...Array(10).fill(8),1,1,1]);
+    }
+    await back.click();
+    await page.evaluate(()=>{Math.random=()=>0;});
+    await page.getByRole('button',{name:'Find more slimes',exact:true}).click();
+    await expect(page.getByLabel('Slime level',{exact:true})).toHaveText('Slime level 2');
+    await page.getByRole('button',{name:'Move right',exact:true}).click();
+    await expect(page.getByLabel('Slime health')).toHaveText('4 / 4 HP');
+    await attack(page,[...Array(10).fill(8),1,1,1,1]);
+    await expect(page.locator('#screen')).toContainText('+2 XP.');
+    await page.reload();await resume('Smoke progression');
+    await expect(page.getByLabel('Slime level',{exact:true})).toHaveText('Slime level 2');
+    await page.getByText('Character',{exact:true}).click();
+    await expect(page.getByLabel('Character progression')).toContainText('Level 2 · 0 / 5 XP · 1 point available');
+    return {roster:true,independentPlaythroughs:2,persistedVictoryXp:true,persistedSlimeLevel:2};
+   }
    await page.reload();await resume('Smoke progression');
    await page.getByText('Character',{exact:true}).click();
    await expect(page.getByLabel('Character progression')).toContainText('1 / 5 XP');
@@ -67,12 +91,12 @@ try{
   return {roster:true,independentPlaythroughs:2};
  }
  const mainEdition=await open(root,expectedMainScript);
- assert.ok(['ITERATION 04','ITERATION 05','ITERATION 06'].includes(mainEdition),`Unexpected main edition: ${mainEdition}`);
+ assert.ok(['ITERATION 04','ITERATION 05','ITERATION 06','ITERATION 07'].includes(mainEdition),`Unexpected main edition: ${mainEdition}`);
  const mainChecks=await exercise();
  const mainSaves=await snapshot('simple-rpg.save.');
  const acceptance=new URL('acceptance/',root);
  const acceptanceEdition=await open(acceptance);
- assert.equal(acceptanceEdition,'ITERATION 06','Acceptance must serve Iteration 6');
+ assert.equal(acceptanceEdition,'ITERATION 07','Acceptance must serve Iteration 7');
  const acceptanceChecks=await exercise();
  assert.deepEqual(await snapshot('simple-rpg.save.'),mainSaves,'Acceptance changed main saves');
  const acceptanceSaves=await snapshot('simple-rpg.acceptance.save.');

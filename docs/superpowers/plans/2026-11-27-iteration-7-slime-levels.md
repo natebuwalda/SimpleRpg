@@ -39,27 +39,27 @@
 
 **Files:** `src/game/slime.ts`, `types.ts`, `battle.ts`, `world.ts`, `session.ts`, `progression.ts`, affected view and save call sites, and focused tests in `tests/slime-levels.test.ts`.
 
-- [ ] Write rule tests for levels 1, 2, 3, 1,022 and invalid levels. Verify level 2 initializes at 4 Health and uses 4 dice on both opposing rolls, with deterministic faces and death on a lethal strike.
-- [ ] Write checkpoint/session tests for clearing level 1 and finding level 2, finding again while a slime lives, blocked Find at the highest level, Restart after a boosted wave, and unchanged player progress on defeat. Verify a level 11 slime victory with the player at 4/5 XP grants three player levels, three points and 0 carried XP.
-- [ ] Run the focused tests and verify the failures show absent scaling or wave behavior.
-- [ ] Implement the pure rules and integrate in world/session/battle. Keep the baseline call sites working during this task, then remove fixed reward and combat constants once Task 2 and Task 3 switch their consumers.
+- [x] Write rule tests for levels 1, 2, 3, 1,022 and invalid levels. Verify level 2 initializes at 4 Health and uses 4 dice on both opposing rolls, with deterministic faces and death on a lethal strike.
+- [x] Write checkpoint/session tests for clearing level 1 and finding level 2, finding again while a slime lives, blocked Find at the highest level, Restart after a boosted wave, and unchanged player progress on defeat. Verify a level 11 slime victory with the player at 4/5 XP grants three player levels, three points and 0 carried XP.
+- [x] Run the focused tests and verify the failures show absent scaling or wave behavior.
+- [x] Implement the pure rules and integrate in world/session/battle. Keep the baseline call sites working during this task, then remove fixed reward and combat constants once Task 2 and Task 3 switch their consumers.
 
 ## Task 2: Durable wave updates and save upgrades
 
 **Files:** `src/game/save.ts`, `save-keys.ts`, `roster.ts`, `roster-store.ts`, reset-source call sites, `tests/slime-level-save.test.ts`, current save tests and fixtures.
 
-- [ ] Write failing upgrade tests for v7 with a later wave and points, for v6 compatibility, and for invalid v8 or v7 blocking fallback. Check current and baseline placements, XP, defeat and completion. Check namespace isolation and distinct reset source identities.
-- [ ] Write failing transaction tests for failed and retried Find, competing Find against the same slot revision, cap rejection, and a two-win autosave at slime level 3 requiring exactly 6 XP. Check invalid level, a valid-but-changed level in an autosave, and duplicate reward retries. Verify a stale operation cannot change another slot.
-- [ ] Run the focused save tests and confirm failures.
-- [ ] Implement v8 decoding, upgrade and writer changes and the shared Find/Restart and XP rules. Update old fixtures to current v8/v7 except where deliberately testing legacy behavior. Run typecheck and the full unit suite. Commit the working rules and persistence slice together so the public checkpoint shape and writer agree.
+- [x] Write failing upgrade tests for v7 with a later wave and points, for v6 compatibility, and for invalid v8 or v7 blocking fallback. Check current and baseline placements, XP, defeat and completion. Check namespace isolation and distinct reset source identities.
+- [x] Write failing transaction tests for failed and retried Find, competing Find against the same slot revision, cap rejection, and a two-win autosave at slime level 3 requiring exactly 6 XP. Check invalid level, a valid-but-changed level in an autosave, and duplicate reward retries. Verify a stale operation cannot change another slot.
+- [x] Run the focused save tests and confirm failures.
+- [x] Implement v8 decoding, upgrade and writer changes and the shared Find/Restart and XP rules. Update old fixtures to current v8/v7 except where deliberately testing legacy behavior. Run typecheck and the full unit suite. Commit the working rules and persistence slice together so the public checkpoint shape and writer agree.
 
 ## Task 3: UI, browser regressions and draft PR
 
 **Files:** `src/main.ts`, `src/view/ui.ts`, `src/view/roster.ts`, `src/style.css`, `e2e/slime-levels.spec.ts`, affected e2e helpers, `scripts/verify-deployment.mjs`, `README.md`, and status doc.
 
-- [ ] Add failing browser tests for level 2 stats/readout, a 2 XP victory, reload retaining the wave, and a higher-wave defeat resetting to level 1 with identical player progression. Exercise failed Find plus retry, a real two-tab race, and unavailable Find after clearing the cap. Adjust the existing five-win progression scenario because the fourth victory now grants 2 XP on wave 2.
-- [ ] Run targeted browser tests and confirm the missing UI fails. Implement the readouts and announcements, wire exact save-source confirmation identity, and check reachability and focus at 320 × 568, 390 × 844 and 844 × 390. Run targeted suites.
-- [ ] Update the release verifier to require Iteration 7 on acceptance and support Iteration 6 on production. Add a deterministic higher-wave victory and reload check. Update release docs and phone acceptance steps.
-- [ ] Run typecheck, unit and full browser suites, builds, and whitespace checks. Smoke-test the combined local 06/07 and 07/07 packages with distinct save namespaces and stop owned test servers.
-- [ ] Review the complete branch independently against the accepted design and Review Focus. Fix material findings with regression evidence, rerun relevant checks, and commit.
+- [x] Add failing browser tests for level 2 stats/readout, a 2 XP victory, reload retaining the wave, and a higher-wave defeat resetting to level 1 with identical player progression. Exercise failed Find plus retry, a real two-tab race, and unavailable Find after clearing the cap. Adjust the existing five-win progression scenario because the fourth victory now grants 2 XP on wave 2.
+- [x] Run targeted browser tests and confirm the missing UI fails. Implement the readouts and announcements, wire exact save-source confirmation identity, and check reachability and focus at 320 × 568, 390 × 844 and 844 × 390. Run targeted suites.
+- [x] Update the release verifier to require Iteration 7 on acceptance and support Iteration 6 on production. Add a deterministic higher-wave victory and reload check. Update release docs and phone acceptance steps.
+- [x] Run typecheck, unit and full browser suites, builds, and whitespace checks. Smoke-test the combined local 06/07 and 07/07 packages with distinct save namespaces and stop owned test servers.
+- [x] Review the complete branch independently against the accepted design and Review Focus. Fix material findings with regression evidence, rerun relevant checks, and commit.
 - [ ] Push the branch, open and attach a draft PR against main, and verify CI for the final commit.

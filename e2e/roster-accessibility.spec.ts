@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 import {checkpoint,seed} from './helpers';
 test('focus refresh does not replace a focused character detail action',async({page})=>{
  await seed(page);await page.reload();await page.getByRole('button',{name:'View',exact:true}).click();const resume=page.getByRole('button',{name:'Resume adventure',exact:true});await resume.focus();const element=await resume.elementHandle();
- await page.evaluate(()=>{window.dispatchEvent(new Event('focus'));window.dispatchEvent(new StorageEvent('storage',{key:'simple-rpg.save.v7'}));});
+ await page.evaluate(()=>{window.dispatchEvent(new Event('focus'));window.dispatchEvent(new StorageEvent('storage',{key:'simple-rpg.save.v8'}));});
  expect(await element!.evaluate(node=>node.isConnected)).toBe(true);await expect(resume).toBeFocused();
 });
 test('physical double click and held pointer cannot click through deletion confirmation',async({page})=>{
@@ -24,7 +24,7 @@ test('keyboard held before confirmation cannot delete and focus remains usable',
  await page.getByRole('button',{name:'Resume',exact:true}).focus();await page.keyboard.press('Enter');await expect(page.getByRole('button',{name:'Move up',exact:true})).toBeFocused();
 });
 for(const viewport of [{width:320,height:568},{width:390,height:844},{width:844,height:390}])test(`full roster and details scroll without overflow at ${viewport.width}x${viewport.height}`,async({page})=>{
- await page.setViewportSize(viewport);await seed(page);await page.evaluate(cp=>{localStorage.setItem('simple-rpg.save.v7',JSON.stringify({version:7,slots:Array.from({length:10},(_,i)=>({id:`00000000-0000-4000-8000-${String(i).padStart(12,'0')}`,revision:1,status:'active',checkpoint:{...cp,character:{...cp.character,name:'W'.repeat(24)}}}))}));},checkpoint);await page.reload();
+ await page.setViewportSize(viewport);await seed(page);await page.evaluate(cp=>{localStorage.setItem('simple-rpg.save.v8',JSON.stringify({version:8,slots:Array.from({length:10},(_,i)=>({id:`00000000-0000-4000-8000-${String(i).padStart(12,'0')}`,revision:1,status:'active',checkpoint:{...cp,character:{...cp.character,name:'W'.repeat(24)}}}))}));},checkpoint);await page.reload();
  await page.addStyleTag({content:'.description,.roster-slot p {font-size:20px;font-family:monospace}'});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  const view=page.getByRole('button',{name:'View',exact:true}).last();await view.scrollIntoViewIfNeeded();await expect(view).toBeInViewport();const box=(await view.boundingBox())!;expect(box.width).toBeGreaterThanOrEqual(48);expect(box.height).toBeGreaterThanOrEqual(48);

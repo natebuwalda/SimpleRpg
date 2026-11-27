@@ -5,7 +5,7 @@ A small browser RPG built with TypeScript, Phaser and Vite. Each roster characte
 **[Play SimpleRpg](https://natebuwalda.github.io/SimpleRpg/)** — main follows accepted releases. Iteration 5 shipped in [PR #6](https://github.com/natebuwalda/SimpleRpg/pull/6).
 **[Acceptance game](https://natebuwalda.github.io/SimpleRpg/acceptance/)** — separately pinned candidate, with isolated browser saves.
 
-Iteration 6 adds repeat waves and character progression.
+Iteration 7 gives each slime wave a level.
 
 ## Development
 
@@ -31,7 +31,7 @@ Attack rolls Prowess + Combat against slime Defense 3d10. Each 8–10 is a succe
 
 ## Saves and limits
 
-Iteration 6 upgrades Iteration 5 rosters to v7. Existing characters begin at level 1 with 0 XP and retain their maps, builds, Health and encounter progress. Saves older than Iteration 5 are ignored. Refresh any open Iteration 5 tabs when switching to Iteration 6 so future play is saved to the upgraded roster.
+Iteration 7 upgrades Iteration 5 and 6 rosters to v8. Existing slimes start at level 1, with the current wave and original placements preserved. Iteration 6 characters keep earned advancement. Iteration 5 characters begin at player level 1 and 0 XP. Refresh older tabs when switching to Iteration 7 so future play is saved to the upgraded roster.
 
 Saves remain browser/device-local and do not sync. Clearing browser data loses them. Main and acceptance use distinct keys. Every write uses a browser Web Lock and re-reads current data; different characters' updates merge, while an outdated tab stops saving a changed/deleted character. A deleted character is never recreated by stale autosave.
 
@@ -39,11 +39,11 @@ Creation, deletion, Restart and confirmed roster reset require a successful writ
 
 ## Advancement
 
-Each slime victory earns 1 XP. Every 5 XP grants a level and one advancement point. Open **Character** during exploration to spend a point on any Attribute or Skill, or bank it for later. Ratings can rise above their creation cap. Raising maximum Health leaves current Health unchanged until the next heal.
+A slime victory earns XP equal to the slime's level. Every 5 XP grants a player level and one advancement point. Open **Character** during exploration to spend a point on any Attribute or Skill, or bank it for later. Ratings can rise above their creation cap. Raising maximum Health leaves current Health unchanged until the next heal.
 
-After clearing all three slimes, select **Find more slimes** to start another wave on the same map. Reload preserves current placements. Restart after defeat restores the original placements and full Health while preserving levels, XP and points. If an autosave fails, use **Retry save** before spending a point, finding more slimes or restarting.
+After clearing all three slimes, select **Find more slimes** to start another wave one slime level higher on the same map. Slimes start with 3 Health and 3d10 for Attack and Defense, then gain one in each per level. Reload preserves the wave level and placements. Restart after defeat restores the original level 1 wave and full Health while preserving player levels, XP and points. If an autosave fails, use **Retry save** before spending a point, finding more slimes or restarting.
 
-For phone acceptance, clear a wave, choose Find more slimes and win twice more. Check that level 2 grants a point, then spend it, reload, and verify the new rating. Confirm that defeat and Restart retain advancement, while another roster slot keeps its own progress.
+For phone acceptance, clear wave 1, choose Find more slimes and check the next battle shows level 2 and 4 Health. A victory now awards 2 XP, taking a fresh character to player level 2. Reload and confirm the wave and progress remain saved. Lose a fight, choose Restart, and check that the original slimes return at level 1 while player advancement stays intact.
 
 ## Iteration 5 manual acceptance
 
@@ -60,4 +60,4 @@ For phone acceptance, clear a wave, choose Find more slimes and win twice more. 
 
 GitHub Pages serves `/SimpleRpg/` and pinned `/SimpleRpg/acceptance/`. Checks run on pushes/PRs. Publish game repeats checks, builds both paths and deploys after success. `ACCEPTANCE_REF` stores the acceptance commit; manual input can override it. See [acceptance hosting](docs/superpowers/acceptance-hosting.md).
 
-With Playwright Chromium installed, run `node scripts/verify-deployment.mjs https://natebuwalda.github.io/SimpleRpg/ [expected-main-entry]`. The verifier exercises independent roster slots, victory XP on Iteration 6, and separation between the main and acceptance saves.
+With Playwright Chromium installed, run `node scripts/verify-deployment.mjs https://natebuwalda.github.io/SimpleRpg/ [expected-main-entry]`. The verifier exercises independent roster slots, the higher-wave XP reward and reload on Iteration 7, and separation between the main and acceptance saves.
