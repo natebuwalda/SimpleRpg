@@ -1,7 +1,8 @@
-import type { UiAction, Character, Checkpoint, Direction, GameState, TurnOrder, TurnRolls } from '../game/types';
+import type { UiAction, Character, Checkpoint, Direction, GameState, BattleState, TurnRolls } from '../game/types';
 import { deriveStats } from '../game/character';
-import { CLASS_DEFINITIONS, OFFENSIVE_ACTIONS, getCombatPools, offenseFor } from '../game/combat-actions';
+import { CLASS_DEFINITIONS, OFFENSIVE_ACTIONS, getCombatPools, getExploitPool, offenseFor } from '../game/combat-actions';
 import type { PoolRoll } from '../game/dice';
+import { canExploit } from '../game/battle';
 import { slimeStats } from '../game/slime';
 import { canFindMoreSlimes, getRemainingSlimeCount } from '../game/world';
 import { mountCharacterCreation } from './character-creation';
@@ -45,35 +46,53 @@ function characterDetails(checkpoint: Checkpoint, canSpend: boolean, open: boole
     <p aria-label="Character skills">Combat ${s.combat} · Subterfuge ${s.subterfuge} · Lore ${s.lore}</p>
     <p aria-label="Derived stats">Health ${stats.maxHp} · Initiative ${stats.initiative} · Resource capacity ${stats.resourceCapacity}</p>
     <p aria-label="Character class">${CLASS_DEFINITIONS[character.classId].label}</p>
-    <p aria-label="Combat pools">${OFFENSIVE_ACTIONS[offense].label} ${pools.attack}d10 · Defense ${pools.defense}d10</p>${controls}</div></details>`;
+    <p aria-label="Combat pools">${OFFENSIVE_ACTIONS[offense].label} ${pools.attack}d10 · Defense ${pools.defense}d10</p>${character.classId === 'rogue' ? `<p aria-label="Exploit pool">Exploit ${getExploitPool(character)}d10</p>` : ''}${controls}</div></details>`;
 }
 function diceText(label: string, roll: PoolRoll): string {
   return `<p aria-label="${label}"><strong>${label}</strong><br>Original: ${roll.original.join(', ')}. Bonus: ${roll.bonus.join(', ') || 'none'}. Successes: ${roll.successes}.</p>`;
 }
+function stacksAdded(successes: number): string {
+  return `${successes} ${successes === 1 ? 'stack' : 'stacks'} added.`;
+}
+
 function rollDetails(turn: TurnRolls | null | undefined): string {
   if (!turn) return '';
+  const exchanges = turn.map(entry => {
+    if (entry.kind === 'exploit') {
+      return diceText('Exploit dice', entry.roll) + `<p>${stacksAdded(entry.roll.successes)}</p>`;
+    }
+    if (entry.attacker === 'slime') {
+      return diceText('Slime attack dice', entry.roll.attack) + diceText('Your defense dice', entry.roll.defense);
+    }
+    const bonus = entry.exploitBonus > 0n ? `<p aria-label="Exploit bonus">Exploit bonus damage +${entry.exploitBonus}.</p>` : '';
+    return diceText('Your attack dice', entry.roll.attack) + diceText('Slime defense dice', entry.roll.defense) + bonus;
+  }).join('');
+  const noCounterattack = turn.length === 1 && turn[0].kind === 'attack' && turn[0].attacker === 'hero';
   return `<details class="game-details"><summary>Roll details</summary><div class="detail-content">
-    ${turn.map(({ attacker, roll }) => attacker === 'hero'
-      ? diceText('Your attack dice', roll.attack) + diceText('Slime defense dice', roll.defense)
-      : diceText('Slime attack dice', roll.attack) + diceText('Your defense dice', roll.defense)).join('')}
-    ${turn.length === 1 && turn[0].attacker === 'hero' ? '<p>No counterattack.</p>' : ''}
+    ${exchanges}${noCounterattack ? '<p>No counterattack.</p>' : ''}
     <p>8–10 succeeds. Each original 10 adds one bonus die; bonus dice never add another. Ties favor the defender.</p></div></details>`;
 }
 function turnSummary(turn: TurnRolls, separator = '<br>'): string {
-  return turn.map(({ attacker, roll }) =>
-    `${attacker === 'hero' ? 'You' : 'Slime'}: ${roll.attack.successes} vs ${roll.defense.successes} → ${roll.damage} damage.`,
-  ).join(separator);
+  return turn.map(entry => {
+    if (entry.kind === 'exploit') return `Exploit: ${stacksAdded(entry.roll.successes)}`;
+    const { attacker, roll, exploitBonus } = entry;
+    const damage = exploitBonus > 0n
+      ? `${BigInt(roll.damage) + exploitBonus} damage (${roll.damage} base + ${exploitBonus} Exploit)`
+      : `${roll.damage} damage`;
+    return `${attacker === 'hero' ? 'You' : 'Slime'}: ${roll.attack.successes} vs ${roll.defense.successes} → ${damage}.`;
+  }).join(separator);
 }
-function turnOrderDetails(order: TurnOrder): string {
-  return `<section class="turn-order"><h2 id="turn-order-label">Turn Order</h2><ol aria-labelledby="turn-order-label">
-    ${order.map(({ combatant, successes }) => `<li>${combatant === 'hero' ? 'You' : 'Meadow slime'} · ${successes} ${successes === 1 ? 'success' : 'successes'}</li>`).join('')}
+function turnOrderDetails({ turnOrder, exploit }: BattleState): string {
+  const stacks = exploit ? `<span aria-label="Exploit stacks">Exploit stacks · ${exploit.stacks}</span>` : '';
+  return `<section class="turn-order"><div class="turn-order-heading"><h2 id="turn-order-label">Turn Order</h2>${stacks}</div><ol aria-labelledby="turn-order-label">
+    ${turnOrder.map(({ combatant, successes }) => `<li>${combatant === 'hero' ? 'You' : 'Meadow slime'} · ${successes} ${successes === 1 ? 'success' : 'successes'}</li>`).join('')}
   </ol></section>`;
 }
 
 export function mountUi(root: HTMLElement): Ui {
   root.innerHTML = `
     <main class="game-shell">
-      <header><span class="wordmark">SIMPLE RPG</span><span class="wave-indicator" aria-label="Current wave" hidden></span><span class="edition">ITERATION 09</span></header>
+      <header><span class="wordmark">SIMPLE RPG</span><span class="wave-indicator" aria-label="Current wave" hidden></span><span class="edition">ITERATION 10</span></header>
       <p id="combat-announcement" class="sr-only" role="status" aria-label="Combat result" aria-atomic="true"></p>
       <section class="play-area">
         <div class="world-frame"><div id="canvas" role="img" aria-label="A tiny woodland adventure"></div></div>
@@ -90,7 +109,7 @@ export function mountUi(root: HTMLElement): Ui {
       <footer><span>A WORLD IN YOUR POCKET</span><span>TOUCH · KEYBOARD</span></footer>
     </main>`;
   let handler: (action: UiAction) => void = () => {};
-  let observation:RosterObservation={status:'empty',raw:null,roster:{version:9,slots:[]}},canMutate=false;
+  let observation:RosterObservation={status:'empty',raw:null,roster:{version:10,slots:[]}},canMutate=false;
   let roster:ReturnType<typeof mountRoster>|null=null;
   let discard:ReturnType<typeof mountConfirmation>|null=null;
   let creation: ReturnType<typeof mountCharacterCreation> | null = null;
@@ -131,7 +150,7 @@ export function mountUi(root: HTMLElement): Ui {
     active = !document.hidden;
     if (!active) { pointerAllowed = false; pendingFocus = null; }
   });
-  const isBattleCommand = (target: EventTarget | null) => target instanceof Element && !!target.closest('[data-action="melee"], [data-action="magic"], [data-action="run"]');
+  const isBattleCommand = (target: EventTarget | null) => target instanceof Element && !!target.closest('[data-combat-command]');
   root.addEventListener('pointerdown', event => { pointerAllowed = active && (!busy || !isBattleCommand(event.target)); }, true);
   root.addEventListener('pointercancel', () => { pointerAllowed = false; }, true);
   root.addEventListener('keydown', event => {
@@ -170,9 +189,9 @@ export function mountUi(root: HTMLElement): Ui {
     },
     setBusy(nextBusy) {
       busy = nextBusy;
-      root.querySelectorAll<HTMLButtonElement>('[data-action="melee"], [data-action="magic"], [data-action="run"]').forEach(button => {
+      root.querySelectorAll<HTMLButtonElement>('[data-combat-command]').forEach(button => {
         if (busy && document.activeElement === button) pendingFocus = button.dataset.action!;
-        button.disabled = busy;
+        button.disabled = busy || button.hasAttribute('data-unavailable');
       });
       root.querySelector('#screen')!.setAttribute('aria-busy', String(busy));
       if (!busy && pendingFocus) {
@@ -213,12 +232,19 @@ export function mountUi(root: HTMLElement): Ui {
         <div class="stats"><span>HERO <strong aria-label="Hero health">${state.checkpoint.hp} / ${maxHp} HP</strong></span><span>POSITION <strong aria-label="Position">${state.checkpoint.position.x}, ${state.checkpoint.position.y}</strong></span><span>WORLD <strong aria-label="World size">${state.checkpoint.world.width} × ${state.checkpoint.world.height} tiles</strong></span></div>
         <p class="description"><span aria-label="Slimes remaining">${remainingText}</span><br>${remaining === 0 ? canFind ? 'The clearing is peaceful.' : 'There are no higher waves.' : 'Explore the clearing.'}</p>
         <nav class="dpad" aria-label="Movement"><button data-direction="up" aria-label="Move up">↑</button><button data-direction="left" aria-label="Move left">←</button><button data-direction="down" aria-label="Move down">↓</button><button data-direction="right" aria-label="Move right">→</button></nav>`;
-      if (state.kind === 'battle') root.querySelector('#screen')!.innerHTML = `
+      if (state.kind === 'battle') {
+        const exploitBlocked = !!state.battle.exploit && !canExploit(state.battle);
+        const exploitButton = state.battle.exploit
+          ? `<button data-combat-command data-action="exploit" ${exploitBlocked ? 'disabled data-unavailable aria-describedby="exploit-reason"' : ''}>Exploit</button>`
+          : '';
+        root.querySelector('#screen')!.innerHTML = `
         <div class="eyebrow">${slimeLevelLabel}</div><h1>Meadow slime</h1>
         <div class="stats"><span>HERO <strong aria-label="Hero health">${state.battle.heroHp} / ${maxHp} HP</strong></span><span>SLIME <strong aria-label="Slime health">${state.battle.enemyHp} / ${slimeStats(state.battle.slimeLevel).maxHp} HP</strong></span></div>
-        ${turnOrderDetails(state.battle.turnOrder)}
+        ${turnOrderDetails(state.battle)}
         <p class="description combat-result">${state.battle.lastTurn ? turnSummary(state.battle.lastTurn) : `${OFFENSIVE_ACTIONS[state.battle.offense].label} ${state.battle.heroPools.attack}d10 vs ${slimeStats(state.battle.slimeLevel).defense}d10 defense.`}</p>
-        <div class="actions"><button class="primary" data-action="${state.battle.offense}">${OFFENSIVE_ACTIONS[state.battle.offense].label}</button><button data-action="run">Run</button></div>`;
+        <div class="actions"><button class="primary" data-combat-command data-action="${state.battle.offense}">${OFFENSIVE_ACTIONS[state.battle.offense].label}</button>${exploitButton}<button data-combat-command data-action="run">Run</button></div>
+        ${exploitBlocked ? '<p class="exploit-reason" id="exploit-reason">Exploit requires acting before the target.</p>' : ''}`;
+      }
       if (state.kind === 'victory' || state.kind === 'defeat') {
         const won = state.kind === 'victory';
         root.querySelector('#screen')!.innerHTML = `<div class="eyebrow">${won ? remaining === 0 ? 'CLEARING COMPLETE' : 'SLIME DEFEATED' : 'ADVENTURE INTERRUPTED'}</div><h1>${won ? 'Victory!' : 'Defeated'}</h1><p class="description">${won ? `The slime slips away. Health restored.<br>${remainingText}<br>${reward}` : 'Even small adventures take practice.<br>Take a breath and begin again.'}</p><div class="actions"><button class="primary" data-action="${won ? 'acknowledgeVictory' : 'restart'}" ${!won&&!canChange?'disabled':''}>${won ? 'Back to clearing' : 'Restart'}</button></div>`;
