@@ -1,11 +1,20 @@
-import type { BattleState, Character, Combatant, InitiativeResult, TurnRolls } from './types';
+import type { BattleClassAction, BattleState, Character, Combatant, InitiativeResult, TurnRolls } from './types';
 import { deriveStats } from './character';
-import { getCombatPools, getExploitPool, offenseFor, type CombatCommand } from './combat-actions';
+import { CLASS_DEFINITIONS, getCombatPools, getExploitPool, getNukeDamage, type CombatCommand } from './combat-actions';
 import { MAX_COMBAT_POOL, rollOpposed, rollPool, type RandomSource } from './dice';
 import { FIRST_SLIME_LEVEL, slimeStats } from './slime';
 
+function createClassAction(character: Character): BattleClassAction {
+  const kind = CLASS_DEFINITIONS[character.classId].classAction;
+  switch (kind) {
+    case 'momentum': return { kind, stacks: 0n };
+    case 'nuke': return { kind, damage: getNukeDamage(character) };
+    case 'exploit': return { kind, pool: getExploitPool(character), stacks: 0n };
+  }
+}
+
 export function createBattle(heroHp: number, character: Character, slimeLevel = FIRST_SLIME_LEVEL, rng: RandomSource = Math.random): BattleState {
-  const offense = offenseFor(character.classId);
+  const { offense } = CLASS_DEFINITIONS[character.classId];
   const enemy = slimeStats(slimeLevel);
   const rollInitiative = (combatant: Combatant, rawInitiative: number): InitiativeResult => ({
     combatant, rawInitiative, successes: rollPool(Math.min(rawInitiative, MAX_COMBAT_POOL), rng).successes,
@@ -16,21 +25,33 @@ export function createBattle(heroHp: number, character: Character, slimeLevel = 
     || (slime.successes === hero.successes && slime.rawInitiative > hero.rawInitiative);
   return {
     offense, heroHp, slimeLevel, enemyHp: enemy.maxHp, heroPools: getCombatPools(character, offense),
-    exploit: character.classId === 'rogue' ? { pool: getExploitPool(character), stacks: 0n } : null,
+    classAction: createClassAction(character),
     turnOrder: slimeGoesFirst ? [slime, hero] : [hero, slime], lastTurn: null, result: 'active',
   };
 }
 
-export function canExploit(state: BattleState): boolean {
-  return state.result === 'active' && state.exploit !== null && state.turnOrder[0].combatant === 'hero';
+export function canUseCombatCommand(state: BattleState, command: CombatCommand): boolean {
+  if (state.result !== 'active') return false;
+  if (command === 'run' || command === state.offense) return true;
+  return command === state.classAction.kind && (command !== 'exploit' || state.turnOrder[0].combatant === 'hero');
+}
+
+export function getBattlePools({ heroPools, classAction }: Pick<BattleState, 'heroPools' | 'classAction'>): BattleState['heroPools'] {
+  if (classAction.kind !== 'momentum') return heroPools;
+  const ceiling = BigInt(MAX_COMBAT_POOL);
+  const bonus = Number(classAction.stacks < ceiling ? classAction.stacks : ceiling);
+  return {
+    attack: Math.min(heroPools.attack + bonus, MAX_COMBAT_POOL),
+    defense: Math.min(heroPools.defense + bonus, MAX_COMBAT_POOL),
+  };
 }
 
 export function resolveTurn(state: BattleState, command: CombatCommand, rng: RandomSource = Math.random): BattleState {
-  if (state.result !== 'active') return state;
-  if (command === 'exploit' ? !canExploit(state) : command !== 'run' && command !== state.offense) return state;
+  if (!canUseCombatCommand(state, command)) return state;
   const enemy = slimeStats(state.slimeLevel);
   const rolls: TurnRolls[number][] = [];
-  let { heroHp, enemyHp, exploit } = state;
+  const { heroPools } = state;
+  let { heroHp, enemyHp, classAction } = state;
   let result: BattleState['result'] = 'active';
   for (const { combatant } of state.turnOrder) {
     if (combatant === 'hero') {
@@ -38,24 +59,34 @@ export function resolveTurn(state: BattleState, command: CombatCommand, rng: Ran
         result = 'escaped';
         break;
       }
-      if (command === 'exploit' && exploit) {
-        const roll = rollPool(exploit.pool, rng);
-        exploit = { ...exploit, stacks: exploit.stacks + BigInt(roll.successes) };
+      if (command === 'exploit' && classAction.kind === 'exploit') {
+        const roll = rollPool(classAction.pool, rng);
+        classAction = { ...classAction, stacks: classAction.stacks + BigInt(roll.successes) };
         rolls.push({ kind: 'exploit', roll });
         continue;
       }
-      const roll = rollOpposed(state.heroPools.attack, enemy.defense, rng);
-      const exploitBonus = roll.damage > 0 ? exploit?.stacks ?? 0n : 0n;
-      if (exploit && exploitBonus > 0n) exploit = { ...exploit, stacks: 0n };
-      rolls.push({ kind: 'attack', attacker: 'hero', roll, exploitBonus });
-      const damage = BigInt(roll.damage) + exploitBonus;
-      enemyHp = damage >= BigInt(enemyHp) ? 0 : enemyHp - Number(damage);
+      if (command === 'momentum' && classAction.kind === 'momentum') {
+        classAction = { kind: 'momentum', stacks: classAction.stacks + 1n };
+        rolls.push(classAction);
+        continue;
+      }
+      if (command === 'nuke' && classAction.kind === 'nuke') {
+        enemyHp = Math.max(0, enemyHp - classAction.damage);
+        rolls.push(classAction);
+      } else {
+        const roll = rollOpposed(getBattlePools({ heroPools, classAction }).attack, enemy.defense, rng);
+        const exploitBonus = classAction.kind === 'exploit' && roll.damage > 0 ? classAction.stacks : 0n;
+        if (classAction.kind === 'exploit' && exploitBonus > 0n) classAction = { ...classAction, stacks: 0n };
+        rolls.push({ kind: 'attack', attacker: 'hero', roll, exploitBonus });
+        const damage = BigInt(roll.damage) + exploitBonus;
+        enemyHp = damage >= BigInt(enemyHp) ? 0 : enemyHp - Number(damage);
+      }
       if (enemyHp === 0) {
         result = 'victory';
         break;
       }
     } else {
-      const roll = rollOpposed(enemy.attack, state.heroPools.defense, rng);
+      const roll = rollOpposed(enemy.attack, getBattlePools({ heroPools, classAction }).defense, rng);
       rolls.push({ kind: 'attack', attacker: 'slime', roll, exploitBonus: 0n });
       heroHp = Math.max(0, heroHp - roll.damage);
       if (heroHp === 0) {
@@ -64,6 +95,6 @@ export function resolveTurn(state: BattleState, command: CombatCommand, rng: Ran
       }
     }
   }
-  if (exploit && result !== 'active') exploit = { ...exploit, stacks: 0n };
-  return { ...state, heroHp, enemyHp, exploit, lastTurn: rolls.length ? rolls : null, result };
+  if (result !== 'active' && classAction.kind !== 'nuke') classAction = { ...classAction, stacks: 0n };
+  return { ...state, heroHp, enemyHp, classAction, lastTurn: rolls.length ? rolls : null, result };
 }

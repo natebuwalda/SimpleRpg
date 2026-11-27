@@ -5,7 +5,7 @@ A small browser RPG built with TypeScript, Phaser and Vite. Each roster characte
 **[Play SimpleRpg](https://natebuwalda.github.io/SimpleRpg/)** — main follows accepted releases. Iteration 5 shipped in [PR #6](https://github.com/natebuwalda/SimpleRpg/pull/6).
 **[Acceptance game](https://natebuwalda.github.io/SimpleRpg/acceptance/)** — separately pinned candidate, with isolated browser saves.
 
-Iteration 10 adds the Rogue class and Exploit.
+Iteration 11 adds Momentum for Warriors and Nuke for Wizards.
 
 ## Development
 
@@ -29,13 +29,17 @@ Health = Prowess + Resistance; Initiative = Prowess + Cunning; resource capacity
 
 Warriors and Rogues roll Melee with Prowess + Combat. Wizards roll Magic with Prowess + Lore. All attacks roll against the slime's current Defense pool. Each 8–10 is a success. An original 10 keeps its success and grants one bonus die, which never chains. Ones do nothing. Ties favor the defender; positive margin is damage. Slimes attack against Resistance + Combat. Zero damage is valid. **Roll details** shows original and bonus dice in the order attacks resolved. Victory fully heals the hero and removes only that slime.
 
-Before the first action, both sides roll initiative. The player rolls Prowess + Cunning. Slimes start with 3 initiative dice and gain one each level. The roll is capped at 1,024 dice. Most successes go first, followed by highest raw Initiative on a tie, then the player on an exact tie. **Turn Order** stays visible for the encounter. Melee, Magic, Exploit, and Run resolve at the player's place in the order. A lethal hit skips the defeated combatant's turn. If the slime goes first and the player survives a hit while choosing Run, the player escapes with the damage they took.
+Before the first action, both sides roll initiative. The player rolls Prowess + Cunning. Slimes start with 3 initiative dice and gain one each level. The roll is capped at 1,024 dice. Most successes go first, followed by highest raw Initiative on a tie, then the player on an exact tie. **Turn Order** stays visible for the encounter. Player actions resolve at the player's place in the order. A lethal hit skips the defeated combatant's turn. If the slime goes first and the player survives a hit while choosing Run, the player escapes with the damage they took.
+
+A Warrior can take a turn to gain **Momentum** without rolling. Each stack adds one die to Melee attacks and Defense rolls made after it is gained. The stacks last for the encounter and have no cap. Individual pools stop at 1,024 dice.
+
+A Wizard can use **Nuke** for Cunning + Lore direct damage on their turn. It bypasses the target's Defense and takes no dice, resources, or cooldown.
 
 A Rogue who acts before the target can use **Exploit** for their turn. Roll Cunning + Subterfuge, up to 1,024 dice, and add one stack per success. The target takes its normal turn. A damaging Melee hit adds all stacks as bonus damage and clears them. A miss or tie keeps the stacks. Stacks clear at the end of the encounter.
 
 ## Saves and limits
 
-Iteration 10 upgrades supported Iteration 5–9 rosters to v10. Characters created before classes existed become Warriors. Existing Warriors and Wizards keep their classes. Builds, adventures, and earned advancement carry over. Iteration 5 characters begin at player level 1 and 0 XP. Refresh older tabs so future play uses the upgraded roster.
+The current game upgrades supported Iteration 5–9 rosters to v10. Characters created before classes existed become Warriors. Existing Warriors and Wizards keep their classes. Builds, adventures, and earned advancement carry over. Iteration 5 characters begin at player level 1 and 0 XP. Refresh older tabs so future play uses the upgraded roster.
 
 Saves remain browser/device-local and do not sync. Clearing browser data loses them. Main and acceptance use distinct keys. Every write uses a browser Web Lock and re-reads current data; different characters' updates merge, while an outdated tab stops saving a changed/deleted character. A deleted character is never recreated by stale autosave.
 
@@ -64,4 +68,4 @@ For phone acceptance, clear wave 1, choose Find more slimes and check the next b
 
 GitHub Pages serves `/SimpleRpg/` and pinned `/SimpleRpg/acceptance/`. Checks run on pushes/PRs. Publish game repeats checks, builds both paths and deploys after success. `ACCEPTANCE_REF` stores the acceptance commit; manual input can override it. See [acceptance hosting](docs/superpowers/acceptance-hosting.md).
 
-With Playwright Chromium installed, run `node scripts/verify-deployment.mjs https://natebuwalda.github.io/SimpleRpg/ [expected-main-entry]`. The verifier exercises independent roster slots, higher-wave XP and reload, all three classes, turn order, Rogue Exploit, and separation between the main and acceptance saves.
+With Playwright Chromium installed, run `node scripts/verify-deployment.mjs https://natebuwalda.github.io/SimpleRpg/ [expected-main-entry]`. The verifier exercises independent roster slots, higher-wave XP and reload, all three classes, turn order, Momentum, Nuke, Exploit, and separation between the main and acceptance saves.

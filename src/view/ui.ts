@@ -1,11 +1,12 @@
 import type { UiAction, Character, Checkpoint, Direction, GameState, BattleState, TurnRolls } from '../game/types';
 import { deriveStats } from '../game/character';
-import { CLASS_DEFINITIONS, OFFENSIVE_ACTIONS, getCombatPools, getExploitPool, offenseFor } from '../game/combat-actions';
+import { CLASS_ACTION_DEFINITIONS, CLASS_DEFINITIONS, OFFENSIVE_ACTIONS, getCombatPools, offenseFor } from '../game/combat-actions';
 import type { PoolRoll } from '../game/dice';
-import { canExploit } from '../game/battle';
+import { canUseCombatCommand, getBattlePools } from '../game/battle';
 import { slimeStats } from '../game/slime';
 import { canFindMoreSlimes, getRemainingSlimeCount } from '../game/world';
 import { mountCharacterCreation } from './character-creation';
+import { classActionDetails } from './class-action';
 import {mountRoster} from './roster';
 import {mountConfirmation} from './confirmation';
 import type {RosterObservation} from '../game/roster';
@@ -46,7 +47,7 @@ function characterDetails(checkpoint: Checkpoint, canSpend: boolean, open: boole
     <p aria-label="Character skills">Combat ${s.combat} · Subterfuge ${s.subterfuge} · Lore ${s.lore}</p>
     <p aria-label="Derived stats">Health ${stats.maxHp} · Initiative ${stats.initiative} · Resource capacity ${stats.resourceCapacity}</p>
     <p aria-label="Character class">${CLASS_DEFINITIONS[character.classId].label}</p>
-    <p aria-label="Combat pools">${OFFENSIVE_ACTIONS[offense].label} ${pools.attack}d10 · Defense ${pools.defense}d10</p>${character.classId === 'rogue' ? `<p aria-label="Exploit pool">Exploit ${getExploitPool(character)}d10</p>` : ''}${controls}</div></details>`;
+    <p aria-label="Combat pools">${OFFENSIVE_ACTIONS[offense].label} ${pools.attack}d10 · Defense ${pools.defense}d10</p>${classActionDetails(character)}${controls}</div></details>`;
 }
 function diceText(label: string, roll: PoolRoll): string {
   return `<p aria-label="${label}"><strong>${label}</strong><br>Original: ${roll.original.join(', ')}. Bonus: ${roll.bonus.join(', ') || 'none'}. Successes: ${roll.successes}.</p>`;
@@ -61,6 +62,8 @@ function rollDetails(turn: TurnRolls | null | undefined): string {
     if (entry.kind === 'exploit') {
       return diceText('Exploit dice', entry.roll) + `<p>${stacksAdded(entry.roll.successes)}</p>`;
     }
+    if (entry.kind === 'momentum') return '<p>Momentum gained. No roll.</p>';
+    if (entry.kind === 'nuke') return `<p>Nuke dealt ${entry.damage} direct damage. No roll.</p>`;
     if (entry.attacker === 'slime') {
       return diceText('Slime attack dice', entry.roll.attack) + diceText('Your defense dice', entry.roll.defense);
     }
@@ -75,6 +78,8 @@ function rollDetails(turn: TurnRolls | null | undefined): string {
 function turnSummary(turn: TurnRolls, separator = '<br>'): string {
   return turn.map(entry => {
     if (entry.kind === 'exploit') return `Exploit: ${stacksAdded(entry.roll.successes)}`;
+    if (entry.kind === 'momentum') return `Momentum: 1 stack gained (${entry.stacks} total).`;
+    if (entry.kind === 'nuke') return `Nuke: ${entry.damage} direct damage.`;
     const { attacker, roll, exploitBonus } = entry;
     const damage = exploitBonus > 0n
       ? `${BigInt(roll.damage) + exploitBonus} damage (${roll.damage} base + ${exploitBonus} Exploit)`
@@ -82,9 +87,12 @@ function turnSummary(turn: TurnRolls, separator = '<br>'): string {
     return `${attacker === 'hero' ? 'You' : 'Slime'}: ${roll.attack.successes} vs ${roll.defense.successes} → ${damage}.`;
   }).join(separator);
 }
-function turnOrderDetails({ turnOrder, exploit }: BattleState): string {
-  const stacks = exploit ? `<span aria-label="Exploit stacks">Exploit stacks · ${exploit.stacks}</span>` : '';
-  return `<section class="turn-order"><div class="turn-order-heading"><h2 id="turn-order-label">Turn Order</h2>${stacks}</div><ol aria-labelledby="turn-order-label">
+function turnOrderDetails({ turnOrder, classAction }: BattleState): string {
+  const label = CLASS_ACTION_DEFINITIONS[classAction.kind].label;
+  const value = classAction.kind === 'nuke'
+    ? `<span aria-label="Nuke damage">${label} · ${classAction.damage} damage</span>`
+    : `<span aria-label="${label} stacks">${label} stacks · ${classAction.stacks}</span>`;
+  return `<section class="turn-order"><div class="turn-order-heading"><h2 id="turn-order-label">Turn Order</h2>${value}</div><ol aria-labelledby="turn-order-label">
     ${turnOrder.map(({ combatant, successes }) => `<li>${combatant === 'hero' ? 'You' : 'Meadow slime'} · ${successes} ${successes === 1 ? 'success' : 'successes'}</li>`).join('')}
   </ol></section>`;
 }
@@ -92,7 +100,7 @@ function turnOrderDetails({ turnOrder, exploit }: BattleState): string {
 export function mountUi(root: HTMLElement): Ui {
   root.innerHTML = `
     <main class="game-shell">
-      <header><span class="wordmark">SIMPLE RPG</span><span class="wave-indicator" aria-label="Current wave" hidden></span><span class="edition">ITERATION 10</span></header>
+      <header><span class="wordmark">SIMPLE RPG</span><span class="wave-indicator" aria-label="Current wave" hidden></span><span class="edition">ITERATION 11</span></header>
       <p id="combat-announcement" class="sr-only" role="status" aria-label="Combat result" aria-atomic="true"></p>
       <section class="play-area">
         <div class="world-frame"><div id="canvas" role="img" aria-label="A tiny woodland adventure"></div></div>
@@ -233,17 +241,20 @@ export function mountUi(root: HTMLElement): Ui {
         <p class="description"><span aria-label="Slimes remaining">${remainingText}</span><br>${remaining === 0 ? canFind ? 'The clearing is peaceful.' : 'There are no higher waves.' : 'Explore the clearing.'}</p>
         <nav class="dpad" aria-label="Movement"><button data-direction="up" aria-label="Move up">↑</button><button data-direction="left" aria-label="Move left">←</button><button data-direction="down" aria-label="Move down">↓</button><button data-direction="right" aria-label="Move right">→</button></nav>`;
       if (state.kind === 'battle') {
-        const exploitBlocked = !!state.battle.exploit && !canExploit(state.battle);
-        const exploitButton = state.battle.exploit
-          ? `<button data-combat-command data-action="exploit" ${exploitBlocked ? 'disabled data-unavailable aria-describedby="exploit-reason"' : ''}>Exploit</button>`
-          : '';
+        const { battle } = state;
+        const { kind: classAction } = battle.classAction;
+        const classActionBlocked = !canUseCombatCommand(battle, classAction);
+        const pools = getBattlePools(battle);
         root.querySelector('#screen')!.innerHTML = `
         <div class="eyebrow">${slimeLevelLabel}</div><h1>Meadow slime</h1>
         <div class="stats"><span>HERO <strong aria-label="Hero health">${state.battle.heroHp} / ${maxHp} HP</strong></span><span>SLIME <strong aria-label="Slime health">${state.battle.enemyHp} / ${slimeStats(state.battle.slimeLevel).maxHp} HP</strong></span></div>
         ${turnOrderDetails(state.battle)}
-        <p class="description combat-result">${state.battle.lastTurn ? turnSummary(state.battle.lastTurn) : `${OFFENSIVE_ACTIONS[state.battle.offense].label} ${state.battle.heroPools.attack}d10 vs ${slimeStats(state.battle.slimeLevel).defense}d10 defense.`}</p>
-        <div class="actions"><button class="primary" data-combat-command data-action="${state.battle.offense}">${OFFENSIVE_ACTIONS[state.battle.offense].label}</button>${exploitButton}<button data-combat-command data-action="run">Run</button></div>
-        ${exploitBlocked ? '<p class="exploit-reason" id="exploit-reason">Exploit requires acting before the target.</p>' : ''}`;
+        <p class="description combat-result">${battle.lastTurn ? turnSummary(battle.lastTurn) : `${OFFENSIVE_ACTIONS[battle.offense].label} ${pools.attack}d10 vs ${slimeStats(battle.slimeLevel).defense}d10 defense.`}</p>
+        <div class="actions"><button class="primary" data-combat-command data-action="${battle.offense}">${OFFENSIVE_ACTIONS[battle.offense].label}</button>
+          <button data-combat-command data-action="${classAction}" ${classActionBlocked ? 'disabled data-unavailable aria-describedby="exploit-reason"' : ''}>${CLASS_ACTION_DEFINITIONS[classAction].label}</button>
+          <button data-combat-command data-action="run">Run</button></div>
+        ${classAction === 'momentum' ? `<p class="battle-pools" aria-label="Battle Melee and Defense">Melee ${pools.attack}d10 · Defense ${pools.defense}d10</p>` : ''}
+        ${classActionBlocked ? '<p class="exploit-reason" id="exploit-reason">Exploit requires acting before the target.</p>' : ''}`;
       }
       if (state.kind === 'victory' || state.kind === 'defeat') {
         const won = state.kind === 'victory';

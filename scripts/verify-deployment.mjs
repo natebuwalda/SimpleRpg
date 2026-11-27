@@ -54,13 +54,21 @@ try{
   await resume('Smoke one');await expect(page.getByLabel('Position')).toHaveText('4, 3');await expect(page.getByLabel('Hero health')).toHaveText('5 / 5 HP');
   await page.reload();await resume('Smoke two');await expect(page.getByLabel('Position')).toHaveText('3, 4');await expect(page.getByLabel('Hero health')).toHaveText('7 / 7 HP');
   const edition=await page.locator('.edition').textContent();
-  const hasRogue=edition==='ITERATION 10';
+  const hasNewClassActions=edition==='ITERATION 11';
+  const hasRogue=edition==='ITERATION 10'||hasNewClassActions;
   const hasInitiative=edition==='ITERATION 09'||hasRogue;
-  if(['ITERATION 06','ITERATION 07','ITERATION 08','ITERATION 09','ITERATION 10'].includes(edition)){
+  if(['ITERATION 06','ITERATION 07','ITERATION 08','ITERATION 09','ITERATION 10','ITERATION 11'].includes(edition)){
    await page.getByRole('button',{name:'Return to characters',exact:true}).click();
    await begin('Smoke progression',true,0);
    await steps(page,'right');
-   await attack(page,[...Array(10).fill(8),1,1,1]);
+   if(hasNewClassActions){
+    await expect(page.getByLabel('Momentum stacks')).toHaveText('Momentum stacks · 0');
+    await setCombatFaces(page,Array(11).fill(1));
+    await page.getByRole('button',{name:'Momentum',exact:true}).tap();
+    await expect(page.getByLabel('Momentum stacks')).toHaveText('Momentum stacks · 1');
+    await expect(page.getByLabel('Battle Melee and Defense')).toHaveText('Melee 11d10 · Defense 8d10');
+   }
+   await attack(page,[...Array(hasNewClassActions?11:10).fill(8),1,1,1]);
    await expect(page.locator('#screen')).toContainText('+1 XP.');
    if(edition!=='ITERATION 06'){
     const back=page.getByRole('button',{name:'Back to clearing',exact:true});
@@ -103,6 +111,14 @@ try{
     await expect(page.locator('.combat-result')).toHaveText('Magic 4d10 vs 3d10 defense.');
     await attack(page,[8,8,8,1,1,1,1]);
     await expect(page.getByRole('heading',{name:'Victory!'})).toBeVisible();
+    if(hasNewClassActions){
+     await back.click();
+     await steps(page,'right',2);
+     await expect(page.getByLabel('Nuke damage',{exact:true})).toHaveText('Nuke · 4 damage');
+     await page.getByRole('button',{name:'Nuke',exact:true}).tap();
+     await expect(page.getByRole('heading',{name:'Victory!'})).toBeVisible();
+     await expect(page.getByRole('status',{name:'Combat result'})).toContainText('Nuke: 4 direct damage.');
+    }
     const verifiedClasses=['Warrior','Wizard'];
     if(hasRogue){
      await page.getByRole('button',{name:'Return to characters',exact:true}).click();
@@ -118,7 +134,7 @@ try{
      await expect(page.getByRole('status',{name:'Combat result'})).toContainText('3 damage (1 base + 2 Exploit)');
      verifiedClasses.push('Rogue');
     }
-    return {...checks,verifiedClasses,...(hasInitiative?{verifiedTurnOrder:true}:{}),...(hasRogue?{verifiedExploit:true}:{})};
+    return {...checks,verifiedClasses,...(hasInitiative?{verifiedTurnOrder:true}:{}),...(hasRogue?{verifiedExploit:true}:{}),...(hasNewClassActions?{verifiedMomentum:true,verifiedNuke:true}:{})};
    }
    await page.reload();await resume('Smoke progression');
    await page.getByText('Character',{exact:true}).click();
@@ -128,12 +144,12 @@ try{
   return {roster:true,independentPlaythroughs:2};
  }
  const mainEdition=await open(root,expectedMainScript);
- assert.ok(['ITERATION 04','ITERATION 05','ITERATION 06','ITERATION 07','ITERATION 08','ITERATION 09','ITERATION 10'].includes(mainEdition),`Unexpected main edition: ${mainEdition}`);
+ assert.ok(['ITERATION 04','ITERATION 05','ITERATION 06','ITERATION 07','ITERATION 08','ITERATION 09','ITERATION 10','ITERATION 11'].includes(mainEdition),`Unexpected main edition: ${mainEdition}`);
  const mainChecks=await exercise();
  const mainSaves=await snapshot('simple-rpg.save.');
  const acceptance=new URL('acceptance/',root);
  const acceptanceEdition=await open(acceptance);
- assert.equal(acceptanceEdition,'ITERATION 10','Acceptance must serve Iteration 10');
+ assert.equal(acceptanceEdition,'ITERATION 11','Acceptance must serve Iteration 11');
  const acceptanceChecks=await exercise();
  assert.deepEqual(await snapshot('simple-rpg.save.'),mainSaves,'Acceptance changed main saves');
  const acceptanceSaves=await snapshot('simple-rpg.acceptance.save.');
