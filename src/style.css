@@ -11,6 +11,7 @@ header, footer { display: flex; justify-content: space-between; align-items: cen
 header { margin-bottom: 22px; }
 .wordmark { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 2px; }
 .edition, footer, .eyebrow { color: #9cafa1; font-size: 10px; letter-spacing: 1.5px; }
+.wave-indicator { color: #e2f3dd; font-size: 14px; font-weight: 700; white-space: nowrap; }
 .edition { border: 1px solid #40564d; border-radius: 20px; padding: 6px 10px; white-space: nowrap; }
 .world-frame { border: 1px solid #59725b; padding: 8px; border-radius: 12px; background: #1d332e; box-shadow: 0 15px 50px #060f1744; }
 #canvas { aspect-ratio: 1; width: min(100%, 340px); margin: auto; overflow: hidden; border-radius: 5px; background: #294b3b; }

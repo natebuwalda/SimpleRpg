@@ -63,7 +63,7 @@ function turnSummary(turn: TurnRolls): string {
 export function mountUi(root: HTMLElement): Ui {
   root.innerHTML = `
     <main class="game-shell">
-      <header><span class="wordmark">SIMPLE RPG</span><span class="edition">ITERATION 07</span></header>
+      <header><span class="wordmark">SIMPLE RPG</span><span class="wave-indicator" aria-label="Current wave" hidden></span><span class="edition">ITERATION 07</span></header>
       <p id="combat-announcement" class="sr-only" role="status" aria-label="Combat result" aria-atomic="true"></p>
       <section class="play-area">
         <div class="world-frame"><div id="canvas" role="img" aria-label="A tiny woodland adventure"></div></div>
@@ -177,6 +177,9 @@ export function mountUi(root: HTMLElement): Ui {
       currentStatus = saveStatus;
       currentDirty=unsavedProgress;
       currentCanSave=canSave;
+      const waveIndicator = root.querySelector<HTMLElement>('.wave-indicator')!;
+      waveIndicator.hidden = state.kind === 'title';
+      waveIndicator.textContent = state.kind === 'title' ? '' : `Wave ${state.checkpoint.slimeLevel}`;
       const canChange=canSave&&!unsavedProgress;
       const keepSheetOpen=!!root.querySelector('[data-character-sheet][open]');
       const focused = document.activeElement instanceof HTMLButtonElement && root.contains(document.activeElement) ? { action: document.activeElement.dataset.action, direction: document.activeElement.dataset.direction, rating: document.activeElement.dataset.rating } : null;
@@ -196,7 +199,7 @@ export function mountUi(root: HTMLElement): Ui {
       const slimeLevelLabel = `<span aria-label="Slime level">Slime level ${slimeLevel}</span>`;
       const canFind = state.kind === 'exploring' && canFindMoreSlimes(state.checkpoint);
       if (state.kind === 'exploring') root.querySelector('#screen')!.innerHTML = `
-        <div class="eyebrow"><span aria-label="Current wave">Wave ${slimeLevel}</span></div><h1>Find your way.</h1>
+        <h1>Find your way.</h1>
         <div class="stats"><span>HERO <strong aria-label="Hero health">${state.checkpoint.hp} / ${maxHp} HP</strong></span><span>POSITION <strong aria-label="Position">${state.checkpoint.position.x}, ${state.checkpoint.position.y}</strong></span><span>WORLD <strong aria-label="World size">${state.checkpoint.world.width} × ${state.checkpoint.world.height} tiles</strong></span></div>
         <p class="description"><span aria-label="Slimes remaining">${remainingText}</span><br>${remaining === 0 ? canFind ? 'The clearing is peaceful.' : 'There are no higher waves.' : 'Explore the clearing.'}</p>
         <nav class="dpad" aria-label="Movement"><button data-direction="up" aria-label="Move up">↑</button><button data-direction="left" aria-label="Move left">←</button><button data-direction="down" aria-label="Move down">↓</button><button data-direction="right" aria-label="Move right">→</button></nav>`;
@@ -230,6 +233,7 @@ export function mountUi(root: HTMLElement): Ui {
         }
       }
       if(focusNewAdventure&&state.kind==='exploring'){
+        window.scrollTo(0, 0);
         root.querySelector<HTMLButtonElement>('[data-direction="up"]')?.focus({preventScroll:true});focusNewAdventure=false;
       } else if (focused) {
         const selector = focused.rating ? `[data-rating="${focused.rating}"]` : focused.direction ? `[data-direction="${focused.direction}"]` : `[data-action="${focused.action}"]`;

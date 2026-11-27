@@ -62,6 +62,10 @@ for (const size of [{width:320,height:568},{width:390,height:844},{width:844,hei
     await page.setViewportSize(size);
     await seed(page,{...cleared,slimeLevel:1022});
     await expect(waveLabel(page)).toHaveText('Wave 1022');
+    await expect(waveLabel(page)).toBeInViewport();
+    const label = (await waveLabel(page).boundingBox())!;
+    const map = (await page.locator('#canvas').boundingBox())!;
+    expect(label.y + label.height).toBeLessThanOrEqual(map.y);
     await expect(page.locator('#screen')).toContainText('There are no higher waves.');
     await expect(find(page)).toHaveCount(0);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(size.width);
