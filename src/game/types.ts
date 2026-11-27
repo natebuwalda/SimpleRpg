@@ -18,8 +18,14 @@ export type TurnOrder = readonly [InitiativeResult, InitiativeResult];
 export type TurnRolls = readonly (
   | { kind: 'attack'; attacker: Combatant; roll: OpposedRoll; exploitBonus: bigint }
   | { kind: 'exploit'; roll: PoolRoll }
+  | { kind: 'momentum'; stacks: bigint }
+  | { kind: 'nuke'; damage: number }
 )[];
-export type BattleState = { offense: OffensiveAction; heroHp: number; enemyHp: number; slimeLevel: number; heroPools: { attack: number; defense: number }; turnOrder: TurnOrder; exploit: { pool: number; stacks: bigint } | null; lastTurn: TurnRolls | null; result: 'active' | 'victory' | 'defeat' | 'escaped' };
+export type BattleClassAction =
+  | { kind: 'momentum'; stacks: bigint }
+  | { kind: 'nuke'; damage: number }
+  | { kind: 'exploit'; pool: number; stacks: bigint };
+export type BattleState = { offense: OffensiveAction; heroHp: number; enemyHp: number; slimeLevel: number; heroPools: { attack: number; defense: number }; turnOrder: TurnOrder; classAction: BattleClassAction; lastTurn: TurnRolls | null; result: 'active' | 'victory' | 'defeat' | 'escaped' };
 export type GameState =
   | { kind: 'title' }
   | { kind: 'exploring'; checkpoint: Checkpoint }

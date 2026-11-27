@@ -2,14 +2,21 @@ import type { CharacterRatings } from './character';
 import { MAX_COMBAT_POOL } from './dice';
 
 export type OffensiveAction = 'melee' | 'magic';
-export type CombatCommand = OffensiveAction | 'exploit' | 'run';
+export type ClassAction = 'momentum' | 'nuke' | 'exploit';
+export type CombatCommand = OffensiveAction | ClassAction | 'run';
 export type ClassId = 'warrior' | 'wizard' | 'rogue';
 
 export const CLASS_DEFINITIONS = {
-  warrior: { label: 'Warrior', offense: 'melee' },
-  wizard: { label: 'Wizard', offense: 'magic' },
-  rogue: { label: 'Rogue', offense: 'melee' },
-} as const satisfies Record<ClassId, { label: string; offense: OffensiveAction }>;
+  warrior: { label: 'Warrior', offense: 'melee', classAction: 'momentum' },
+  wizard: { label: 'Wizard', offense: 'magic', classAction: 'nuke' },
+  rogue: { label: 'Rogue', offense: 'melee', classAction: 'exploit' },
+} as const satisfies Record<ClassId, { label: string; offense: OffensiveAction; classAction: ClassAction }>;
+
+export const CLASS_ACTION_DEFINITIONS = {
+  momentum: { label: 'Momentum', description: 'Each stack adds one Melee die and one Defense die for the encounter.' },
+  nuke: { label: 'Nuke', description: 'Deal Cunning + Lore damage directly on your turn.' },
+  exploit: { label: 'Exploit', description: 'Act first to build stacks with Cunning + Subterfuge.' },
+} as const satisfies Record<ClassAction, { label: string; description: string }>;
 
 export const OFFENSIVE_ACTIONS = {
   melee: { label: 'Melee', skill: 'combat' },
@@ -21,7 +28,7 @@ export function isClassId(value: unknown): value is ClassId {
 }
 
 export function isCombatCommand(value: string): value is CombatCommand {
-  return value === 'melee' || value === 'magic' || value === 'exploit' || value === 'run';
+  return value === 'run' || Object.hasOwn(OFFENSIVE_ACTIONS, value) || Object.hasOwn(CLASS_ACTION_DEFINITIONS, value);
 }
 
 export function offenseFor(classId: ClassId): OffensiveAction {
@@ -37,4 +44,8 @@ export function getCombatPools({ attributes, skills }: CharacterRatings, action:
 
 export function getExploitPool({ attributes, skills }: CharacterRatings): number {
   return Math.min(attributes.cunning + skills.subterfuge, MAX_COMBAT_POOL);
+}
+
+export function getNukeDamage({ attributes, skills }: CharacterRatings): number {
+  return attributes.cunning + skills.lore;
 }
