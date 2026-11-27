@@ -5,7 +5,7 @@ A small browser RPG built with TypeScript, Phaser and Vite. Each roster characte
 **[Play SimpleRpg](https://natebuwalda.github.io/SimpleRpg/)** — main follows accepted releases. Iteration 5 shipped in [PR #6](https://github.com/natebuwalda/SimpleRpg/pull/6).
 **[Acceptance game](https://natebuwalda.github.io/SimpleRpg/acceptance/)** — separately pinned candidate, with isolated browser saves.
 
-Iteration 8 adds Warrior and Wizard classes. Each slime wave has a level.
+Iteration 9 adds a rolled turn order to combat.
 
 ## Development
 
@@ -25,9 +25,11 @@ At ten slots, creation is disabled; existing playthroughs still Resume/Restart. 
 
 Tap directions or use arrows/WASD, one tile per press. Worlds independently choose width/height 20–40, with three stationary slimes on distinct traversable tiles away from the hero's start. The panel shows 10x10 tiles and scrolls to retain three visible tiles ahead. A three-tile impassable forest border remains; paths are decoration and there is no fog.
 
-Health = Prowess + Resistance; Initiative = Prowess + Cunning; resource capacity = Cunning + Resistance. Initiative and resources are read-only for now. **Character** shows the named build and derived values.
+Health = Prowess + Resistance; Initiative = Prowess + Cunning; resource capacity = Cunning + Resistance. Initiative determines combat turn order. Resources are displayed on the sheet. **Character** shows the named build and derived values.
 
-Warriors roll Melee with Prowess + Combat. Wizards roll Magic with Prowess + Lore. Both roll against the slime's current Defense pool. Each 8–10 is a success. An original 10 keeps its success and grants one bonus die, which never chains. Ones do nothing. Ties favor the defender; positive margin is damage. A surviving 3-Health slime attacks with 3d10 against Resistance + Combat. The hero acts first; lethal attacks skip the counterattack. Zero damage is valid. **Roll details** shows original/bonus dice and finishing exchanges. Run always succeeds and preserves damage. Victory fully heals the hero and removes only that slime.
+Warriors roll Melee with Prowess + Combat. Wizards roll Magic with Prowess + Lore. Both roll against the slime's current Defense pool. Each 8–10 is a success. An original 10 keeps its success and grants one bonus die, which never chains. Ones do nothing. Ties favor the defender; positive margin is damage. Slimes attack against Resistance + Combat. Zero damage is valid. **Roll details** shows original and bonus dice in the order attacks resolved. Victory fully heals the hero and removes only that slime.
+
+Before the first action, both sides roll initiative. The player rolls Prowess + Cunning. Slimes start with 3 initiative dice and gain one each level. The roll is capped at 1,024 dice. Most successes go first, followed by highest raw Initiative on a tie, then the player on an exact tie. **Turn Order** stays visible for the encounter. Melee, Magic, and Run resolve at the player's place in the order. A lethal hit skips the defeated combatant's turn. If the slime goes first and the player survives a hit while choosing Run, the player escapes with the damage they took.
 
 ## Saves and limits
 
@@ -41,7 +43,7 @@ Creation, deletion, Restart and confirmed roster reset require a successful writ
 
 A slime victory earns XP equal to the slime's level. Every 5 XP grants a player level and one advancement point. Open **Character** during exploration to spend a point on any Attribute or Skill, or bank it for later. Ratings can rise above their creation cap. Raising maximum Health leaves current Health unchanged until the next heal.
 
-After clearing all three slimes, select **Find more slimes** to start another wave one slime level higher on the same map. Slimes start with 3 Health and 3d10 for Attack and Defense, then gain one in each per level. Reload preserves the wave level and placements. Restart after defeat restores the original level 1 wave and full Health while preserving player levels, XP and points. If an autosave fails, use **Retry save** before spending a point, finding more slimes or restarting.
+After clearing all three slimes, select **Find more slimes** to start another wave one slime level higher on the same map. Slimes start with 3 Health and 3d10 for Attack, Defense, and Initiative, then gain one in each per level. Reload preserves the wave level and placements. Restart after defeat restores the original level 1 wave and full Health while preserving player levels, XP and points. If an autosave fails, use **Retry save** before spending a point, finding more slimes or restarting.
 
 For phone acceptance, clear wave 1, choose Find more slimes and check the next battle shows level 2 and 4 Health. A victory now awards 2 XP, taking a fresh character to player level 2. Reload and confirm the wave and progress remain saved. Lose a fight, choose Restart, and check that the original slimes return at level 1 while player advancement stays intact.
 
@@ -60,4 +62,4 @@ For phone acceptance, clear wave 1, choose Find more slimes and check the next b
 
 GitHub Pages serves `/SimpleRpg/` and pinned `/SimpleRpg/acceptance/`. Checks run on pushes/PRs. Publish game repeats checks, builds both paths and deploys after success. `ACCEPTANCE_REF` stores the acceptance commit; manual input can override it. See [acceptance hosting](docs/superpowers/acceptance-hosting.md).
 
-With Playwright Chromium installed, run `node scripts/verify-deployment.mjs https://natebuwalda.github.io/SimpleRpg/ [expected-main-entry]`. The verifier exercises independent roster slots, the higher-wave XP reward and reload on Iterations 7 and 8, both classes on Iteration 8, and separation between the main and acceptance saves.
+With Playwright Chromium installed, run `node scripts/verify-deployment.mjs https://natebuwalda.github.io/SimpleRpg/ [expected-main-entry]`. The verifier exercises independent roster slots, higher-wave XP and reload, both classes, Iteration 9 turn order, and separation between the main and acceptance saves.

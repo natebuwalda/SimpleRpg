@@ -10,5 +10,5 @@ export function isSlimeLevel(value: unknown): value is number {
 
 export function slimeStats(level: number) {
   const rating = level + 2;
-  return { maxHp: rating, attack: rating, defense: rating, xp: level };
+  return { maxHp: rating, attack: rating, defense: rating, initiative: rating, xp: level };
 }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {chromium,expect} from '@playwright/test';
-import {attack,createCharacter,checkpoint} from '../e2e/helpers.ts';
+import {attack,createCharacter,checkpoint,setCombatFaces,steps} from '../e2e/helpers.ts';
 
 const root=new URL(process.argv[2]??'http://127.0.0.1:4181/SimpleRpg/');
 const expectedMainScript=process.argv[3],browser=await chromium.launch({headless:true});
@@ -43,7 +43,7 @@ try{
   if(!roster){
    await page.reload();await resume('Smoke one');await expect(page.getByLabel('Hero health')).toHaveText('5 / 5 HP');return {roster:false};
   }
-  await page.getByRole('button',{name:'Move right',exact:true}).click();
+  await steps(page,'right');
   await expect(page.locator('#screen')).toHaveAttribute('aria-busy','false');
   await page.getByRole('button',{name:'Return to characters',exact:true}).click();
   await begin('Smoke two',true);
@@ -54,28 +54,29 @@ try{
   await resume('Smoke one');await expect(page.getByLabel('Position')).toHaveText('4, 3');await expect(page.getByLabel('Hero health')).toHaveText('5 / 5 HP');
   await page.reload();await resume('Smoke two');await expect(page.getByLabel('Position')).toHaveText('3, 4');await expect(page.getByLabel('Hero health')).toHaveText('7 / 7 HP');
   const edition=await page.locator('.edition').textContent();
-  if(['ITERATION 06','ITERATION 07','ITERATION 08'].includes(edition)){
+  const hasInitiative=edition==='ITERATION 09';
+  if(['ITERATION 06','ITERATION 07','ITERATION 08','ITERATION 09'].includes(edition)){
    await page.getByRole('button',{name:'Return to characters',exact:true}).click();
    await begin('Smoke progression',true,0);
-   await page.getByRole('button',{name:'Move right',exact:true}).click();
+   await steps(page,'right');
    await attack(page,[...Array(10).fill(8),1,1,1]);
    await expect(page.locator('#screen')).toContainText('+1 XP.');
    if(edition!=='ITERATION 06'){
     const back=page.getByRole('button',{name:'Back to clearing',exact:true});
     for(let remaining=2;remaining>0;remaining--){
      await back.click();
-     await page.getByRole('button',{name:'Move right',exact:true}).click();
+     await steps(page,'right');
      await expect(page.locator('#screen')).toHaveAttribute('aria-busy','false');
-     await page.getByRole('button',{name:'Move right',exact:true}).click();
+     await steps(page,'right');
      await attack(page,[...Array(10).fill(8),1,1,1]);
     }
     await back.click();
     await page.evaluate(()=>{Math.random=()=>0;});
     await page.getByRole('button',{name:'Find more slimes',exact:true}).click();
     await expect(page.locator('header').getByLabel('Current wave',{exact:true})).toHaveText('Wave 2');
-    await page.getByRole('button',{name:'Move right',exact:true}).click();
+    await steps(page,'right');
     await expect(page.getByLabel('Slime health')).toHaveText('4 / 4 HP');
-    if(edition==='ITERATION 08')await expect(page.getByRole('button',{name:'Melee',exact:true})).toBeVisible();
+    if(edition==='ITERATION 08'||hasInitiative)await expect(page.getByRole('button',{name:'Melee',exact:true})).toBeVisible();
     await attack(page,[...Array(10).fill(8),1,1,1,1]);
     await expect(page.locator('#screen')).toContainText('+2 XP.');
     await page.reload();await resume('Smoke progression');
@@ -83,15 +84,25 @@ try{
     await page.getByText('Character',{exact:true}).click();
     await expect(page.getByLabel('Character progression')).toContainText('Level 2 · 0 / 5 XP · 1 point available');
     const checks={roster:true,independentPlaythroughs:2,persistedVictoryXp:true,persistedSlimeLevel:2};
-    if(edition!=='ITERATION 08')return checks;
+    if(edition!=='ITERATION 08'&&!hasInitiative)return checks;
     await page.getByRole('button',{name:'Return to characters',exact:true}).click();
     await begin('Smoke Wizard',false,0,'wizard');
-    await page.getByRole('button',{name:'Move right',exact:true}).click();
+    if(hasInitiative){
+     await steps(page,'right',1,[1,1,1,1,1,1,8,1,1]);
+     const order=page.getByRole('list',{name:'Turn Order',exact:true}).getByRole('listitem');
+     await expect(order).toHaveText(['Meadow slime · 1 success','You · 0 successes']);
+     await expect(page.getByLabel('Hero health')).toHaveText('5 / 5 HP');
+     await setCombatFaces(page,[8,1,1,1,1,1,1]);
+     await page.getByRole('button',{name:'Run',exact:true}).tap();
+     await expect(page.getByLabel('Hero health')).toHaveText('4 / 5 HP');
+     await steps(page,'right',1,[8,1,1,1,1,1,1,1,1]);
+     await expect(order.first()).toHaveText('You · 1 success');
+    }else await steps(page,'right');
     await expect(page.getByRole('button',{name:'Magic',exact:true})).toBeVisible();
     await expect(page.locator('.combat-result')).toHaveText('Magic 4d10 vs 3d10 defense.');
     await attack(page,[8,8,8,1,1,1,1]);
     await expect(page.getByRole('heading',{name:'Victory!'})).toBeVisible();
-    return {...checks,verifiedClasses:['Warrior','Wizard']};
+    return {...checks,verifiedClasses:['Warrior','Wizard'],...(hasInitiative?{verifiedTurnOrder:true}:{})};
    }
    await page.reload();await resume('Smoke progression');
    await page.getByText('Character',{exact:true}).click();
@@ -101,12 +112,12 @@ try{
   return {roster:true,independentPlaythroughs:2};
  }
  const mainEdition=await open(root,expectedMainScript);
- assert.ok(['ITERATION 04','ITERATION 05','ITERATION 06','ITERATION 07','ITERATION 08'].includes(mainEdition),`Unexpected main edition: ${mainEdition}`);
+ assert.ok(['ITERATION 04','ITERATION 05','ITERATION 06','ITERATION 07','ITERATION 08','ITERATION 09'].includes(mainEdition),`Unexpected main edition: ${mainEdition}`);
  const mainChecks=await exercise();
  const mainSaves=await snapshot('simple-rpg.save.');
  const acceptance=new URL('acceptance/',root);
  const acceptanceEdition=await open(acceptance);
- assert.equal(acceptanceEdition,'ITERATION 08','Acceptance must serve Iteration 8');
+ assert.equal(acceptanceEdition,'ITERATION 09','Acceptance must serve Iteration 9');
  const acceptanceChecks=await exercise();
  assert.deepEqual(await snapshot('simple-rpg.save.'),mainSaves,'Acceptance changed main saves');
  const acceptanceSaves=await snapshot('simple-rpg.acceptance.save.');

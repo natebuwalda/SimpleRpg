@@ -27,7 +27,7 @@ test('run returns to safe tile', async ({ page }) => {
   await enterBattle(page);
   await page.getByRole('button', { name: 'Run', exact: true }).tap();
   await expect(page.getByLabel('Position')).toHaveText('15, 14');
-  await page.getByRole('button', { name: 'Move down' }).tap();
+  await steps(page, 'down');
   await expect(page.getByRole('button', { name: 'Melee', exact: true })).toBeVisible();
 });
 

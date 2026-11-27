@@ -1,4 +1,4 @@
-import type { UiAction, Character, Checkpoint, Direction, GameState, TurnRolls } from '../game/types';
+import type { UiAction, Character, Checkpoint, Direction, GameState, TurnOrder, TurnRolls } from '../game/types';
 import { deriveStats } from '../game/character';
 import { CLASS_DEFINITIONS, OFFENSIVE_ACTIONS, getCombatPools, offenseFor } from '../game/combat-actions';
 import type { PoolRoll } from '../game/dice';
@@ -53,19 +53,27 @@ function diceText(label: string, roll: PoolRoll): string {
 function rollDetails(turn: TurnRolls | null | undefined): string {
   if (!turn) return '';
   return `<details class="game-details"><summary>Roll details</summary><div class="detail-content">
-    ${diceText('Your attack dice', turn.hero.attack)}${diceText('Slime defense dice', turn.hero.defense)}
-    ${turn.slime ? diceText('Slime attack dice', turn.slime.attack) + diceText('Your defense dice', turn.slime.defense) : '<p>No counterattack.</p>'}
+    ${turn.map(({ attacker, roll }) => attacker === 'hero'
+      ? diceText('Your attack dice', roll.attack) + diceText('Slime defense dice', roll.defense)
+      : diceText('Slime attack dice', roll.attack) + diceText('Your defense dice', roll.defense)).join('')}
+    ${turn.length === 1 && turn[0].attacker === 'hero' ? '<p>No counterattack.</p>' : ''}
     <p>8–10 succeeds. Each original 10 adds one bonus die; bonus dice never add another. Ties favor the defender.</p></div></details>`;
 }
-function turnSummary(turn: TurnRolls): string {
-  return `You: ${turn.hero.attack.successes} vs ${turn.hero.defense.successes} → ${turn.hero.damage} damage.`
-    + (turn.slime ? `<br>Slime: ${turn.slime.attack.successes} vs ${turn.slime.defense.successes} → ${turn.slime.damage} damage.` : '');
+function turnSummary(turn: TurnRolls, separator = '<br>'): string {
+  return turn.map(({ attacker, roll }) =>
+    `${attacker === 'hero' ? 'You' : 'Slime'}: ${roll.attack.successes} vs ${roll.defense.successes} → ${roll.damage} damage.`,
+  ).join(separator);
+}
+function turnOrderDetails(order: TurnOrder): string {
+  return `<section class="turn-order"><h2 id="turn-order-label">Turn Order</h2><ol aria-labelledby="turn-order-label">
+    ${order.map(({ combatant, successes }) => `<li>${combatant === 'hero' ? 'You' : 'Meadow slime'} · ${successes} ${successes === 1 ? 'success' : 'successes'}</li>`).join('')}
+  </ol></section>`;
 }
 
 export function mountUi(root: HTMLElement): Ui {
   root.innerHTML = `
     <main class="game-shell">
-      <header><span class="wordmark">SIMPLE RPG</span><span class="wave-indicator" aria-label="Current wave" hidden></span><span class="edition">ITERATION 08</span></header>
+      <header><span class="wordmark">SIMPLE RPG</span><span class="wave-indicator" aria-label="Current wave" hidden></span><span class="edition">ITERATION 09</span></header>
       <p id="combat-announcement" class="sr-only" role="status" aria-label="Combat result" aria-atomic="true"></p>
       <section class="play-area">
         <div class="world-frame"><div id="canvas" role="img" aria-label="A tiny woodland adventure"></div></div>
@@ -208,6 +216,7 @@ export function mountUi(root: HTMLElement): Ui {
       if (state.kind === 'battle') root.querySelector('#screen')!.innerHTML = `
         <div class="eyebrow">${slimeLevelLabel}</div><h1>Meadow slime</h1>
         <div class="stats"><span>HERO <strong aria-label="Hero health">${state.battle.heroHp} / ${maxHp} HP</strong></span><span>SLIME <strong aria-label="Slime health">${state.battle.enemyHp} / ${slimeStats(state.battle.slimeLevel).maxHp} HP</strong></span></div>
+        ${turnOrderDetails(state.battle.turnOrder)}
         <p class="description combat-result">${state.battle.lastTurn ? turnSummary(state.battle.lastTurn) : `${OFFENSIVE_ACTIONS[state.battle.offense].label} ${state.battle.heroPools.attack}d10 vs ${slimeStats(state.battle.slimeLevel).defense}d10 defense.`}</p>
         <div class="actions"><button class="primary" data-action="${state.battle.offense}">${OFFENSIVE_ACTIONS[state.battle.offense].label}</button><button data-action="run">Run</button></div>`;
       if (state.kind === 'victory' || state.kind === 'defeat') {
@@ -227,7 +236,7 @@ export function mountUi(root: HTMLElement): Ui {
         if (turn && turn !== announcedTurn) {
           announcedTurn = turn;
           turnNumber++;
-          announcement.textContent = `Turn ${turnNumber}. ${turnSummary(turn).replace('<br>', ' ')}${reward?' '+reward:''}`;
+          announcement.textContent = `Turn ${turnNumber}. ${turnSummary(turn, ' ')}${reward?' '+reward:''}`;
         } else if (!turn) {
           announcedTurn = null;
           turnNumber = 0;

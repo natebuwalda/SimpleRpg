@@ -30,8 +30,16 @@ export async function seed(page:Page, value = checkpoint) {
   await expect(page.getByLabel('Position')).toBeVisible();
   await expect(page.locator('#screen')).toHaveAttribute('aria-busy','false');
 }
-export async function steps(page:Page, direction:string, count=1) {
-  for(let i=0;i<count;i++) {await page.getByRole('button',{name:`Move ${direction}`,exact:true}).tap();await expect(page.locator('#screen')).toHaveAttribute('aria-busy','false');}
+export async function steps(page:Page, direction:string, count=1, initiativeFaces?:number[]) {
+  const random = await page.evaluateHandle(() => Math.random);
+  try {
+    if (initiativeFaces) await setCombatFaces(page, initiativeFaces);
+    else await page.evaluate(() => { Math.random = () => 0; });
+    for(let i=0;i<count;i++) {await page.getByRole('button',{name:`Move ${direction}`,exact:true}).tap();await expect(page.locator('#screen')).toHaveAttribute('aria-busy','false');}
+  } finally {
+    await page.evaluate(original => { Math.random = original; }, random);
+    await random.dispose();
+  }
 }
 export async function enterBattle(page:Page) {
   await seed(page);

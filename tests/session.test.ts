@@ -24,7 +24,7 @@ it('entering an encounter blocks movement until battle ends', () => {
 it('victory heals and clears the encounter once', () => {
   const victory = transition(transition(encounter(2), { type: 'melee' }), { type: 'melee' });
   expect(victory).toMatchObject({ kind: 'victory', checkpoint: { hp: 5, position: { x: 14, y: 15 }, completedEncounterIds: ['slime-1'] } });
-  expect(victory).toMatchObject({ lastTurn: { hero: { damage: 2 }, slime: null } });
+  expect(victory).toMatchObject({ lastTurn: [{ attacker: 'hero', roll: { damage: 2 } }] });
   if (victory.kind !== 'victory') throw Error('Expected victory');
   expect(victory.checkpoint).not.toHaveProperty('lastTurn');
   const exploring = transition(victory, { type: 'acknowledgeVictory' });

@@ -30,7 +30,7 @@ test('can raise a starting five, spend on either group, and reject overspending'
 test('winning grants one XP once, and entering battle uses the effective build', () => {
   const checkpoint = createCheckpoint(generateWorld(() => 0));
   checkpoint.progression = spendPoint(awardXp(createProgression(), 5), { group: 'skills', key: 'combat' });
-  const battle = transition({ kind: 'exploring', checkpoint }, { type: 'move', direction: 'right' });
+  const battle = transition({ kind: 'exploring', checkpoint }, { type: 'move', direction: 'right' }, () => 0);
   expect(battle).toMatchObject({ kind: 'battle', battle: { heroPools: { attack: 6 } } });
   expect(transition(battle, { type: 'run' })).toMatchObject({ checkpoint: { progression: checkpoint.progression } });
   let roll = 0;
