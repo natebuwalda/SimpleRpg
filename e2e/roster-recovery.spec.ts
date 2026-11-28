@@ -1,8 +1,8 @@
 import {test,expect,type Page} from '@playwright/test';
 import {checkpoint,seed,createCharacter,startAdventure,steps,attack,losingFaces} from './helpers';
 declare global{interface Window{__failWrites:boolean;}}
-async function failWrites(page:Page){await page.evaluate(()=>{const original=Storage.prototype.setItem;window.__failWrites=true;Storage.prototype.setItem=function(key,value){if(window.__failWrites&&key.endsWith('.save.v12'))throw Error('quota');return original.call(this,key,value);};});}
-async function read(page:Page){return page.evaluate(()=>localStorage.getItem('simple-rpg.save.v12'));}
+async function failWrites(page:Page){await page.evaluate(()=>{const original=Storage.prototype.setItem;window.__failWrites=true;Storage.prototype.setItem=function(key,value){if(window.__failWrites&&key.endsWith('.save.v13'))throw Error('quota');return original.call(this,key,value);};});}
+async function read(page:Page){return page.evaluate(()=>localStorage.getItem('simple-rpg.save.v13'));}
 test('failed creation preserves draft and retries without a ghost slot',async({page})=>{
  await page.goto('./');await failWrites(page);await page.getByRole('button',{name:'New Character',exact:true}).click();await createCharacter(page);
  await page.getByRole('button',{name:'Begin adventure',exact:true}).click();await expect(page.getByRole('status',{name:'Creation result'})).toContainText('cannot be saved');expect(await read(page)).toBeNull();
@@ -28,7 +28,7 @@ test('failed defeat and Restart stay visible; retry persists defeat across reloa
  await page.evaluate(()=>window.__failWrites=false);await page.getByRole('button',{name:'Retry save',exact:true}).click();await expect(page.getByRole('status',{name:'Save status'})).toContainText('Adventure saved');await page.reload();await expect(page.getByRole('button',{name:'Restart',exact:true})).toBeVisible();
 });
 test('corrupt v6 ignores valid old save and reset needs durable confirmation',async({page})=>{
- await page.goto('./');await page.evaluate(cp=>{localStorage.setItem('simple-rpg.save.v5',JSON.stringify(cp));localStorage.setItem('simple-rpg.save.v12','bad');},checkpoint);await page.reload();await failWrites(page);
+ await page.goto('./');await page.evaluate(cp=>{localStorage.setItem('simple-rpg.save.v5',JSON.stringify(cp));localStorage.setItem('simple-rpg.save.v13','bad');},checkpoint);await page.reload();await failWrites(page);
  await expect(page.getByRole('button',{name:'New Character',exact:true})).toBeDisabled();
  await page.getByRole('button',{name:'Reset roster',exact:true}).click();await page.getByRole('button',{name:'Reset roster',exact:true}).click();await expect(page.getByRole('status',{name:'Confirmation status'})).toContainText('cannot be saved');expect(await read(page)).toBe('bad');
  await page.evaluate(()=>window.__failWrites=false);await page.getByRole('button',{name:'Reset roster',exact:true}).click();await expect(page.getByLabel('Roster capacity')).toHaveText('0 / 10 slots');
@@ -42,8 +42,8 @@ test('without locks an existing active slot can play read-only',async({page})=>{
  await seed(page);const before=await read(page);await page.addInitScript(()=>Object.defineProperty(navigator,'locks',{value:undefined}));await page.reload();await page.getByRole('button',{name:'Resume',exact:true}).click();await steps(page,'right');await expect(page.getByRole('status',{name:'Save status'})).toContainText('cannot be saved');expect(await read(page)).toBe(before);
 });
 test('changed unreadable raw renews reset confirmation before anything is removed',async({page,context})=>{
- await page.goto('./');await page.evaluate(()=>localStorage.setItem('simple-rpg.save.v12','first bad'));await page.reload();await page.getByRole('button',{name:'Reset roster',exact:true}).click();
- const second=await context.newPage();await second.goto('./');await second.evaluate(()=>localStorage.setItem('simple-rpg.save.v12','second bad'));
+ await page.goto('./');await page.evaluate(()=>localStorage.setItem('simple-rpg.save.v13','first bad'));await page.reload();await page.getByRole('button',{name:'Reset roster',exact:true}).click();
+ const second=await context.newPage();await second.goto('./');await second.evaluate(()=>localStorage.setItem('simple-rpg.save.v13','second bad'));
  await page.bringToFront();await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await expect(page.getByRole('status',{name:'Confirmation status'})).toContainText('Saved data changed');expect(await read(page)).toBe('second bad');
  await page.getByRole('button',{name:'Keep data',exact:true}).click();expect(await read(page)).toBe('second bad');
 });

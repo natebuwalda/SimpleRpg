@@ -40,6 +40,7 @@ test('Find advances only a cleared wave and Restart restores level one', () => {
 
 test('a level eleven victory can grant three player levels at once', () => {
   const checkpoint = makeCheckpoint();
+  checkpoint.progression.curve = 'flat-v1';
   checkpoint.slimeLevel = 11;
   checkpoint.position = { x: 14, y: 15 };
   checkpoint.progression.xp = 4;
@@ -74,6 +75,7 @@ test('the final slime wave is clearable within the recorded dice limit', () => {
 test('victory reports credited rather than nominal XP at the player numeric limit', () => {
   const checkpoint = makeCheckpoint();
   checkpoint.position = { x: 14, y: 15 };
+  checkpoint.progression.curve = 'flat-v1';
   checkpoint.progression.level = Number.MAX_SAFE_INTEGER - 10;
   checkpoint.progression.xp = 4;
   let initiativeDie = 0;

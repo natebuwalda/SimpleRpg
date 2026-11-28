@@ -4,7 +4,7 @@ import { createRosterStore } from '../src/game/roster-store';
 import { loadRoster, parseRoster, upgradeRoster } from '../src/game/save';
 import { makeCheckpoint, makeWorld } from './fixtures';
 
-const current = 'game.save.v12';
+const current = 'game.save.v13';
 const prior = 'game.save.v9';
 const firstId = '00000000-0000-4000-8000-000000000001';
 const secondId = '00000000-0000-4000-8000-000000000002';
@@ -16,10 +16,11 @@ function storageWith(data: Map<string, string>) {
 
 test('locked v9 migration preserves classes, slot state and source bytes', async () => {
   const warrior = makeCheckpoint();
-  warrior.progression = awardXp(warrior.progression, 8);
+  warrior.progression = awardXp({ ...warrior.progression, curve: 'flat-v1' }, 8);
   warrior.position = { x: 4, y: 3 };
   const wizard = makeCheckpoint();
   wizard.character.classId = 'wizard';
+  wizard.progression.curve = 'flat-v1';
   wizard.slimeLevel = 4;
   wizard.completedEncounterIds = ['slime-2'];
   const slots = [
@@ -32,9 +33,9 @@ test('locked v9 migration preserves classes, slot state and source bytes', async
   const storage = storageWith(data);
   const store = createRosterStore(storage, locks, current);
   expect(store.read()).toMatchObject({ legacy: 9, status: 'ready' });
-  expect(await store.transact({ type: 'upgrade' })).toMatchObject({ kind: 'saved', roster: { version: 12, slots } });
+  expect(await store.transact({ type: 'upgrade' })).toMatchObject({ kind: 'saved', roster: { version: 13, slots } });
   expect(data.get(prior)).toBe(raw);
-  expect(parseRoster(data.get(current)!)).toEqual({ version: 12, slots });
+  expect(parseRoster(data.get(current)!)).toEqual({ version: 13, slots });
   data.set(current, 'broken');
   expect(loadRoster(storage, current)).toMatchObject({ status: 'invalid', raw: 'broken', roster: null });
   legacy.slots[0].checkpoint.character = { ...warrior.character, classId: 'rogue' };
@@ -57,6 +58,6 @@ test('Rogue saves preserve class through reload and Restart and reject class edi
   })).toMatchObject({ kind: 'invalid' });
   expect(await reloaded.transact({ type: 'update', id: firstId, expectedRevision: 1, status: 'defeated', checkpoint })).toMatchObject({ kind: 'saved' });
   expect(await reloaded.transact({ type: 'restart', id: firstId, expectedRevision: 2 })).toMatchObject({
-    kind: 'saved', slot: { status: 'active', checkpoint: { version: 11, character, currentResources: 0 } },
+    kind: 'saved', slot: { status: 'active', checkpoint: { version: 12, character, currentResources: 0 } },
   });
 });

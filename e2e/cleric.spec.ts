@@ -35,7 +35,9 @@ test('a Cleric starts with half Resources and can spend or restore one on a turn
 });
 
 test('an Iteration 12 Cleric keeps their saved Resources after migration', async ({ page }) => {
-  const previous = wrapCheckpoint({ ...checkpoint, version: 10, character, currentResources: 4 });
+  const { slots } = wrapCheckpoint({ ...checkpoint, character, currentResources: 4 });
+  const { level, xp, investments } = checkpoint.progression;
+  const previous = { slots: [{ ...slots[0], checkpoint: { ...slots[0].checkpoint, version: 10, progression: { level, xp, investments } } }] };
   const raw = JSON.stringify({ ...previous, version: 11 });
   await page.goto('./');
   await page.evaluate(raw => localStorage.setItem('simple-rpg.save.v11', raw), raw);
@@ -44,10 +46,10 @@ test('an Iteration 12 Cleric keeps their saved Resources after migration', async
   await expect(balance(page)).toHaveText('4 / 5 Resources');
   const saves = await page.evaluate(() => ({
     previous: localStorage.getItem('simple-rpg.save.v11'),
-    current: JSON.parse(localStorage.getItem('simple-rpg.save.v12') ?? 'null'),
+    current: JSON.parse(localStorage.getItem('simple-rpg.save.v13') ?? 'null'),
   }));
   expect(saves.previous).toBe(raw);
-  expect(saves.current).toMatchObject({ version: 12, slots: [{ checkpoint: { version: 11, currentResources: 4 } }] });
+  expect(saves.current).toMatchObject({ version: 13, slots: [{ checkpoint: { version: 12, currentResources: 4 } }] });
 });
 
 test('Heal stops at zero and a failed Smite victory save retries Health, XP and Resources together', async ({ page }) => {
@@ -61,12 +63,12 @@ test('Heal stops at zero and a failed Smite victory save retries Health, XP and 
   await expect(command(page, 'Heal')).toBeDisabled();
   await expect(command(page, 'Heal')).toHaveAccessibleDescription('Heal requires at least one Resource.');
   await expect(command(page, 'Melee')).toBeFocused();
-  const before = await page.evaluate(() => localStorage.getItem('simple-rpg.save.v12'));
+  const before = await page.evaluate(() => localStorage.getItem('simple-rpg.save.v13'));
   await page.evaluate(() => {
     const setItem = Storage.prototype.setItem;
     let failOnce = true;
     Storage.prototype.setItem = function (key, value) {
-      if (key.endsWith('.save.v12') && failOnce) { failOnce = false; throw Error('quota'); }
+      if (key.endsWith('.save.v13') && failOnce) { failOnce = false; throw Error('quota'); }
       setItem.call(this, key, value);
     };
   });
@@ -74,7 +76,7 @@ test('Heal stops at zero and a failed Smite victory save retries Health, XP and 
   await command(page, 'Smite').tap();
   await expect(command(page, 'Retry save')).toBeVisible();
   await expect(balance(page)).toHaveText('1 / 5 Resources');
-  expect(await page.evaluate(() => localStorage.getItem('simple-rpg.save.v12'))).toBe(before);
+  expect(await page.evaluate(() => localStorage.getItem('simple-rpg.save.v13'))).toBe(before);
   await command(page, 'Retry save').tap();
   await expect(command(page, 'Retry save')).toHaveCount(0);
   await page.reload();
@@ -82,7 +84,7 @@ test('Heal stops at zero and a failed Smite victory save retries Health, XP and 
   await expect(page.getByLabel('Hero health')).toHaveText('5 / 5 HP');
   await expect(balance(page)).toHaveText('1 / 5 Resources');
   await page.getByText('Character', { exact: true }).click();
-  await expect(page.getByLabel('Character progression')).toContainText('1 / 5 XP');
+  await expect(page.getByLabel('Character progression')).toContainText('1 / 5 total XP');
 });
 
 test('full Resources disables Smite and Run carries the live balance into Resume and roster details', async ({ page }) => {

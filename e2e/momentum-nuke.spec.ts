@@ -61,8 +61,8 @@ test('a slime can defend against Nuke and the Wizard’s later victory persists'
   await nuke.tap();
   await expect(page.getByRole('heading', { name: 'Victory!' })).toBeVisible();
   await expect(result).toContainText('Nuke: 4 damage. Slime blocked 0 of 4.');
-  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('simple-rpg.save.v12')!));
-  expect(stored.version).toBe(12);
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('simple-rpg.save.v13')!));
+  expect(stored.version).toBe(13);
   expect(stored.slots[0].checkpoint).toEqual({
     ...checkpoint, position: adjacent, character: wizard, hp: 5, completedEncounterIds: ['slime-1'],
     progression: { ...checkpoint.progression, xp: 1 },

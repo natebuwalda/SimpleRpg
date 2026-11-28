@@ -17,7 +17,7 @@ test('a Wizard keeps the draft through Back and a failed Begin, then casts Magic
     const setItem = Storage.prototype.setItem;
     let failOnce = true;
     Storage.prototype.setItem = function (key, value) {
-      if (key.endsWith('.save.v12') && failOnce) {
+      if (key.endsWith('.save.v13') && failOnce) {
         failOnce = false;
         throw Error('quota');
       }
@@ -81,7 +81,7 @@ test('an Iteration 7 save opens as Warrior with the current wave and Melee pool'
   await expect(page.locator('.combat-result')).toHaveText('Melee 5d10 vs 5d10 defense.');
   const saved = await page.evaluate(() => ({
     old: localStorage.getItem('simple-rpg.save.v8'),
-    current: JSON.parse(localStorage.getItem('simple-rpg.save.v12')!),
+    current: JSON.parse(localStorage.getItem('simple-rpg.save.v13')!),
   }));
   expect(saved.old).toBe(JSON.stringify(old));
   expect(saved.current.slots[0].checkpoint.character.classId).toBe('warrior');
