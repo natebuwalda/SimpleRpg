@@ -22,7 +22,7 @@ Resolve Resource actions in the existing Turn Order. Warrior builds and Wizard r
 
 ## Wizard
 
-- Start each encounter with Maximum Resources. Nuke still deals effective Cunning + Lore direct damage without a roll on the Wizard's turn. It costs one available Resource when it resolves.
+- Start each encounter with Maximum Resources. Nuke starts from effective Cunning + Lore base damage on the Wizard’s turn. The target rolls its normal defense pool and each success reduces damage by one, down to zero. The Wizard spends one available Resource when the action resolves.
 - If Shield is inactive, Study lets the Wizard choose a whole number of available Resources to reserve, from one up to the current available amount. The selection itself takes no turn. Resolving Study on the Wizard's turn moves those points into the Shield reservation.
 - While Shield is active, reduce each incoming damage event by the reserved amount down to zero. The full reservation applies to each event and does not diminish when it absorbs damage. A Shield raised after an earlier hit cannot reduce that hit.
 - Choosing Study again takes the Wizard's turn to remove Shield and return all reserved points to the available balance. The release is available even with no unreserved Resources. An enemy acting earlier that round still faces Shield. Both Shield and its reservation clear at encounter exit.
@@ -35,4 +35,4 @@ Resolve Resource actions in the existing Turn Order. Warrior builds and Wizard r
 
 ## Acceptance
 
-Verify Warrior gains on Melee and damaging hits, a free first Momentum, escalating costs, Execute's strict threshold, and reset at encounter exit. Verify Rogue stack creation, full conversion and damage at the cap, the Exploit gate, Prepare changing the next round, and Resource carryover. Verify Wizard Nuke costs, chosen reservations, repeated Shield reduction, release at zero available, and initiative timing. Check existing saves, Cleric behavior, and phone controls.
+Verify Warrior gains on Melee and damaging hits, a free first Momentum, escalating costs, Execute's strict threshold, and reset at encounter exit. Verify Rogue stack creation, full conversion and damage at the cap, the Exploit gate, Prepare changing the next round, and Resource carryover. Verify Wizard Nuke costs and defense mitigation, chosen reservations, repeated Shield reduction, release at zero available, and initiative timing. Check existing saves, Cleric behavior, and phone controls.

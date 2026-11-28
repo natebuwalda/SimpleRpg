@@ -16,7 +16,7 @@ export const CLASS_DEFINITIONS = {
 export const CLASS_ACTION_DEFINITIONS = {
   momentum: { label: 'Momentum', description: 'Spend one Resource per existing stack to gain another. Each stack adds one Melee and Defense die.' },
   execute: { label: 'Execute', description: 'Defeat a target with less Health than your current Resources.' },
-  nuke: { label: 'Nuke', description: 'Spend one Resource to deal Cunning + Lore damage directly.' },
+  nuke: { label: 'Nuke', description: 'Spend one Resource to deal Cunning + Lore damage, reduced by the target’s defense successes.' },
   study: { label: 'Study', description: 'Reserve Resources for Shield. Study again to release them.' },
   exploit: { label: 'Exploit', description: 'Act first to convert Melee stacks into Resources and deal damage equal to the resulting balance.' },
   prepare: { label: 'Prepare', description: 'Spend one Resource to add one initiative success starting next round.' },

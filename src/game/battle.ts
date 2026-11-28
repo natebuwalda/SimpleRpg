@@ -126,9 +126,12 @@ export function resolveTurn(state: BattleState, command: CombatCommand, rng: Ran
         classAction = { ...classAction, reservedResources, currentResources: classAction.currentResources + released - reservedResources };
         rolls.push({ kind: 'study', reservedResources, released, currentResources: classAction.currentResources });
       } else if (command === 'nuke' && classAction.kind === 'nuke') {
-        enemyHp = Math.max(0, enemyHp - classAction.damage);
+        const baseDamage = classAction.damage;
+        const defense = rollPool(enemy.defense, rng);
+        const damage = Math.max(0, baseDamage - defense.successes);
+        enemyHp = Math.max(0, enemyHp - damage);
         classAction = { ...classAction, currentResources: classAction.currentResources - 1 };
-        rolls.push({ kind: 'nuke', damage: classAction.damage, currentResources: classAction.currentResources });
+        rolls.push({ kind: 'nuke', baseDamage, defense, damage, currentResources: classAction.currentResources });
       } else if ((command === 'heal' || command === 'smite') && classAction.kind === 'cleric') {
         const roll = rollPool(classAction.pool, rng);
         const { currentResources, maxResources, maxHp } = classAction;

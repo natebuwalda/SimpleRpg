@@ -126,7 +126,7 @@ try{
     if(hasNewClassActions){
      await back.click();
      await steps(page,'right',2);
-     await expect(page.getByLabel('Nuke damage',{exact:true})).toHaveText('Nuke · 4 damage');
+     await expect(page.getByLabel('Nuke damage',{exact:true})).toHaveText(hasClassResources?'Nuke · 4 base damage':'Nuke · 4 damage');
      if(hasClassResources){
       await page.getByRole('spinbutton',{name:'Resources to reserve'}).fill('2');
       await setCombatFaces(page,[8,8,1,1,1,1,1]);
@@ -140,9 +140,18 @@ try{
       await release.tap();
       await expect(page.getByLabel('Resources',{exact:true})).toHaveText('5 / 5 Resources');
      }
-     await page.getByRole('button',{name:'Nuke',exact:true}).tap();
+     const nuke=page.getByRole('button',{name:'Nuke',exact:true});
+     const combatResult=page.getByRole('status',{name:'Combat result'});
+     if(hasClassResources){
+      await setCombatFaces(page,[8,8,1,...Array(7).fill(1)]);
+      await nuke.tap();
+      await expect(combatResult).toContainText('Nuke: 2 damage. Slime blocked 2 of 4.');
+      await expect(page.getByLabel('Slime health')).toHaveText('1 / 3 HP');
+      await setCombatFaces(page,[1,1,1]);
+     }
+     await nuke.tap();
      await expect(page.getByRole('heading',{name:'Victory!'})).toBeVisible();
-     await expect(page.getByRole('status',{name:'Combat result'})).toContainText('Nuke: 4 direct damage.');
+     await expect(combatResult).toContainText(hasClassResources?'Nuke: 4 damage. Slime blocked 0 of 4.':'Nuke: 4 direct damage.');
     }
     const verifiedClasses=['Warrior','Wizard'];
     if(hasRogue){

@@ -69,7 +69,7 @@ function describeTurnEntry(entry: TurnRolls[number]): string {
   switch (entry.kind) {
     case 'exploit': return `Exploit: ${entry.damage} direct damage. Converted ${entry.stacks} stacks and gained ${entry.resourceGain} Resources. ${entry.currentResources} remaining.`;
     case 'momentum': return `Momentum: 1 stack gained (${entry.stacks} total). Spent ${entry.cost} Resources. ${entry.currentResources} remaining.`;
-    case 'nuke': return `Nuke: ${entry.damage} direct damage. Spent 1 Resource. ${entry.currentResources} remaining.`;
+    case 'nuke': return `Nuke: ${entry.damage} damage. Slime blocked ${entry.baseDamage - entry.damage} of ${entry.baseDamage}. Spent 1 Resource. ${entry.currentResources} remaining.`;
     case 'execute': return 'Execute: Target defeated.';
     case 'prepare': return `Prepare: ${entry.successes} initiative successes next round. Spent 1 Resource. ${entry.currentResources} remaining.`;
     case 'study': return entry.released
@@ -89,7 +89,7 @@ function rollDetails(turn: TurnRolls | null | undefined): string {
   if (!turn) return '';
   const exchanges = turn.map(entry => {
     if (entry.kind === 'momentum') return `<p>Momentum gained. No roll.</p><p>${describeTurnEntry(entry)}</p>`;
-    if (entry.kind === 'nuke') return `<p>Nuke dealt ${entry.damage} direct damage. No roll.</p><p>Spent 1 Resource. ${entry.currentResources} remaining.</p>`;
+    if (entry.kind === 'nuke') return diceText('Slime defense dice', entry.defense) + `<p>${describeTurnEntry(entry)}</p>`;
     if (entry.kind === 'heal' || entry.kind === 'smite') {
       return diceText(`${CLASS_ACTION_DEFINITIONS[entry.kind].label} dice`, entry.roll) + `<p>${describeTurnEntry(entry)}</p>`;
     }
@@ -127,7 +127,7 @@ function classBattleDetails(battle: BattleState): string {
         <span aria-label="Execute threshold">Execute requires target HP below ${action.currentResources}</span></div>`;
     }
     case 'exploit': return `<p class="battle-pools" aria-label="Exploit stacks">Exploit stacks · ${action.stacks}</p>`;
-    case 'nuke': return `<div class="battle-class-values"><span aria-label="Nuke damage">Nuke · ${action.damage} damage</span>
+    case 'nuke': return `<div class="battle-class-values"><span aria-label="Nuke damage">Nuke · ${action.damage} base damage</span>
       ${action.reservedResources > 0 ? `<span aria-label="Shield reservation">Shield · ${action.reservedResources} reserved · blocks up to ${action.reservedResources} damage per hit</span>` : ''}</div>`;
     case 'cleric': return '';
   }

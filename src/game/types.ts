@@ -20,7 +20,7 @@ export type TurnRolls = readonly (
   | { kind: 'attack'; attacker: Combatant; roll: OpposedRoll; resourceGain?: number; stacksAdded?: number; absorbed?: number }
   | { kind: 'exploit'; damage: number; stacks: bigint; resourceGain: number; currentResources: number }
   | { kind: 'momentum'; stacks: bigint; cost: number; currentResources: number }
-  | { kind: 'nuke'; damage: number; currentResources: number }
+  | { kind: 'nuke'; baseDamage: number; defense: PoolRoll; damage: number; currentResources: number }
   | { kind: 'execute' }
   | { kind: 'prepare'; successes: number; currentResources: number }
   | { kind: 'study'; reservedResources: number; released: number; currentResources: number }

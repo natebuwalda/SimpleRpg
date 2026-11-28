@@ -64,23 +64,39 @@ test('Momentum clears after escape and defeat and a new encounter starts empty',
     .toMatchObject({ battle: { classAction: { stacks: 0n } } });
 });
 
-test('Nuke bypasses defense and a lethal first action uses zero combat dice', () => {
-  const rng = vi.fn(miss);
+test('a lethal Nuke with no defense successes rolls only the target’s defense dice', () => {
+  const rng = vi.fn(scriptedFaces(1,1,1));
   const result = resolveTurn(createBattle(5, wizard, 1, miss), 'nuke', rng);
-  expect(result).toMatchObject({ result: 'victory', enemyHp: 0, lastTurn: [{ kind: 'nuke', damage: 4 }] });
-  expect(rng).not.toHaveBeenCalled();
+  expect(result).toMatchObject({ result: 'victory', enemyHp: 0, lastTurn: [
+    { kind: 'nuke', baseDamage: 4, defense: { successes: 0 }, damage: 4, currentResources: 4 },
+  ] });
+  expect(rng).toHaveBeenCalledTimes(3);
+});
+
+test('defense successes reduce Nuke damage, including a full block that still costs a Resource', () => {
+  const battle = createBattle(5, wizard, 1, miss);
+  const partial = resolveTurn(battle, 'nuke', scriptedFaces(10,1,1, 8, 1,1,1, 1,1,1,1));
+  expect(partial).toMatchObject({ result: 'active', enemyHp: 1, lastTurn: [
+    { kind: 'nuke', defense: { original: [10,1,1], bonus: [8], successes: 2 }, damage: 2, currentResources: 4 },
+    { kind: 'attack', attacker: 'slime' },
+  ] });
+  const blocked = resolveTurn(battle, 'nuke', scriptedFaces(10,10,8, 8,8, 1,1,1, 1,1,1,1));
+  expect(blocked).toMatchObject({ result: 'active', enemyHp: 3, lastTurn: [
+    { kind: 'nuke', defense: { successes: 5 }, damage: 0, currentResources: 4 },
+    { kind: 'attack', attacker: 'slime' },
+  ] });
 });
 
 test('a surviving slime attacks once and an earlier defeat cancels Nuke', () => {
-  const rng = vi.fn(scriptedFaces(8,1,1,1,1, 1,1,1,1));
+  const rng = vi.fn(scriptedFaces(1,1,1,1,1, 8,1,1,1,1, 1,1,1,1));
   const result = resolveTurn(createBattle(5, wizard, 3, miss), 'nuke', rng);
   expect(result).toMatchObject({ result: 'active', enemyHp: 1, heroHp: 4, lastTurn: [
     { kind: 'nuke', damage: 4 }, { kind: 'attack', attacker: 'slime' },
   ] });
-  expect(rng).toHaveBeenCalledTimes(9);
+  expect(rng).toHaveBeenCalledTimes(14);
   expect(resolveTurn(createBattle(1, wizard, 1, slimeFirst()), 'nuke', scriptedFaces(8,1,1, 1,1,1,1)))
     .toMatchObject({ result: 'defeat', enemyHp: 3, lastTurn: [{ kind: 'attack', attacker: 'slime' }] });
-  expect(resolveTurn(createBattle(5, wizard, 1, slimeFirst()), 'nuke', scriptedFaces(8,1,1, 1,1,1,1)))
+  expect(resolveTurn(createBattle(5, wizard, 1, slimeFirst()), 'nuke', scriptedFaces(8,1,1, 1,1,1,1, 1,1,1)))
     .toMatchObject({ result: 'victory', lastTurn: [{ kind: 'attack', attacker: 'slime' }, { kind: 'nuke', damage: 4 }] });
 });
 
@@ -90,7 +106,7 @@ test('advanced Cunning and Lore raise Nuke damage and victory credits XP and hea
   checkpoint.progression.investments.attributes.cunning = 1;
   checkpoint.progression.investments.skills.lore = 2;
   const battle = transition({ kind: 'exploring', checkpoint }, moveRight, miss);
-  expect(transition(battle, { type: 'nuke' }, () => { throw Error('Nuke tried to roll'); })).toMatchObject({
+  expect(transition(battle, { type: 'nuke' }, scriptedFaces(1,1,1,1,1,1))).toMatchObject({
     kind: 'victory', xpAwarded: 4, lastTurn: [{ kind: 'nuke', damage: 7 }],
     checkpoint: { hp: 5, completedEncounterIds: ['slime-1'], progression: { xp: 4 } },
   });

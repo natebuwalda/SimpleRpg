@@ -33,7 +33,7 @@ Before the first action, both sides roll initiative. The player rolls Prowess + 
 
 A Warrior starts each encounter at zero Resources and gains one on each Melee and each hit that deals damage. **Momentum** costs one Resource per existing stack before adding a new stack. Each stack adds one die to later Melee and Defense rolls, up to 1,024 dice per pool. **Execute** immediately defeats a target whose remaining Health is below the Warrior's Resources. Both Resources and Momentum clear when the encounter ends.
 
-A Wizard starts each encounter at full Resources. **Nuke** spends one Resource to deal Cunning + Lore direct damage without rolling. **Study** reserves a chosen amount for Shield, which absorbs up to that amount on each hit. Use **Release Shield** on a later turn to return the reserved points.
+A Wizard starts each encounter at full Resources. **Nuke** spends one Resource to deal Cunning + Lore damage. The target rolls defense and blocks one damage per success, down to zero. **Study** reserves a chosen amount for Shield, which absorbs up to that amount on each hit. Use **Release Shield** on a later turn to return the reserved points.
 
 A Rogue starts or Restarts at zero Resources, carries their balance between encounters, and enters combat with at least one Resource. Each Melee adds an Exploit stack, even on a miss. **Exploit** requires a stack and first place in Turn Order. Convert all stacks to Resources up to the cap, then deal direct damage equal to the resulting balance. **Prepare** spends one Resource to add an initiative success and rerank Turn Order for the next round.
 

@@ -82,8 +82,9 @@ test('Wizard reserves a chosen amount, shields hits, and can release at zero ava
   await expect(page.getByLabel('Shield reservation')).toHaveText('Shield · 3 reserved · blocks up to 3 damage per hit');
   await expect(page.getByLabel('Hero health')).toHaveText('5 / 5 HP');
   await expect(announcement(page)).toContainText('Shield absorbed 3');
-  await commandWithDice(page, 'Nuke', incoming);
-  await commandWithDice(page, 'Nuke', incoming);
+  const nukeRound = [...Array(11).fill(1), ...incoming];
+  await commandWithDice(page, 'Nuke', nukeRound);
+  await commandWithDice(page, 'Nuke', nukeRound);
   await expect(button(page, 'Nuke')).toBeDisabled();
   await expect(resources(page)).toHaveText('0 / 5 Resources');
   await commandWithDice(page, 'Release Shield', incoming);

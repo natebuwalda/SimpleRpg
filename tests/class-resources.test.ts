@@ -90,8 +90,9 @@ test('Study reserves a chosen amount, shields every hit, and releases at zero av
   expect(shield).toMatchObject({ heroHp: 5, classAction: { currentResources: 2, reservedResources: 3 }, lastTurn: [
     { kind: 'study', reservedResources: 3 }, { attacker: 'slime', absorbed: 3 },
   ] });
-  const once = resolveTurn(shield, 'nuke', scriptedFaces(...incoming));
-  const twice = resolveTurn(once, 'nuke', scriptedFaces(...incoming));
+  const nukeRound = [...Array(11).fill(1), ...incoming];
+  const once = resolveTurn(shield, 'nuke', scriptedFaces(...nukeRound));
+  const twice = resolveTurn(once, 'nuke', scriptedFaces(...nukeRound));
   expect(twice).toMatchObject({ heroHp: 5, enemyHp: 3, classAction: { currentResources: 0, reservedResources: 3 }, lastTurn: [
     { kind: 'nuke', damage: 4, currentResources: 0 }, { attacker: 'slime', absorbed: 3 },
   ] });
