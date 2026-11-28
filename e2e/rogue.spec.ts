@@ -4,7 +4,7 @@ import { attack, checkpoint, createCharacter, seed, setCombatFaces, steps, wrapC
 const character = { ...checkpoint.character, name: 'Fern', classId: 'rogue' as const };
 const adjacent = { x: 14, y: 15 };
 
-test('a new Rogue starts empty, builds stacks on Melee misses, and Exploits for direct damage', async ({ page }) => {
+test('a new Rogue enters combat with one Resource, then builds stacks and Exploits for direct damage', async ({ page }) => {
   await page.goto('./');
   await page.getByRole('button', { name: 'New Character', exact: true }).click();
   await createCharacter(page, character);
@@ -13,10 +13,11 @@ test('a new Rogue starts empty, builds stacks on Melee misses, and Exploits for 
   await page.getByRole('button', { name: 'Begin adventure', exact: true }).click();
   await expect(page.getByLabel('Resources', { exact: true })).toHaveText('0 / 5 Resources');
   await steps(page, 'right');
+  await expect(page.getByLabel('Resources', { exact: true })).toHaveText('1 / 5 Resources');
   const exploit = page.getByRole('button', { name: 'Exploit', exact: true });
   await expect(exploit).toBeDisabled();
   await expect(exploit).toHaveAccessibleDescription('Exploit requires at least one stack.');
-  for (const total of [1, 2, 3]) {
+  for (const total of [1, 2]) {
     await attack(page, Array(15).fill(1));
     await expect(page.getByLabel('Exploit stacks')).toHaveText(`Exploit stacks · ${total}`);
   }

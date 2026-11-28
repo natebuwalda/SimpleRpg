@@ -35,7 +35,7 @@ A Warrior starts each encounter at zero Resources and gains one on each Melee an
 
 A Wizard starts each encounter at full Resources. **Nuke** spends one Resource to deal Cunning + Lore direct damage without rolling. **Study** reserves a chosen amount for Shield, which absorbs up to that amount on each hit. Use **Release Shield** on a later turn to return the reserved points.
 
-A Rogue starts or Restarts at zero Resources and carries their balance between encounters. Each Melee adds an Exploit stack, even on a miss. **Exploit** requires a stack and first place in Turn Order. Convert all stacks to Resources up to the cap, then deal direct damage equal to the resulting balance. **Prepare** spends one Resource to add an initiative success and rerank Turn Order for the next round.
+A Rogue starts or Restarts at zero Resources, carries their balance between encounters, and enters combat with at least one Resource. Each Melee adds an Exploit stack, even on a miss. **Exploit** requires a stack and first place in Turn Order. Convert all stacks to Resources up to the cap, then deal direct damage equal to the resulting balance. **Prepare** spends one Resource to add an initiative success and rerank Turn Order for the next round.
 
 Clerics start or Restart with half of maximum Resources, rounded up. **Heal** rolls Resistance + Lore to restore one HP per success, up to current Resources and missing HP, then spends one Resource. **Smite** uses the same pool for direct damage, up to the unused capacity, then restores one Resource. The one-point change still happens on zero successes. Heal is available above zero Resources and Smite below maximum. Victory and escape carry the resulting Resources into the next encounter.
 

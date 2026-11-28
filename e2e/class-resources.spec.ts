@@ -43,26 +43,28 @@ test('Warrior gains and spends Resources, and Execute uses a strict Health thres
   await expect(announcement(page)).toContainText('Execute: Target defeated.');
 });
 
-test('a slower Rogue prepares for next round, converts stacks and saves Resources after Run', async ({ page }) => {
-  await seed(page, { ...checkpoint, character: rogue, position: adjacent, currentResources: 2 });
+test('a Rogue entering at zero can Prepare despite losing initiative and carry Exploit Resources after Run', async ({ page }) => {
+  await seed(page, { ...checkpoint, character: rogue, position: adjacent, currentResources: 0 });
   await steps(page, 'right', 1, [1,1,1,1,1,1, 8,1,1]);
   const order = page.getByRole('list', { name: 'Turn Order' }).getByRole('listitem');
   await expect(order.first()).toContainText('Meadow slime');
+  await expect(resources(page)).toHaveText('1 / 5 Resources');
   await attack(page, Array(15).fill(1));
   await expect(button(page, 'Exploit')).toBeDisabled();
   await commandWithDice(page, 'Prepare', Array(7).fill(1));
   await expect(announcement(page)).toHaveText(/^Turn 2\. Slime:.*Prepare:/);
   await expect(order.first()).toContainText('You · 1 success');
-  await expect(resources(page)).toHaveText('1 / 5 Resources');
+  await expect(resources(page)).toHaveText('0 / 5 Resources');
+  await expect(button(page, 'Prepare')).toBeDisabled();
   await commandWithDice(page, 'Exploit', Array(7).fill(1));
-  await expect(page.getByLabel('Slime health')).toHaveText('1 / 3 HP');
+  await expect(page.getByLabel('Slime health')).toHaveText('2 / 3 HP');
   await expect(page.getByLabel('Exploit stacks')).toHaveText('Exploit stacks · 0');
   await expect(button(page, 'Exploit')).toBeDisabled();
   await button(page, 'Run').tap();
   await expect(page.getByLabel('Position')).toHaveText('14, 15');
   await page.reload();
   await button(page, 'Resume').tap();
-  await expect(resources(page)).toHaveText('2 / 5 Resources');
+  await expect(resources(page)).toHaveText('1 / 5 Resources');
 });
 
 test('Wizard reserves a chosen amount, shields hits, and can release at zero available', async ({ page }) => {

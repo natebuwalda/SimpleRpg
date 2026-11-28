@@ -151,9 +151,11 @@ try{
      await steps(page,'right');
      const exploit=page.getByRole('button',{name:'Exploit',exact:true});
      if(hasClassResources){
+      await expect(page.getByLabel('Resources',{exact:true})).toHaveText('1 / 5 Resources');
+      await expect(page.getByRole('button',{name:'Prepare',exact:true})).toBeEnabled();
       await expect(exploit).toBeDisabled();
-      for(let i=0;i<3;i++)await attack(page,Array(15).fill(1));
-      await expect(page.getByLabel('Exploit stacks')).toHaveText('Exploit stacks · 3');
+      for(let i=0;i<2;i++)await attack(page,Array(15).fill(1));
+      await expect(page.getByLabel('Exploit stacks')).toHaveText('Exploit stacks · 2');
       await exploit.tap();
       await expect(page.getByRole('heading',{name:'Victory!'})).toBeVisible();
       await expect(page.getByRole('status',{name:'Combat result'})).toContainText('Exploit: 3 direct damage.');

@@ -63,14 +63,17 @@ test('Rogue Melee builds stacks on misses and Exploit converts them before deali
   expect(rng).not.toHaveBeenCalled();
 });
 
-test('Prepare counts for the next round and the standard tie-break can enable Exploit', () => {
-  const opening = createBattle(5, rogue, 1, slimeFirst(), 2);
+test('a Rogue entering at zero can Prepare and win the next round’s initiative tie-break', () => {
+  const opening = createBattle(5, rogue, 1, slimeFirst(), 0);
+  expect(opening.classAction.currentResources).toBe(1);
+  expect(canUseCombatCommand(opening, 'prepare')).toBe(true);
   const stacked = resolveTurn(opening, 'melee', miss);
   expect(canUseCombatCommand(stacked, 'exploit')).toBe(false);
   const prepared = resolveTurn(stacked, 'prepare', scriptedFaces(8,1,1, 1,1,1,1));
-  expect(prepared).toMatchObject({ heroHp: 4, classAction: { currentResources: 1, stacks: 1n }, turnOrder: [
+  expect(prepared).toMatchObject({ heroHp: 4, classAction: { currentResources: 0, stacks: 1n }, turnOrder: [
     { combatant: 'hero', successes: 1 }, { combatant: 'slime', successes: 1 },
   ], lastTurn: [{ attacker: 'slime' }, { kind: 'prepare', successes: 1 }] });
+  expect(canUseCombatCommand(prepared, 'prepare')).toBe(false);
   expect(canUseCombatCommand(prepared, 'exploit')).toBe(true);
 });
 

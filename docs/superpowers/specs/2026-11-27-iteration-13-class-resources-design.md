@@ -15,7 +15,7 @@ Resolve Resource actions in the existing Turn Order. Warrior builds and Wizard r
 
 ## Rogue
 
-- New Game and Restart set Resources to 0. Current Resources carry through victory, Run, Resume, and later encounters. If advancement raises Maximum Resources, keep the existing balance.
+- New Game and Restart set Resources to 0. Current Resources carry through victory, Run, Resume, and later encounters. At encounter start, a Rogue with zero Resources begins combat with one. If advancement raises Maximum Resources, keep the existing balance.
 - Each resolved Melee adds one Exploit Debuff stack to the target, including on a miss. Melee deals its ordinary damage and does not spend stacks. There is no stack cap. All stacks clear at encounter exit.
 - Exploit requires at least one stack and the Rogue acting first after the existing initiative tie-breakers. Take the Rogue's turn to add the stack count to Current Resources, capped at Maximum Resources, and clear all stacks. Then deal direct damage equal to the resulting Current Resources. It requires no dice and does not spend those Resources. A lethal Exploit uses the normal victory flow.
 - Prepare takes the Rogue's turn and spends one Resource to add one to their initiative success total for the encounter. Recalculate Turn Order for the next round using the existing raw Initiative and player tie-breakers. Finish the current round in its original order. Exploit uses the updated order on later rounds.

@@ -9,7 +9,7 @@ function createClassAction(character: Character, stats: ReturnType<typeof derive
   switch (character.classId) {
     case 'warrior': return { kind: 'momentum', stacks: 0n, currentResources: 0, maxResources };
     case 'wizard': return { kind: 'nuke', damage: getNukeDamage(character), reservedResources: 0, currentResources: maxResources, maxResources };
-    case 'rogue': return { kind: 'exploit', stacks: 0n, currentResources: currentResources ?? 0, maxResources };
+    case 'rogue': return { kind: 'exploit', stacks: 0n, currentResources: Math.max(1, currentResources ?? 0), maxResources };
     case 'cleric': return {
       kind: 'cleric', pool: getClericPool(character), maxHp: stats.maxHp, maxResources,
       currentResources: currentResources ?? startingResources(maxResources),
