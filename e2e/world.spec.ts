@@ -36,18 +36,18 @@ test('all edges stay visible and blocked movement and rotation preserve range',a
 
 test('real New Game saves generated dimensions and placements through reload',async({page})=>{
  await page.goto('./');await startAdventure(page);
- const initial=await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v10')!).slots[0].checkpoint);
+ const initial=await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v11')!).slots[0].checkpoint);
  expect(initial.world).toMatchObject({version:2,layout:'woodland'});
  for(const size of [initial.world.width,initial.world.height]) {expect(Number.isInteger(size)).toBe(true);expect(size).toBeGreaterThanOrEqual(20);expect(size).toBeLessThanOrEqual(40);}
- const saved=await page.evaluate(()=>localStorage.getItem('simple-rpg.save.v10'));
+ const saved=await page.evaluate(()=>localStorage.getItem('simple-rpg.save.v11'));
  await page.reload();await page.getByRole('button',{name:'New Character',exact:true}).click();
  await page.getByRole('button',{name:'Cancel',exact:true}).tap();
- expect(await page.evaluate(()=>localStorage.getItem('simple-rpg.save.v10'))).toBe(saved);
+ expect(await page.evaluate(()=>localStorage.getItem('simple-rpg.save.v11'))).toBe(saved);
  await page.getByRole('button',{name:'Resume',exact:true}).tap();
  await expect(page.getByLabel('Position')).toHaveText('3, 3');await expectRange(page,0,0);
- expect(await page.evaluate(()=>localStorage.getItem('simple-rpg.save.v10'))).toBe(saved);
+ expect(await page.evaluate(()=>localStorage.getItem('simple-rpg.save.v11'))).toBe(saved);
  await page.reload();await startAdventure(page);
- const fresh=await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v10')!).slots[1].checkpoint);
+ const fresh=await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v11')!).slots[1].checkpoint);
  expect(fresh.position).toEqual({x:3,y:3});expect(fresh.hp).toBe(5);expect(fresh.completedEncounterIds).toEqual([]);expect(fresh.world.layout).toBe('woodland');
 });
 
@@ -62,7 +62,7 @@ test('far battle return, refresh, victory and clearing keep the world and view',
  await page.getByRole('button',{name:'Back to clearing'}).tap();await expectRange(page,9,8);
  await steps(page,'down');await expect(page.getByLabel('Position')).toHaveText('15, 15');await expectRange(page,9,9);
  await page.reload();await page.getByRole('button',{name:'Resume',exact:true}).tap();await expectRange(page,9,9);
- expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v10')!).slots[0].checkpoint)).toEqual({...checkpoint,position:{x:15,y:15},completedEncounterIds:['slime-1'],progression:{...checkpoint.progression,xp:1}});
+ expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v11')!).slots[0].checkpoint)).toEqual({...checkpoint,position:{x:15,y:15},completedEncounterIds:['slime-1'],progression:{...checkpoint.progression,xp:1}});
 });
 
 test('Restart preserves a rectangular world after defeat',async({page})=>{
@@ -70,5 +70,5 @@ test('Restart preserves a rectangular world after defeat',async({page})=>{
  await seed(page,{...checkpoint,world:rectangular,position:{x:35,y:24},hp:2});
  await steps(page,'down');await attack(page,losingFaces);await page.getByRole('button',{name:'Restart',exact:true}).tap();
  await expectRange(page,0,0);await expect(page.getByLabel('Position')).toHaveText('3, 3');
- expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v10')!).slots[0].checkpoint)).toEqual({...checkpoint,world:rectangular,initialSlimes:rectangular.slimes});
+ expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v11')!).slots[0].checkpoint)).toEqual({...checkpoint,world:rectangular,initialSlimes:rectangular.slimes});
 });

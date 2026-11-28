@@ -54,8 +54,8 @@ test('a saved Wizard uses Nuke for a roll-free victory and reloads the same adve
   await page.getByText('Roll details', { exact: true }).click();
   await expect(page.getByText('Nuke dealt 4 direct damage. No roll.', { exact: true })).toBeVisible();
   await expect(page.getByLabel(/dice/)).toHaveCount(0);
-  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('simple-rpg.save.v10')!));
-  expect(stored.version).toBe(10);
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('simple-rpg.save.v11')!));
+  expect(stored.version).toBe(11);
   expect(stored.slots[0].checkpoint).toEqual({
     ...checkpoint, position: adjacent, character: wizard, hp: 5, completedEncounterIds: ['slime-1'],
     progression: { ...checkpoint.progression, xp: 1 },

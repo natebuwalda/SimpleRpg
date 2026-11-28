@@ -1,31 +1,35 @@
 import type { BattleClassAction, BattleState, Character, Combatant, InitiativeResult, TurnRolls } from './types';
 import { deriveStats } from './character';
-import { CLASS_DEFINITIONS, getCombatPools, getExploitPool, getNukeDamage, type CombatCommand } from './combat-actions';
+import { CLASS_DEFINITIONS, getClericPool, getCombatPools, getExploitPool, getNukeDamage, startingResources, type CombatCommand } from './combat-actions';
 import { MAX_COMBAT_POOL, rollOpposed, rollPool, type RandomSource } from './dice';
 import { FIRST_SLIME_LEVEL, slimeStats } from './slime';
 
-function createClassAction(character: Character): BattleClassAction {
-  const kind = CLASS_DEFINITIONS[character.classId].classAction;
-  switch (kind) {
-    case 'momentum': return { kind, stacks: 0n };
-    case 'nuke': return { kind, damage: getNukeDamage(character) };
-    case 'exploit': return { kind, pool: getExploitPool(character), stacks: 0n };
+function createClassAction(character: Character, stats: ReturnType<typeof deriveStats>, currentResources?: number): BattleClassAction {
+  switch (character.classId) {
+    case 'warrior': return { kind: 'momentum', stacks: 0n };
+    case 'wizard': return { kind: 'nuke', damage: getNukeDamage(character) };
+    case 'rogue': return { kind: 'exploit', pool: getExploitPool(character), stacks: 0n };
+    case 'cleric': return {
+      kind: 'cleric', pool: getClericPool(character), maxHp: stats.maxHp, maxResources: stats.resourceCapacity,
+      currentResources: currentResources ?? startingResources(stats.resourceCapacity),
+    };
   }
 }
 
-export function createBattle(heroHp: number, character: Character, slimeLevel = FIRST_SLIME_LEVEL, rng: RandomSource = Math.random): BattleState {
+export function createBattle(heroHp: number, character: Character, slimeLevel = FIRST_SLIME_LEVEL, rng: RandomSource = Math.random, currentResources?: number): BattleState {
   const { offense } = CLASS_DEFINITIONS[character.classId];
   const enemy = slimeStats(slimeLevel);
   const rollInitiative = (combatant: Combatant, rawInitiative: number): InitiativeResult => ({
     combatant, rawInitiative, successes: rollPool(Math.min(rawInitiative, MAX_COMBAT_POOL), rng).successes,
   });
-  const hero = rollInitiative('hero', deriveStats(character).initiative);
+  const stats = deriveStats(character);
+  const hero = rollInitiative('hero', stats.initiative);
   const slime = rollInitiative('slime', enemy.initiative);
   const slimeGoesFirst = slime.successes > hero.successes
     || (slime.successes === hero.successes && slime.rawInitiative > hero.rawInitiative);
   return {
     offense, heroHp, slimeLevel, enemyHp: enemy.maxHp, heroPools: getCombatPools(character, offense),
-    classAction: createClassAction(character),
+    classAction: createClassAction(character, stats, currentResources),
     turnOrder: slimeGoesFirst ? [slime, hero] : [hero, slime], lastTurn: null, result: 'active',
   };
 }
@@ -33,6 +37,11 @@ export function createBattle(heroHp: number, character: Character, slimeLevel = 
 export function canUseCombatCommand(state: BattleState, command: CombatCommand): boolean {
   if (state.result !== 'active') return false;
   if (command === 'run' || command === state.offense) return true;
+  if (state.classAction.kind === 'cleric') {
+    if (command === 'heal') return state.classAction.currentResources > 0;
+    if (command === 'smite') return state.classAction.currentResources < state.classAction.maxResources;
+    return false;
+  }
   return command === state.classAction.kind && (command !== 'exploit' || state.turnOrder[0].combatant === 'hero');
 }
 
@@ -70,7 +79,17 @@ export function resolveTurn(state: BattleState, command: CombatCommand, rng: Ran
         rolls.push(classAction);
         continue;
       }
-      if (command === 'nuke' && classAction.kind === 'nuke') {
+      if ((command === 'heal' || command === 'smite') && classAction.kind === 'cleric') {
+        const roll = rollPool(classAction.pool, rng);
+        const { currentResources, maxResources, maxHp } = classAction;
+        const amount = command === 'heal'
+          ? Math.min(roll.successes, currentResources, maxHp - heroHp)
+          : Math.min(roll.successes, maxResources - currentResources);
+        if (command === 'heal') heroHp += amount;
+        else enemyHp = Math.max(0, enemyHp - amount);
+        classAction = { ...classAction, currentResources: currentResources + (command === 'heal' ? -1 : 1) };
+        rolls.push({ kind: command, roll, amount, currentResources: classAction.currentResources });
+      } else if (command === 'nuke' && classAction.kind === 'nuke') {
         enemyHp = Math.max(0, enemyHp - classAction.damage);
         rolls.push(classAction);
       } else {
@@ -95,6 +114,6 @@ export function resolveTurn(state: BattleState, command: CombatCommand, rng: Ran
       }
     }
   }
-  if (result !== 'active' && classAction.kind !== 'nuke') classAction = { ...classAction, stacks: 0n };
+  if (result !== 'active' && 'stacks' in classAction) classAction = { ...classAction, stacks: 0n };
   return { ...state, heroHp, enemyHp, classAction, lastTurn: rolls.length ? rolls : null, result };
 }

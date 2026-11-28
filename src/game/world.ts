@@ -1,6 +1,7 @@
 import { SLIME_IDS, type Checkpoint, type Direction, type Position, type WorldDefinition, type WorldGeometry, type SlimePlacement } from './types';
 
 import { createStarterCharacter, deriveStats, type Character } from './character';
+import { startingResources } from './combat-actions';
 import { SIGHT_BUFFER } from './viewport';
 import { createProgression, effectiveCharacter } from './progression';
 import { FIRST_SLIME_LEVEL, MAX_SLIME_LEVEL } from './slime';
@@ -26,18 +27,22 @@ export function move(world: WorldGeometry, position: Position, direction: Direct
 }
 export function createCheckpoint(world: WorldDefinition, chosen: Character = createStarterCharacter()): Checkpoint {
   const character = {name:chosen.name,classId:chosen.classId,attributes:{...chosen.attributes},skills:{...chosen.skills}};
+  const stats = deriveStats(character);
   return {
-    version: 9, character, world, position: getLandmarks(world).spawn, slimeLevel: FIRST_SLIME_LEVEL,
-    hp: deriveStats(character).maxHp, completedEncounterIds: [],
+    version: 10, character, world, position: getLandmarks(world).spawn, slimeLevel: FIRST_SLIME_LEVEL,
+    hp: stats.maxHp, completedEncounterIds: [],
+    ...(character.classId === 'cleric' ? { currentResources: startingResources(stats.resourceCapacity) } : {}),
     progression: createProgression(), initialSlimes: structuredClone(world.slimes),
   };
 }
 
 export function restartCheckpoint(checkpoint: Checkpoint): Checkpoint {
+  const stats = deriveStats(effectiveCharacter(checkpoint.character, checkpoint.progression));
   return {
     ...checkpoint, world: { ...checkpoint.world, slimes: structuredClone(checkpoint.initialSlimes) },
     position: getLandmarks(checkpoint.world).spawn, completedEncounterIds: [], slimeLevel: FIRST_SLIME_LEVEL,
-    hp: deriveStats(effectiveCharacter(checkpoint.character, checkpoint.progression)).maxHp,
+    hp: stats.maxHp,
+    ...(checkpoint.character.classId === 'cleric' ? { currentResources: startingResources(stats.resourceCapacity) } : {}),
   };
 }
 

@@ -20,14 +20,15 @@ export function transition(state: GameState, action: Action, rng: RandomSource =
     const encounter = getLivingEncounterAt(state.checkpoint, position);
     if (encounter) {
       const hero = effectiveCharacter(state.checkpoint.character, state.checkpoint.progression);
-      return { kind: 'battle', checkpoint: state.checkpoint, returnPosition: state.checkpoint.position, battle: createBattle(state.checkpoint.hp, hero, state.checkpoint.slimeLevel, rng), encounterId: encounter.id };
+      return { kind: 'battle', checkpoint: state.checkpoint, returnPosition: state.checkpoint.position, battle: createBattle(state.checkpoint.hp, hero, state.checkpoint.slimeLevel, rng, state.checkpoint.currentResources), encounterId: encounter.id };
     }
     return { kind: 'exploring', checkpoint: { ...state.checkpoint, position } };
   }
   if (state.kind === 'battle' && isCombatCommand(action.type)) {
     const battle = resolveTurn(state.battle, action.type, rng);
     if (battle === state.battle) return state;
-    if (battle.result === 'escaped') return { kind: 'exploring', checkpoint: { ...state.checkpoint, position: state.returnPosition, hp: battle.heroHp } };
+    const resources = battle.classAction.kind === 'cleric' ? { currentResources: battle.classAction.currentResources } : {};
+    if (battle.result === 'escaped') return { kind: 'exploring', checkpoint: { ...state.checkpoint, ...resources, position: state.returnPosition, hp: battle.heroHp } };
     if (battle.result === 'victory') {
       const { checkpoint } = state;
       const completed = checkpoint.completedEncounterIds.includes(state.encounterId);
@@ -35,7 +36,7 @@ export function transition(state: GameState, action: Action, rng: RandomSource =
       return {
         kind: 'victory', lastTurn: battle.lastTurn, xpAwarded: creditedXp, levelGained: progression.level > checkpoint.progression.level,
         checkpoint: {
-          ...checkpoint, progression, position: state.returnPosition,
+          ...checkpoint, ...resources, progression, position: state.returnPosition,
           hp: deriveStats(effectiveCharacter(checkpoint.character, progression)).maxHp,
           completedEncounterIds: completed ? checkpoint.completedEncounterIds : [...checkpoint.completedEncounterIds, state.encounterId],
         },

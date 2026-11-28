@@ -1,8 +1,8 @@
 import {test,expect,type Page} from '@playwright/test';
 import {checkpoint,wrapCheckpoint,createCharacter,steps} from './helpers';
-const key='simple-rpg.save.v10';
+const key='simple-rpg.save.v11';
 const id=(i:number)=>`00000000-0000-4000-8000-${String(i).padStart(12,'0')}`;
-const makeRoster=(n:number)=>({version:10,slots:Array.from({length:n},(_,i)=>({id:id(i),revision:1,status:'active',checkpoint:{...checkpoint,character:{...checkpoint.character,name:`Hero ${i}`}}}))});
+const makeRoster=(n:number)=>({version:11,slots:Array.from({length:n},(_,i)=>({id:id(i),revision:1,status:'active',checkpoint:{...checkpoint,character:{...checkpoint.character,name:`Hero ${i}`}}}))});
 async function init(page:Page,n:number){await page.goto('./');await page.evaluate(({key,data})=>localStorage.setItem(key,JSON.stringify(data)),{key,data:makeRoster(n)});await page.reload();}
 async function focus(page:Page){await page.bringToFront();await page.evaluate(()=>window.dispatchEvent(new Event('focus')));}
 async function read(page:Page){return page.evaluate(key=>JSON.parse(localStorage.getItem(key)!),key);}

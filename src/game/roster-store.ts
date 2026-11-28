@@ -32,7 +32,7 @@ export function createRosterStore(storage:Pick<Storage,'getItem'|'setItem'>|null
    }else if(command.type==='reset'){
     if(observation.raw!==command.expectedRaw||observation.legacy!==command.legacy)return fail('stale');
     if(observation.status!=='invalid')return fail('invalid');
-    roster={version:10,slots:[]};
+    roster={version:11,slots:[]};
    }else{
     if(!roster)return fail('invalid');
     if(command.type==='create'){

@@ -39,7 +39,7 @@ test('existing high-Cunning saves roll at most 1,024 player dice and keep the ra
   checkpoint.slimeLevel = 1022;
   checkpoint.progression.level = 2001;
   checkpoint.progression.investments.attributes.cunning = 2000;
-  const raw = JSON.stringify({ version: 10, slots: [{
+  const raw = JSON.stringify({ version: 11, slots: [{
     id: '00000000-0000-4000-8000-000000000001', revision: 1, status: 'active', checkpoint,
   }] });
   const saved = parseRoster(raw)?.slots[0].checkpoint;
