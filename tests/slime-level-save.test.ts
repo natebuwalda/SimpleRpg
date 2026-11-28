@@ -8,11 +8,11 @@ import { makeCheckpoint } from './fixtures';
 import type { Checkpoint } from '../src/game/types';
 
 const id = '00000000-0000-4000-8000-000000000001';
-const key = 'game.save.v12';
+const key = 'game.save.v13';
 const locks: SaveLocks = { request: async (_name, run) => run() };
 
 function fixture(checkpoint: Checkpoint) {
-  const data = new Map([[key, JSON.stringify({ version: 12, slots: [{ id, revision: 1, status: 'active', checkpoint }] })]]);
+  const data = new Map([[key, JSON.stringify({ version: 13, slots: [{ id, revision: 1, status: 'active', checkpoint }] })]]);
   let blocked = false;
   const storage = {
     getItem: (name: string) => data.get(name) ?? null,
@@ -28,7 +28,7 @@ test('v7 migration preserves progressed and defeated slots with later placements
   const checkpoint = makeCheckpoint();
   checkpoint.world.slimes[0].position = { x: 4, y: 3 };
   checkpoint.completedEncounterIds = ['slime-1'];
-  checkpoint.progression = awardXp(checkpoint.progression, 9);
+  checkpoint.progression = awardXp({ ...checkpoint.progression, curve: 'flat-v1' }, 9);
   const { slimeLevel, ...previous } = checkpoint;
   const slot = { id, revision: 7, status: 'defeated', checkpoint: { ...previous, version: 6 } };
   const old = JSON.stringify({ version: 7, slots: [slot] });
@@ -78,6 +78,7 @@ test('a level three autosave requires six XP for two wins and cannot change wave
 
 test('a grouped retry matches sequential wins at the player numeric ceiling', async () => {
   const checkpoint = { ...makeCheckpoint(), slimeLevel: 4 };
+  checkpoint.progression.curve = 'flat-v1';
   checkpoint.progression.level = Number.MAX_SAFE_INTEGER - 11;
   const { store } = fixture(checkpoint);
   let progression = checkpoint.progression;

@@ -29,7 +29,7 @@ export function createCheckpoint(world: WorldDefinition, chosen: Character = cre
   const character = {name:chosen.name,classId:chosen.classId,attributes:{...chosen.attributes},skills:{...chosen.skills}};
   const stats = deriveStats(character);
   return {
-    version: 11, character, world, position: getLandmarks(world).spawn, slimeLevel: FIRST_SLIME_LEVEL,
+    version: 12, character, world, position: getLandmarks(world).spawn, slimeLevel: FIRST_SLIME_LEVEL,
     hp: stats.maxHp, completedEncounterIds: [],
     ...(character.classId === 'cleric' ? { currentResources: startingResources(stats.resourceCapacity) } : {}),
     ...(character.classId === 'rogue' ? { currentResources: 0 } : {}),

@@ -54,12 +54,13 @@ try{
   await resume('Smoke one');await expect(page.getByLabel('Position')).toHaveText('4, 3');await expect(page.getByLabel('Hero health')).toHaveText('5 / 5 HP');
   await page.reload();await resume('Smoke two');await expect(page.getByLabel('Position')).toHaveText('3, 4');await expect(page.getByLabel('Hero health')).toHaveText('7 / 7 HP');
   const edition=await page.locator('.edition').textContent();
-  const hasClassResources=edition==='ITERATION 13';
+  const hasCumulativeXp=edition==='ITERATION 14';
+  const hasClassResources=edition==='ITERATION 13'||hasCumulativeXp;
   const hasCleric=edition==='ITERATION 12'||hasClassResources;
   const hasNewClassActions=edition==='ITERATION 11'||hasCleric;
   const hasRogue=edition==='ITERATION 10'||hasNewClassActions;
   const hasInitiative=edition==='ITERATION 09'||hasRogue;
-  if(['ITERATION 06','ITERATION 07','ITERATION 08','ITERATION 09','ITERATION 10','ITERATION 11','ITERATION 12','ITERATION 13'].includes(edition)){
+  if(['ITERATION 06','ITERATION 07','ITERATION 08','ITERATION 09','ITERATION 10','ITERATION 11','ITERATION 12','ITERATION 13','ITERATION 14'].includes(edition)){
    await page.getByRole('button',{name:'Return to characters',exact:true}).click();
    await begin('Smoke progression',true,0);
    await steps(page,'right');
@@ -93,8 +94,9 @@ try{
     await page.reload();await resume('Smoke progression');
     await expect(page.locator('header').getByLabel('Current wave',{exact:true})).toHaveText('Wave 2');
     await page.getByText('Character',{exact:true}).click();
-    await expect(page.getByLabel('Character progression')).toContainText('Level 2 · 0 / 5 XP · 1 point available');
-    const checks={roster:true,independentPlaythroughs:2,persistedVictoryXp:true,persistedSlimeLevel:2};
+    const progression = hasCumulativeXp ? 'Level 2 · 5 / 15 total XP · 1 point available' : 'Level 2 · 0 / 5 XP · 1 point available';
+    await expect(page.getByLabel('Character progression')).toContainText(progression);
+    const checks={roster:true,independentPlaythroughs:2,persistedVictoryXp:true,persistedSlimeLevel:2,...(hasCumulativeXp?{verifiedCumulativeXp:true}:{})};
     if(edition!=='ITERATION 08'&&!hasInitiative)return checks;
     await page.getByRole('button',{name:'Return to characters',exact:true}).click();
     if(hasClassResources){
@@ -210,12 +212,12 @@ try{
   return {roster:true,independentPlaythroughs:2};
  }
  const mainEdition=await open(root,expectedMainScript);
- assert.ok(['ITERATION 04','ITERATION 05','ITERATION 06','ITERATION 07','ITERATION 08','ITERATION 09','ITERATION 10','ITERATION 11','ITERATION 12','ITERATION 13'].includes(mainEdition),`Unexpected main edition: ${mainEdition}`);
+ assert.ok(['ITERATION 04','ITERATION 05','ITERATION 06','ITERATION 07','ITERATION 08','ITERATION 09','ITERATION 10','ITERATION 11','ITERATION 12','ITERATION 13','ITERATION 14'].includes(mainEdition),`Unexpected main edition: ${mainEdition}`);
  const mainChecks=await exercise();
  const mainSaves=await snapshot('simple-rpg.save.');
  const acceptance=new URL('acceptance/',root);
  const acceptanceEdition=await open(acceptance);
- assert.equal(acceptanceEdition,'ITERATION 13','Acceptance must serve Iteration 13');
+ assert.equal(acceptanceEdition,'ITERATION 14','Acceptance must serve Iteration 14');
  const acceptanceChecks=await exercise();
  assert.deepEqual(await snapshot('simple-rpg.save.'),mainSaves,'Acceptance changed main saves');
  const acceptanceSaves=await snapshot('simple-rpg.acceptance.save.');

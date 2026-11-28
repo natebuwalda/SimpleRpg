@@ -3,10 +3,10 @@ import { expect, type Page } from '@playwright/test';
 export const world = {version:2,layout:'woodland',width:20,height:20,slimes:[
   {id:'slime-1',position:{x:15,y:15}}, {id:'slime-2',position:{x:8,y:8}}, {id:'slime-3',position:{x:10,y:10}},
 ]};
-export const checkpoint = {version:11,slimeLevel:1,progression:{level:1,xp:0,investments:{attributes:{prowess:0,cunning:0,resistance:0},skills:{combat:0,subterfuge:0,lore:0}}},initialSlimes:world.slimes,character:{classId:'warrior' as ClassId,name:'Adventurer',attributes:{prowess:3,cunning:3,resistance:2},skills:{combat:2,subterfuge:2,lore:1}},world,position:{x:3,y:3},hp:5,completedEncounterIds:[] as string[]};
+export const checkpoint = {version:12,slimeLevel:1,progression:{curve:'linear-v1' as const,level:1,xp:0,investments:{attributes:{prowess:0,cunning:0,resistance:0},skills:{combat:0,subterfuge:0,lore:0}}},initialSlimes:world.slimes,character:{classId:'warrior' as ClassId,name:'Adventurer',attributes:{prowess:3,cunning:3,resistance:2},skills:{combat:2,subterfuge:2,lore:1}},world,position:{x:3,y:3},hp:5,completedEncounterIds:[] as string[]};
 export const slotId='00000000-0000-4000-8000-000000000001';
 type BrowserCheckpoint = typeof checkpoint & { currentResources?: number };
-export function wrapCheckpoint(value: BrowserCheckpoint=checkpoint){return {version:12,slots:[{id:slotId,revision:1,status:'active',checkpoint:{...value,initialSlimes:value.world===world?value.initialSlimes:value.world.slimes}}]};}
+export function wrapCheckpoint(value: BrowserCheckpoint=checkpoint){return {version:13,slots:[{id:slotId,revision:1,status:'active',checkpoint:{...value,initialSlimes:value.world===world?value.initialSlimes:value.world.slimes}}]};}
 export async function createCharacter(page:Page, build: Omit<typeof checkpoint.character,'classId'> & {classId?:ClassId}=checkpoint.character) {
   await page.getByRole('textbox',{name:'Character name',exact:true}).fill(build.name);
   const classPicker = page.getByRole('combobox', { name: 'Class', exact: true });
@@ -25,7 +25,7 @@ export async function startAdventure(page:Page,build=checkpoint.character) {
 }
 export async function seed(page:Page, value: BrowserCheckpoint = checkpoint) {
   await page.goto('./');
-  await page.evaluate(value => localStorage.setItem('simple-rpg.save.v12',JSON.stringify(value)), wrapCheckpoint(value));
+  await page.evaluate(value => localStorage.setItem('simple-rpg.save.v13',JSON.stringify(value)), wrapCheckpoint(value));
   await page.reload();
   await page.getByRole('button',{name:'Resume',exact:true}).tap();
   await expect(page.getByLabel('Position')).toBeVisible();

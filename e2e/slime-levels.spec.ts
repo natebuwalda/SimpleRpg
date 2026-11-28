@@ -26,7 +26,7 @@ test('Find creates a level two wave with four Health, four dice, and two XP', as
   await resume(page);
   await expect(waveLabel(page)).toHaveText('Wave 2');
   await page.getByText('Character', { exact:true }).click();
-  await expect(page.getByLabel('Character progression')).toContainText('2 / 5 XP');
+  await expect(page.getByLabel('Character progression')).toContainText('2 / 5 total XP');
 });
 
 test('Restart after a boosted defeat preserves advancement and restores level one', async ({ page }) => {
@@ -38,7 +38,7 @@ test('Restart after a boosted defeat preserves advancement and restores level on
   await expect(waveLabel(page)).toHaveText('Wave 1');
   await expect(page.getByLabel('Hero health')).toHaveText('5 / 5 HP');
   await page.getByText('Character',{exact:true}).click();
-  await expect(page.getByLabel('Character progression')).toContainText('Level 3 · 2 / 5 XP · 2 points available');
+  await expect(page.getByLabel('Character progression')).toContainText('Level 3 · 17 / 30 total XP · 2 points available');
 });
 
 test('only one tab advances a cleared wave', async ({ page, context }) => {
@@ -52,7 +52,7 @@ test('only one tab advances a cleared wave', async ({ page, context }) => {
   await other.bringToFront();
   await find(other).click();
   await expect(other.getByRole('status', { name:'Save status' })).toContainText('changed in another tab');
-  const wave = await other.evaluate(() => JSON.parse(localStorage.getItem('simple-rpg.save.v12')!).slots[0]);
+  const wave = await other.evaluate(() => JSON.parse(localStorage.getItem('simple-rpg.save.v13')!).slots[0]);
   expect(wave.revision).toBe(2);
   expect(wave.checkpoint.slimeLevel).toBe(2);
 });

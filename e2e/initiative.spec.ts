@@ -35,7 +35,7 @@ test('Run uses initiative and saves surviving damage without persisting the orde
   await page.getByRole('button', { name: 'Run', exact: true }).tap();
   await expect(page.getByLabel('Position')).toHaveText('15, 14');
   await expect(page.getByLabel('Hero health')).toHaveText('4 / 5 HP');
-  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('simple-rpg.save.v12')!).slots[0].checkpoint);
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('simple-rpg.save.v13')!).slots[0].checkpoint);
   expect(stored).toEqual({ ...checkpoint, position, hp: 4 });
   await page.reload();
   await page.getByRole('button', { name: 'Resume', exact: true }).tap();

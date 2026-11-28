@@ -5,7 +5,7 @@ import { transition } from '../src/game/session';
 import { createCheckpoint, restartCheckpoint } from '../src/game/world';
 import { makeCheckpoint, makeWorld } from './fixtures';
 
-const current = 'game.save.v12';
+const current = 'game.save.v13';
 const legacy = 'game.save.v11';
 const id = (index: number) => `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`;
 const locks = { request: async <T>(_name: string, run: () => Promise<T> | T) => run() };
@@ -15,8 +15,9 @@ const rogue = { ...makeCheckpoint().character, classId: 'rogue' as const };
 
 test('locked v11 upgrade preserves all four classes and gives only the Rogue a new zero balance', async () => {
   const slots = (['warrior', 'wizard', 'rogue', 'cleric'] as const).map((classId, index) => {
+    const { investments } = makeCheckpoint().progression;
     const checkpoint = { ...makeCheckpoint(), version: 10, character: { ...makeCheckpoint().character, classId },
-      slimeLevel: 4, position: { x: 4, y: 3 }, completedEncounterIds: ['slime-1'], progression: { ...makeCheckpoint().progression, level: 2, xp: 3 } };
+      slimeLevel: 4, position: { x: 4, y: 3 }, completedEncounterIds: ['slime-1'], progression: { investments, level: 2, xp: 3 } };
     return { id: id(index), revision: index + 2, status: index % 2 ? 'defeated' : 'active',
       checkpoint: { ...checkpoint, ...(classId === 'cleric' ? { currentResources: 4 } : {}) } };
   });
@@ -26,8 +27,8 @@ test('locked v11 upgrade preserves all four classes and gives only the Rogue a n
   const store = createRosterStore(storage, locks, current);
   expect(store.read()).toMatchObject({ status: 'ready', legacy: 11 });
   expect((await store.transact({ type: 'upgrade' })).kind).toBe('saved');
-  expect(parseRoster(data.get(current)!)).toEqual({ version: 12, slots: slots.map(slot => ({
-    ...slot, checkpoint: { ...slot.checkpoint, version: 11, ...(slot.checkpoint.character.classId === 'rogue' ? { currentResources: 0 } : {}) },
+  expect(parseRoster(data.get(current)!)).toEqual({ version: 13, slots: slots.map(slot => ({
+    ...slot, checkpoint: { ...slot.checkpoint, version: 12, progression: { ...slot.checkpoint.progression, curve: 'flat-v1' }, ...(slot.checkpoint.character.classId === 'rogue' ? { currentResources: 0 } : {}) },
   })) });
   expect(data.get(legacy)).toBe(raw);
   data.set(current, 'broken');
@@ -54,7 +55,7 @@ test('Rogue balances are required in current saves, persist through advancement,
   expect(parseCheckpoint(JSON.stringify({ ...makeCheckpoint(), currentResources: 3 }))).toBeNull();
   checkpoint.currentResources = 5;
   checkpoint.progression.level = 2;
-  let raw = JSON.stringify({ version: 12, slots: [{ id: id(0), revision: 1, status: 'active', checkpoint }] });
+  let raw = JSON.stringify({ version: 13, slots: [{ id: id(0), revision: 1, status: 'active', checkpoint }] });
   const store = createRosterStore({ getItem: () => raw, setItem: (_key, value) => { raw = value; } }, locks, current);
   const result = await store.transact({ type: 'spendPoint', id: id(0), expectedRevision: 1, rating: { group: 'attributes', key: 'cunning' } });
   expect(result).toMatchObject({ kind: 'saved', slot: { checkpoint: { currentResources: 5 } } });
@@ -75,7 +76,7 @@ test('Rogue escape and victory carry balances, and a failed write retries the co
   const highBattle = transition({ kind: 'exploring', checkpoint: higher }, right, miss);
   const woundedSlime = transition(transition(highBattle, { type: 'melee' }, miss), { type: 'exploit' }, miss);
   expect(transition(woundedSlime, { type: 'run' }, miss)).toMatchObject({ kind: 'exploring', checkpoint: { currentResources: 3, hp: 2 } });
-  let raw = JSON.stringify({ version: 12, slots: [{ id: id(0), revision: 1, status: 'active', checkpoint }] });
+  let raw = JSON.stringify({ version: 13, slots: [{ id: id(0), revision: 1, status: 'active', checkpoint }] });
   let blocked = true;
   const store = createRosterStore({ getItem: () => raw, setItem: (_key, value) => { if (blocked) throw Error('quota'); raw = value; } }, locks, current);
   const update = { type: 'update', id: id(0), expectedRevision: 1, status: 'active', checkpoint: victory.checkpoint } as const;
