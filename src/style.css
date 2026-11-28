@@ -24,13 +24,15 @@ p { line-height: 1.5; }
 .turn-order-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .turn-order-heading span, .action-reason, .battle-pools { font-size: 13px; color: #b2c1b4; overflow-wrap: anywhere; min-width: 0; }
 .action-reason, .battle-pools { margin: 6px 0 0; }
+.battle-class-values, .study-amount { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 6px 0 0; color: #b2c1b4; font-size: 13px; overflow-wrap: anywhere; }
+.study-amount input { min-height: 48px; width: 8rem; max-width: 100%; font: inherit; font-size: 16px; background: #172b2b; color: #e8ebd9; border: 1px solid #52605a; border-radius: 8px; padding: 8px 10px; }
 .turn-order h2 { font: inherit; font-size: 14px; font-weight: 700; letter-spacing: normal; margin: 0; }
 .turn-order ol { color: #b2c1b4; font-size: 14px; line-height: 1.4; margin: 0; padding-left: 22px; }
 .turn-order + .combat-result { margin: 8px 0 8px; }
 .actions { display: flex; gap: 10px; }
 .actions button { flex: 1; }
 @media (max-width: 420px) {
-  .cleric-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .four-combat-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 button.primary { background: #d5dfaa; color: #203329; border-color: #d5dfaa; font-weight: 700; }
 button.primary:hover:not(:disabled) { background: #e3eac6; }

@@ -7,11 +7,11 @@ import { makeCheckpoint, makeWorld } from './fixtures';
 import { scriptedFaces } from './rolls';
 
 const id = '00000000-0000-4000-8000-000000000001';
-const key = 'game.save.v11';
+const key = 'game.save.v12';
 const oldKey = 'game.save.v10';
 const cleric = { ...makeCheckpoint().character, classId: 'cleric' as const };
 const locks = { request: async <T>(_name: string, run: () => Promise<T> | T) => run() };
-const roster = (checkpoint = makeCheckpoint()) => ({ version: 11, slots: [{ id, revision: 1, status: 'active', checkpoint }] });
+const roster = (checkpoint = makeCheckpoint()) => ({ version: 12, slots: [{ id, revision: 1, status: 'active', checkpoint }] });
 
 test('New Game initializes odd and even resource capacity and Restart uses the effective midpoint', () => {
   const odd = createCheckpoint(makeWorld(), cleric);
@@ -68,7 +68,9 @@ test('v10 upgrade preserves prior classes and adventure data, with no unsafe fal
   const store = createRosterStore(storage, locks, key);
   expect(store.read()).toMatchObject({ status: 'ready', legacy: 10 });
   expect(await store.transact({ type: 'upgrade' })).toMatchObject({ kind: 'saved' });
-  expect(parseRoster(data.get(key)!)).toEqual({ version: 11, slots: [slot] });
+  expect(parseRoster(data.get(key)!)).toEqual({ version: 12, slots: [
+    { ...slot, checkpoint: { ...checkpoint, currentResources: 0 } },
+  ] });
   expect(data.get(oldKey)).toBe(raw);
   data.set(key, 'broken');
   expect(loadRoster(storage, key)).toMatchObject({ status: 'invalid', raw: 'broken' });

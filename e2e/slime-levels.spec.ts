@@ -52,7 +52,7 @@ test('only one tab advances a cleared wave', async ({ page, context }) => {
   await other.bringToFront();
   await find(other).click();
   await expect(other.getByRole('status', { name:'Save status' })).toContainText('changed in another tab');
-  const wave = await other.evaluate(() => JSON.parse(localStorage.getItem('simple-rpg.save.v11')!).slots[0]);
+  const wave = await other.evaluate(() => JSON.parse(localStorage.getItem('simple-rpg.save.v12')!).slots[0]);
   expect(wave.revision).toBe(2);
   expect(wave.checkpoint.slimeLevel).toBe(2);
 });

@@ -34,6 +34,22 @@ test('a Cleric starts with half Resources and can spend or restore one on a turn
   await expect(page.getByLabel('Slime defense dice')).toHaveCount(0);
 });
 
+test('an Iteration 12 Cleric keeps their saved Resources after migration', async ({ page }) => {
+  const previous = wrapCheckpoint({ ...checkpoint, version: 10, character, currentResources: 4 });
+  const raw = JSON.stringify({ ...previous, version: 11 });
+  await page.goto('./');
+  await page.evaluate(raw => localStorage.setItem('simple-rpg.save.v11', raw), raw);
+  await page.reload();
+  await command(page, 'Resume').tap();
+  await expect(balance(page)).toHaveText('4 / 5 Resources');
+  const saves = await page.evaluate(() => ({
+    previous: localStorage.getItem('simple-rpg.save.v11'),
+    current: JSON.parse(localStorage.getItem('simple-rpg.save.v12') ?? 'null'),
+  }));
+  expect(saves.previous).toBe(raw);
+  expect(saves.current).toMatchObject({ version: 12, slots: [{ checkpoint: { version: 11, currentResources: 4 } }] });
+});
+
 test('Heal stops at zero and a failed Smite victory save retries Health, XP and Resources together', async ({ page }) => {
   await seed(page, { ...checkpoint, position: adjacent, hp: 2, character, currentResources: 1 });
   await steps(page, 'right');
@@ -45,12 +61,12 @@ test('Heal stops at zero and a failed Smite victory save retries Health, XP and 
   await expect(command(page, 'Heal')).toBeDisabled();
   await expect(command(page, 'Heal')).toHaveAccessibleDescription('Heal requires at least one Resource.');
   await expect(command(page, 'Melee')).toBeFocused();
-  const before = await page.evaluate(() => localStorage.getItem('simple-rpg.save.v11'));
+  const before = await page.evaluate(() => localStorage.getItem('simple-rpg.save.v12'));
   await page.evaluate(() => {
     const setItem = Storage.prototype.setItem;
     let failOnce = true;
     Storage.prototype.setItem = function (key, value) {
-      if (key.endsWith('.save.v11') && failOnce) { failOnce = false; throw Error('quota'); }
+      if (key.endsWith('.save.v12') && failOnce) { failOnce = false; throw Error('quota'); }
       setItem.call(this, key, value);
     };
   });
@@ -58,7 +74,7 @@ test('Heal stops at zero and a failed Smite victory save retries Health, XP and 
   await command(page, 'Smite').tap();
   await expect(command(page, 'Retry save')).toBeVisible();
   await expect(balance(page)).toHaveText('1 / 5 Resources');
-  expect(await page.evaluate(() => localStorage.getItem('simple-rpg.save.v11'))).toBe(before);
+  expect(await page.evaluate(() => localStorage.getItem('simple-rpg.save.v12'))).toBe(before);
   await command(page, 'Retry save').tap();
   await expect(command(page, 'Retry save')).toHaveCount(0);
   await page.reload();
@@ -108,7 +124,7 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
     await page.setViewportSize(viewport);
     await seed(page, { ...checkpoint, position: adjacent, character, currentResources: 3 });
     await steps(page, 'right');
-    await page.locator('.cleric-actions').evaluate(controls => controls.scrollIntoView({ block: 'center' }));
+    await page.locator('.four-combat-actions').evaluate(controls => controls.scrollIntoView({ block: 'center' }));
     for (const name of ['Melee', 'Heal', 'Smite', 'Run']) {
       const action = command(page, name);
       const box = (await action.boundingBox())!;

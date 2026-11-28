@@ -2,21 +2,24 @@ import type { CharacterRatings } from './character';
 import { MAX_COMBAT_POOL } from './dice';
 
 export type OffensiveAction = 'melee' | 'magic';
-export type ClassAction = 'momentum' | 'nuke' | 'exploit' | 'heal' | 'smite';
+export type ClassAction = 'momentum' | 'nuke' | 'exploit' | 'heal' | 'smite' | 'execute' | 'prepare' | 'study';
 export type CombatCommand = OffensiveAction | ClassAction | 'run';
 export type ClassId = 'warrior' | 'wizard' | 'rogue' | 'cleric';
 
 export const CLASS_DEFINITIONS = {
-  warrior: { label: 'Warrior', offense: 'melee', classActions: ['momentum'] },
-  wizard: { label: 'Wizard', offense: 'magic', classActions: ['nuke'] },
-  rogue: { label: 'Rogue', offense: 'melee', classActions: ['exploit'] },
+  warrior: { label: 'Warrior', offense: 'melee', classActions: ['momentum', 'execute'] },
+  wizard: { label: 'Wizard', offense: 'magic', classActions: ['nuke', 'study'] },
+  rogue: { label: 'Rogue', offense: 'melee', classActions: ['exploit', 'prepare'] },
   cleric: { label: 'Cleric', offense: 'melee', classActions: ['heal', 'smite'] },
 } as const satisfies Record<ClassId, { label: string; offense: OffensiveAction; classActions: readonly ClassAction[] }>;
 
 export const CLASS_ACTION_DEFINITIONS = {
-  momentum: { label: 'Momentum', description: 'Each stack adds one Melee die and one Defense die for the encounter.' },
-  nuke: { label: 'Nuke', description: 'Deal Cunning + Lore damage directly on your turn.' },
-  exploit: { label: 'Exploit', description: 'Act first to build stacks with Cunning + Subterfuge.' },
+  momentum: { label: 'Momentum', description: 'Spend one Resource per existing stack to gain another. Each stack adds one Melee and Defense die.' },
+  execute: { label: 'Execute', description: 'Defeat a target with less Health than your current Resources.' },
+  nuke: { label: 'Nuke', description: 'Spend one Resource to deal Cunning + Lore damage, reduced by the target’s defense successes.' },
+  study: { label: 'Study', description: 'Reserve Resources for Shield. Study again to release them.' },
+  exploit: { label: 'Exploit', description: 'Act first to convert Melee stacks into Resources and deal damage equal to the resulting balance.' },
+  prepare: { label: 'Prepare', description: 'Spend one Resource to add one initiative success starting next round.' },
   heal: { label: 'Heal', description: 'Restore Health up to current Resources, then spend one Resource.' },
   smite: { label: 'Smite', description: 'Deal direct damage up to missing Resources, then gain one Resource.' },
 } as const satisfies Record<ClassAction, { label: string; description: string }>;
@@ -43,10 +46,6 @@ export function getCombatPools({ attributes, skills }: CharacterRatings, action:
     attack: attributes.prowess + skills[OFFENSIVE_ACTIONS[action].skill],
     defense: attributes.resistance + skills.combat,
   };
-}
-
-export function getExploitPool({ attributes, skills }: CharacterRatings): number {
-  return Math.min(attributes.cunning + skills.subterfuge, MAX_COMBAT_POOL);
 }
 
 export function getNukeDamage({ attributes, skills }: CharacterRatings): number {
