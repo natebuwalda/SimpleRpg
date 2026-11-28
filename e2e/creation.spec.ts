@@ -38,7 +38,7 @@ test('names render as text, preserve Unicode and do not trigger game shortcuts',
   const input=page.getByRole('textbox',{name:'Character name'});
   await input.pressSequentially('WASD 葉 ');await input.press('ArrowLeft');await input.press('Enter');
   await expect(input).toHaveValue('WASD 葉 ');await expect(input).toBeFocused();
-  expect(await page.evaluate(()=>localStorage.getItem('simple-rpg.save.v11'))).toBeNull();
+  expect(await page.evaluate(()=>localStorage.getItem('simple-rpg.save.v12'))).toBeNull();
   await expect(input).toHaveAttribute('maxlength','24');
   await createCharacter(page,{...checkpoint.character,name:'Moss & <b>Fern</b>'});
   await expect(page.getByRole('heading',{name:'Moss & <b>Fern</b>',exact:true})).toBeVisible();
@@ -52,7 +52,7 @@ test('focus/storage refresh retains typed input, selection and the mounted form'
   const input=page.getByRole('textbox',{name:'Character name'});
   await input.fill('Rowan');await input.press('ArrowLeft');
   const element=await input.elementHandle();
-  await page.evaluate(()=>{window.dispatchEvent(new Event('focus'));window.dispatchEvent(new StorageEvent('storage',{key:'simple-rpg.save.v11'}));});
+  await page.evaluate(()=>{window.dispatchEvent(new Event('focus'));window.dispatchEvent(new StorageEvent('storage',{key:'simple-rpg.save.v12'}));});
   expect(await element!.evaluate(node=>node.isConnected)).toBe(true);
   await expect(input).toBeFocused();await expect(input).toHaveValue('Rowan');
   expect(await input.evaluate(node=>(node as HTMLInputElement).selectionStart)).toBe(4);
@@ -60,7 +60,7 @@ test('focus/storage refresh retains typed input, selection and the mounted form'
 
 test('repeated Begin creates only one checkpoint',async({page})=>{
   await page.goto('./');await page.getByRole('button',{name:'New Character',exact:true}).click();await createCharacter(page);
-  await page.evaluate(()=>{let count=0;const original=Storage.prototype.setItem;Object.defineProperty(window,'__creationWrites',{get:()=>count});Storage.prototype.setItem=function(key,value){if(key==='simple-rpg.save.v11')count++;return original.call(this,key,value);};const button=document.querySelector<HTMLButtonElement>('[data-creation-action="begin"]')!;button.click();button.click();});
+  await page.evaluate(()=>{let count=0;const original=Storage.prototype.setItem;Object.defineProperty(window,'__creationWrites',{get:()=>count});Storage.prototype.setItem=function(key,value){if(key==='simple-rpg.save.v12')count++;return original.call(this,key,value);};const button=document.querySelector<HTMLButtonElement>('[data-creation-action="begin"]')!;button.click();button.click();});
   await expect(page.getByLabel('Position')).toHaveText('3, 3');
   expect(await page.evaluate(()=>window.__creationWrites)).toBe(1);
 });
@@ -117,5 +117,5 @@ test('a Combat-zero adventure retains damage, heals to its max and Restarts the 
   await attack(page,[1,1,1,1, 8,8,8, 1,1]);await expect(page.getByRole('heading',{name:'Defeated',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Restart',exact:true}).click();
   await expect(page.getByLabel('Hero health')).toHaveText('3 / 3 HP');
-  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v11')!).slots[0].checkpoint)).toEqual({...checkpoint,character,hp:3,progression:{...checkpoint.progression,xp:1}});
+  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('simple-rpg.save.v12')!).slots[0].checkpoint)).toEqual({...checkpoint,character,hp:3,progression:{...checkpoint.progression,xp:1}});
 });

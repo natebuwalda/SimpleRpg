@@ -25,9 +25,10 @@ export function transition(state: GameState, action: Action, rng: RandomSource =
     return { kind: 'exploring', checkpoint: { ...state.checkpoint, position } };
   }
   if (state.kind === 'battle' && isCombatCommand(action.type)) {
-    const battle = resolveTurn(state.battle, action.type, rng);
+    const battle = resolveTurn(state.battle, action.type, rng, action.type === 'study' ? action.amount : undefined);
     if (battle === state.battle) return state;
-    const resources = battle.classAction.kind === 'cleric' ? { currentResources: battle.classAction.currentResources } : {};
+    const resources = battle.classAction.kind === 'cleric' || battle.classAction.kind === 'exploit'
+      ? { currentResources: battle.classAction.currentResources } : {};
     if (battle.result === 'escaped') return { kind: 'exploring', checkpoint: { ...state.checkpoint, ...resources, position: state.returnPosition, hp: battle.heroHp } };
     if (battle.result === 'victory') {
       const { checkpoint } = state;

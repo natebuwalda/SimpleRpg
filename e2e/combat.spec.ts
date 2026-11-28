@@ -23,7 +23,7 @@ test('fixed character and exact bonus dice are understandable through victory', 
   await page.getByText('Roll details', { exact: true }).click();
   await expect(page.getByLabel('Your attack dice')).toContainText('Successes: 5');
   await expect(page.getByText('No counterattack.', { exact: true })).toBeVisible();
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('simple-rpg.save.v11')!).slots[0].checkpoint);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('simple-rpg.save.v12')!).slots[0].checkpoint);
   expect(saved.hp).toBe(5); expect(saved.character).toEqual(checkpoint.character);
   expect(saved).not.toHaveProperty('lastTurn');
 });
@@ -98,6 +98,7 @@ for (const viewport of [{ width:320,height:568 }, { width:390,height:844 }, { wi
     await seed(page, { ...checkpoint, position: { x:15,y:14 } }); await steps(page, 'down');
     await page.addStyleTag({content:'.description { font-family: monospace; font-size: 18px; }'});
     await attack(page, Array(15).fill(1));
+    await page.locator('.four-combat-actions').evaluate(group => group.scrollIntoView({ block: 'center' }));
     for (const button of await page.getByRole('button').filter({hasNotText:'Return to characters'}).all()) {
       const box = (await button.boundingBox())!;
       expect(box.width).toBeGreaterThanOrEqual(48); expect(box.height).toBeGreaterThanOrEqual(48);

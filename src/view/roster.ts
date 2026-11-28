@@ -6,7 +6,7 @@ import {mountConfirmation} from './confirmation';
 import {effectiveCharacter,progressionSummary} from '../game/progression';
 type Callbacks={onCreate():void;onResume(id:string):void;onRestart(id:string,revision:number):void;onDelete(id:string,revision:number):void;onReset(raw:string,legacy?:LegacyRosterVersion):void};
 export function mountRoster(root:HTMLElement,callbacks:Callbacks){
- let observation:RosterObservation={status:'empty',raw:null,roster:{version:11,slots:[]}},canMutate=false,pending=false;
+ let observation:RosterObservation={status:'empty',raw:null,roster:{version:12,slots:[]}},canMutate=false,pending=false;
  let rendered=false;
  let selected:string|null=null,mode:'list'|'detail'|'delete'|'reset'='list',source:string|null=null,message='';
  let resetLegacy:LegacyRosterVersion|undefined;

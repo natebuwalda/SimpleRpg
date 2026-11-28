@@ -27,7 +27,8 @@ test('a Momentum stack boosts only defense rolls that happen after it is gained'
 test('Momentum accumulates and remains after using boosted Melee and Defense', () => {
   const battle = createBattle(5, starter, 1, miss);
   const stack = (state: BattleState) => resolveTurn(state, 'momentum', miss);
-  const two = stack(stack(battle));
+  const earned = resolveTurn(stack(battle), 'melee', miss);
+  const two = stack(earned);
   const round = resolveTurn(two, 'melee', scriptedFaces(8,1,1,1,1,1,1, 1,1,1, 1,1,1, 1,1,1,1,1,1));
   expect(round).toMatchObject({ enemyHp: 2, classAction: { stacks: 2n }, lastTurn: [
     { kind: 'attack', attacker: 'hero', roll: { attack: { original: [8,1,1,1,1,1,1] } } },
@@ -36,15 +37,16 @@ test('Momentum accumulates and remains after using boosted Melee and Defense', (
   expect(round.heroPools).toEqual({ attack: 5, defense: 4 });
 });
 
-test('large Momentum counts stay exact and each actual pool respects the dice ceiling', () => {
+test('large Momentum counts remain exact, cap the dice, and cannot be paid with fewer Resources', () => {
   const battle = createBattle(5, starter, 1, miss);
-  expect(getBattlePools({ ...battle, classAction: { kind: 'momentum', stacks: 1019n } })).toEqual({ attack: 1024, defense: 1023 });
+  expect(getBattlePools({ ...battle, classAction: { kind: 'momentum', stacks: 1019n, currentResources: 0, maxResources: 5 } })).toEqual({ attack: 1024, defense: 1023 });
   const stacks = 9_007_199_254_740_993n;
   const rng = vi.fn(miss);
-  const stacked = resolveTurn({ ...battle, classAction: { kind: 'momentum', stacks } }, 'momentum', rng);
-  expect(stacked.classAction).toEqual({ kind: 'momentum', stacks: stacks + 1n });
+  const stacked: BattleState = { ...battle, classAction: { kind: 'momentum', stacks, currentResources: 5, maxResources: 5 } };
+  expect(resolveTurn(stacked, 'momentum', rng)).toBe(stacked);
+  expect(stacked.classAction).toMatchObject({ kind: 'momentum', stacks });
   expect(getBattlePools(stacked)).toEqual({ attack: 1024, defense: 1024 });
-  expect(rng).toHaveBeenCalledTimes(1027);
+  expect(rng).not.toHaveBeenCalled();
 });
 
 test('Momentum clears after escape and defeat and a new encounter starts empty', () => {
@@ -54,7 +56,7 @@ test('Momentum clears after escape and defeat and a new encounter starts empty',
   expect(stacked).toMatchObject({ battle: { classAction: { stacks: 1n } } });
   const escaped = transition(stacked, { type: 'run' }, miss);
   expect(transition(escaped, moveRight, miss)).toMatchObject({ battle: { classAction: { stacks: 0n } } });
-  const defeated = transition(stacked, { type: 'momentum' }, scriptedFaces(8,1,1, 1,1,1,1,1,1));
+  const defeated = transition(stacked, { type: 'melee' }, scriptedFaces(1,1,1,1,1,1, 1,1,1, 8,1,1, 1,1,1,1,1));
   expect(defeated.kind).toBe('defeat');
   const restarted = transition(defeated, { type: 'restart' });
   if (restarted.kind !== 'exploring') throw Error('Expected exploration');

@@ -8,10 +8,10 @@ test('creation explains the class choices and previews Nuke damage', async ({ pa
   await page.goto('./');
   await page.getByRole('button', { name: 'New Character', exact: true }).click();
   const classPicker = page.getByRole('combobox', { name: 'Class', exact: true });
-  await expect(classPicker).toHaveAccessibleDescription(/Combat for Melee.*Lore for Magic.*Cunning \+ Subterfuge for Exploit/);
+  await expect(classPicker).toHaveAccessibleDescription(/Combat for Melee.*Lore for Magic.*Melee builds Exploit stacks/);
   await createCharacter(page, wizard);
   await expect(page.getByLabel('Creation Nuke damage')).toHaveText('4 damage');
-  await expect(page.getByText('Deal Cunning + Lore damage directly on your turn.', { exact: false })).toBeVisible();
+  await expect(page.getByText('Spend one Resource to deal Cunning + Lore damage directly.', { exact: false })).toBeVisible();
 });
 
 test('a saved Warrior builds Momentum, keeps it through Melee, and starts fresh after Run', async ({ page }) => {
@@ -54,8 +54,8 @@ test('a saved Wizard uses Nuke for a roll-free victory and reloads the same adve
   await page.getByText('Roll details', { exact: true }).click();
   await expect(page.getByText('Nuke dealt 4 direct damage. No roll.', { exact: true })).toBeVisible();
   await expect(page.getByLabel(/dice/)).toHaveCount(0);
-  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('simple-rpg.save.v11')!));
-  expect(stored.version).toBe(11);
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('simple-rpg.save.v12')!));
+  expect(stored.version).toBe(12);
   expect(stored.slots[0].checkpoint).toEqual({
     ...checkpoint, position: adjacent, character: wizard, hp: 5, completedEncounterIds: ['slime-1'],
     progression: { ...checkpoint.progression, xp: 1 },
@@ -87,6 +87,7 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
       await steps(page, 'right');
       const action = page.getByRole('button', { name, exact: true });
       await expect(action).toBeEnabled();
+      await page.locator('.four-combat-actions').evaluate(controls => controls.scrollIntoView({ block: 'center' }));
       const box = (await action.boundingBox())!;
       expect(box.width).toBeGreaterThanOrEqual(48);
       expect(box.height).toBeGreaterThanOrEqual(48);
@@ -101,10 +102,11 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
       await page.keyboard.down(' ');
       await expect(action).toBeDisabled();
       await page.clock.runFor(300);
-      await expect(action).toBeEnabled();
+      if (name === 'Momentum') await expect(action).toBeDisabled();
+      else await expect(action).toBeEnabled();
       await page.keyboard.up(' ');
       await page.clock.runFor(300);
-      await expect(action).toBeFocused();
+      await expect(name === 'Momentum' ? page.getByRole('button', { name: 'Melee', exact: true }) : action).toBeFocused();
       await expect(page.getByRole('status', { name: 'Combat result' })).toHaveText(/^Turn 1\./);
       if (name === 'Momentum') await expect(page.getByLabel('Momentum stacks')).toHaveText('Momentum stacks · 1');
       else await expect(page.getByLabel('Slime health')).toHaveText('1 / 5 HP');

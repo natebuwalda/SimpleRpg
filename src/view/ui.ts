@@ -1,8 +1,8 @@
 import type { UiAction, Character, Checkpoint, Direction, GameState, BattleState, TurnRolls } from '../game/types';
 import { deriveStats } from '../game/character';
-import { CLASS_ACTION_DEFINITIONS, CLASS_DEFINITIONS, OFFENSIVE_ACTIONS, getCombatPools, offenseFor, type ClassAction } from '../game/combat-actions';
+import { CLASS_ACTION_DEFINITIONS, CLASS_DEFINITIONS, OFFENSIVE_ACTIONS, getCombatPools, offenseFor } from '../game/combat-actions';
 import type { PoolRoll } from '../game/dice';
-import { canUseCombatCommand, getBattlePools } from '../game/battle';
+import { combatCommandUnavailableReason, getBattlePools } from '../game/battle';
 import { slimeStats } from '../game/slime';
 import { canFindMoreSlimes, getRemainingSlimeCount } from '../game/world';
 import { mountCharacterCreation } from './character-creation';
@@ -52,32 +52,53 @@ function characterDetails(checkpoint: Checkpoint, canSpend: boolean, open: boole
 function diceText(label: string, roll: PoolRoll): string {
   return `<p aria-label="${label}"><strong>${label}</strong><br>Original: ${roll.original.join(', ')}. Bonus: ${roll.bonus.join(', ') || 'none'}. Successes: ${roll.successes}.</p>`;
 }
-function stacksAdded(successes: number): string {
-  return `${successes} ${successes === 1 ? 'stack' : 'stacks'} added.`;
-}
-
 function resourceActionSummary(kind: 'heal' | 'smite', amount: number, current: number): string {
   const effect = kind === 'heal' ? `Heal: ${amount} HP restored. Spent` : `Smite: ${amount} direct damage. Gained`;
   return `${effect} 1 Resource. ${current} remaining.`;
 }
 
+function attackEffects({ resourceGain, stacksAdded, absorbed }: Extract<TurnRolls[number], { kind: 'attack' }>): string {
+  return [
+    resourceGain ? `Gained ${resourceGain} Resource.` : '',
+    stacksAdded ? `Added ${stacksAdded} Exploit stack.` : '',
+    absorbed ? `Shield absorbed ${absorbed} damage.` : '',
+  ].filter(Boolean).join(' ');
+}
+
+function describeTurnEntry(entry: TurnRolls[number]): string {
+  switch (entry.kind) {
+    case 'exploit': return `Exploit: ${entry.damage} direct damage. Converted ${entry.stacks} stacks and gained ${entry.resourceGain} Resources. ${entry.currentResources} remaining.`;
+    case 'momentum': return `Momentum: 1 stack gained (${entry.stacks} total). Spent ${entry.cost} Resources. ${entry.currentResources} remaining.`;
+    case 'nuke': return `Nuke: ${entry.damage} direct damage. Spent 1 Resource. ${entry.currentResources} remaining.`;
+    case 'execute': return 'Execute: Target defeated.';
+    case 'prepare': return `Prepare: ${entry.successes} initiative successes next round. Spent 1 Resource. ${entry.currentResources} remaining.`;
+    case 'study': return entry.released
+      ? `Study: Released ${entry.released} reserved Resources. ${entry.currentResources} available.`
+      : `Study: Reserved ${entry.reservedResources} Resources for Shield. ${entry.currentResources} available.`;
+    case 'heal':
+    case 'smite': return resourceActionSummary(entry.kind, entry.amount, entry.currentResources);
+    case 'attack': {
+      const { attacker, roll, absorbed = 0 } = entry;
+      const effects = attackEffects(entry);
+      return `${attacker === 'hero' ? 'You' : 'Slime'}: ${roll.attack.successes} vs ${roll.defense.successes} → ${roll.damage - absorbed} damage.${effects ? ' ' + effects : ''}`;
+    }
+  }
+}
+
 function rollDetails(turn: TurnRolls | null | undefined): string {
   if (!turn) return '';
   const exchanges = turn.map(entry => {
-    if (entry.kind === 'exploit') {
-      return diceText('Exploit dice', entry.roll) + `<p>${stacksAdded(entry.roll.successes)}</p>`;
-    }
-    if (entry.kind === 'momentum') return '<p>Momentum gained. No roll.</p>';
-    if (entry.kind === 'nuke') return `<p>Nuke dealt ${entry.damage} direct damage. No roll.</p>`;
+    if (entry.kind === 'momentum') return `<p>Momentum gained. No roll.</p><p>${describeTurnEntry(entry)}</p>`;
+    if (entry.kind === 'nuke') return `<p>Nuke dealt ${entry.damage} direct damage. No roll.</p><p>Spent 1 Resource. ${entry.currentResources} remaining.</p>`;
     if (entry.kind === 'heal' || entry.kind === 'smite') {
-      return diceText(`${CLASS_ACTION_DEFINITIONS[entry.kind].label} dice`, entry.roll)
-        + `<p>${resourceActionSummary(entry.kind, entry.amount, entry.currentResources)}</p>`;
+      return diceText(`${CLASS_ACTION_DEFINITIONS[entry.kind].label} dice`, entry.roll) + `<p>${describeTurnEntry(entry)}</p>`;
     }
-    if (entry.attacker === 'slime') {
-      return diceText('Slime attack dice', entry.roll.attack) + diceText('Your defense dice', entry.roll.defense);
-    }
-    const bonus = entry.exploitBonus > 0n ? `<p aria-label="Exploit bonus">Exploit bonus damage +${entry.exploitBonus}.</p>` : '';
-    return diceText('Your attack dice', entry.roll.attack) + diceText('Slime defense dice', entry.roll.defense) + bonus;
+    if (entry.kind !== 'attack') return `<p>${describeTurnEntry(entry)} No roll.</p>`;
+    const hero = entry.attacker === 'hero';
+    const effects = attackEffects(entry);
+    return diceText(hero ? 'Your attack dice' : 'Slime attack dice', entry.roll.attack)
+      + diceText(hero ? 'Slime defense dice' : 'Your defense dice', entry.roll.defense)
+      + (effects ? `<p>${effects}</p>` : '');
   }).join('');
   const noCounterattack = turn.length === 1 && turn[0].kind === 'attack' && turn[0].attacker === 'hero';
   return `<details class="game-details"><summary>Roll details</summary><div class="detail-content">
@@ -85,43 +106,37 @@ function rollDetails(turn: TurnRolls | null | undefined): string {
     <p>8–10 succeeds. Each original 10 adds one bonus die; bonus dice never add another. Ties favor the defender.</p></div></details>`;
 }
 function turnSummary(turn: TurnRolls, separator = '<br>'): string {
-  return turn.map(entry => {
-    if (entry.kind === 'exploit') return `Exploit: ${stacksAdded(entry.roll.successes)}`;
-    if (entry.kind === 'momentum') return `Momentum: 1 stack gained (${entry.stacks} total).`;
-    if (entry.kind === 'nuke') return `Nuke: ${entry.damage} direct damage.`;
-    if (entry.kind === 'heal' || entry.kind === 'smite') return resourceActionSummary(entry.kind, entry.amount, entry.currentResources);
-    const { attacker, roll, exploitBonus } = entry;
-    const damage = exploitBonus > 0n
-      ? `${BigInt(roll.damage) + exploitBonus} damage (${roll.damage} base + ${exploitBonus} Exploit)`
-      : `${roll.damage} damage`;
-    return `${attacker === 'hero' ? 'You' : 'Slime'}: ${roll.attack.successes} vs ${roll.defense.successes} → ${damage}.`;
-  }).join(separator);
+  return turn.map(describeTurnEntry).join(separator);
 }
+
 function turnOrderDetails({ turnOrder, classAction }: BattleState): string {
-  let value: string;
-  if (classAction.kind === 'cleric') {
-    value = `<span aria-label="Resources">${resourceText(classAction.currentResources, classAction.maxResources)}</span>`;
-  } else {
-    const label = CLASS_ACTION_DEFINITIONS[classAction.kind].label;
-    value = classAction.kind === 'nuke'
-      ? `<span aria-label="Nuke damage">${label} · ${classAction.damage} damage</span>`
-      : `<span aria-label="${label} stacks">${label} stacks · ${classAction.stacks}</span>`;
-  }
+  const value = `<span aria-label="Resources">${resourceText(classAction.currentResources, classAction.maxResources)}</span>`;
   return `<section class="turn-order"><div class="turn-order-heading"><h2 id="turn-order-label">Turn Order</h2>${value}</div><ol aria-labelledby="turn-order-label">
     ${turnOrder.map(({ combatant, successes }) => `<li>${combatant === 'hero' ? 'You' : 'Meadow slime'} · ${successes} ${successes === 1 ? 'success' : 'successes'}</li>`).join('')}
   </ol></section>`;
 }
 
-const unavailableReasons: Partial<Record<ClassAction, string>> = {
-  exploit: 'Exploit requires acting before the target.',
-  heal: 'Heal requires at least one Resource.',
-  smite: 'Resources are full.',
-};
+function classBattleDetails(battle: BattleState): string {
+  const { classAction: action } = battle;
+  switch (action.kind) {
+    case 'momentum': {
+      const pools = getBattlePools(battle);
+      return `<div class="battle-class-values"><span aria-label="Momentum stacks">Momentum stacks · ${action.stacks}</span>
+        <span aria-label="Momentum cost">Momentum cost · ${action.stacks}</span>
+        <span aria-label="Battle Melee and Defense">Melee ${pools.attack}d10 · Defense ${pools.defense}d10</span>
+        <span aria-label="Execute threshold">Execute requires target HP below ${action.currentResources}</span></div>`;
+    }
+    case 'exploit': return `<p class="battle-pools" aria-label="Exploit stacks">Exploit stacks · ${action.stacks}</p>`;
+    case 'nuke': return `<div class="battle-class-values"><span aria-label="Nuke damage">Nuke · ${action.damage} damage</span>
+      ${action.reservedResources > 0 ? `<span aria-label="Shield reservation">Shield · ${action.reservedResources} reserved · blocks up to ${action.reservedResources} damage per hit</span>` : ''}</div>`;
+    case 'cleric': return '';
+  }
+}
 
 export function mountUi(root: HTMLElement): Ui {
   root.innerHTML = `
     <main class="game-shell">
-      <header><span class="wordmark">SIMPLE RPG</span><span class="wave-indicator" aria-label="Current wave" hidden></span><span class="edition">ITERATION 12</span></header>
+      <header><span class="wordmark">SIMPLE RPG</span><span class="wave-indicator" aria-label="Current wave" hidden></span><span class="edition">ITERATION 13</span></header>
       <p id="combat-announcement" class="sr-only" role="status" aria-label="Combat result" aria-atomic="true"></p>
       <section class="play-area">
         <div class="world-frame"><div id="canvas" role="img" aria-label="A tiny woodland adventure"></div></div>
@@ -138,7 +153,7 @@ export function mountUi(root: HTMLElement): Ui {
       <footer><span>A WORLD IN YOUR POCKET</span><span>TOUCH · KEYBOARD</span></footer>
     </main>`;
   let handler: (action: UiAction) => void = () => {};
-  let observation:RosterObservation={status:'empty',raw:null,roster:{version:11,slots:[]}},canMutate=false;
+  let observation:RosterObservation={status:'empty',raw:null,roster:{version:12,slots:[]}},canMutate=false;
   let roster:ReturnType<typeof mountRoster>|null=null;
   let discard:ReturnType<typeof mountConfirmation>|null=null;
   let creation: ReturnType<typeof mountCharacterCreation> | null = null;
@@ -153,6 +168,7 @@ export function mountUi(root: HTMLElement): Ui {
   let pendingFocus: string | null = null;
   let announcedTurn: TurnRolls | null = null;
   let turnNumber = 0;
+  let studyDraft = '1';
   const blockedKeys = new Set<string>();
   function closeCreation(){
     creation?.destroy();creation=null;root.querySelector('.game-shell')!.classList.remove('creating');
@@ -193,6 +209,19 @@ export function mountUi(root: HTMLElement): Ui {
   window.addEventListener('keyup', event => {
     if (blockedKeys.has(event.key)) { event.preventDefault(); blockedKeys.delete(event.key); }
   }, true);
+  root.addEventListener('input', event => {
+    if (!(event.target instanceof HTMLInputElement) || event.target.id !== 'study-amount' || currentState.kind !== 'battle') return;
+    studyDraft = event.target.value;
+    const reason = combatCommandUnavailableReason(currentState.battle, 'study', event.target.valueAsNumber);
+    const button = root.querySelector<HTMLButtonElement>('[data-action="study"]')!;
+    const details = root.querySelector<HTMLElement>('#study-reason')!;
+    button.toggleAttribute('data-unavailable', !!reason);
+    button.disabled = busy || !!reason;
+    if (reason) button.setAttribute('aria-describedby', details.id);
+    else button.removeAttribute('aria-describedby');
+    details.textContent = reason ?? '';
+    details.hidden = !reason;
+  });
   root.addEventListener('click', (event) => {
     if(creation||roster||discard)return;
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button');
@@ -202,6 +231,7 @@ export function mountUi(root: HTMLElement): Ui {
     const rating = advancementRatings.find(rating => rating.key === button.dataset.rating);
     if (rating) handler({ type: 'spendPoint', rating });
     else if (button.dataset.direction) handler({ type: 'move', direction: button.dataset.direction as Direction });
+    else if (button.dataset.action === 'study') handler({ type: 'study', amount: root.querySelector<HTMLInputElement>('#study-amount')?.valueAsNumber });
     else if (button.dataset.action) handler({ type: button.dataset.action } as UiAction);
   });
   const api: Ui = {
@@ -222,6 +252,8 @@ export function mountUi(root: HTMLElement): Ui {
         if (busy && document.activeElement === button) pendingFocus = button.dataset.action!;
         button.disabled = busy || button.hasAttribute('data-unavailable');
       });
+      const studyInput = root.querySelector<HTMLInputElement>('#study-amount');
+      if (studyInput) studyInput.disabled = busy;
       root.querySelector('#screen')!.setAttribute('aria-busy', String(busy));
       if (!busy && pendingFocus) {
         if (active && document.activeElement === document.body) {
@@ -235,6 +267,7 @@ export function mountUi(root: HTMLElement): Ui {
     render(state, saveStatus, unsavedProgress=false, canSave=true) {
       const remaining = state.kind === 'title' ? 3 : getRemainingSlimeCount(state.checkpoint);
       const remainingText = `${remaining} ${remaining === 1 ? 'slime remains' : 'slimes remain'}.`;
+      if (state.kind === 'battle' && (currentState.kind !== 'battle' || (state.battle.classAction.kind === 'nuke' && state.battle.classAction.reservedResources > 0))) studyDraft = '1';
       currentState = state;
       currentStatus = saveStatus;
       currentDirty=unsavedProgress;
@@ -270,23 +303,32 @@ export function mountUi(root: HTMLElement): Ui {
         <nav class="dpad" aria-label="Movement"><button data-direction="up" aria-label="Move up">↑</button><button data-direction="left" aria-label="Move left">←</button><button data-direction="down" aria-label="Move down">↓</button><button data-direction="right" aria-label="Move right">→</button></nav>`;
       if (state.kind === 'battle') {
         const { battle } = state;
-        const isCleric = battle.classAction.kind === 'cleric';
+        const actionState = battle.classAction;
         const actions = CLASS_DEFINITIONS[state.checkpoint.character.classId].classActions;
-        const unavailable = actions.filter(action => !canUseCombatCommand(battle, action));
-        const actionButtons = actions.map(action => {
-          const blocked = !canUseCombatCommand(battle, action);
-          return `<button data-combat-command data-action="${action}" ${blocked ? `disabled data-unavailable aria-describedby="${action}-reason"` : ''}>${CLASS_ACTION_DEFINITIONS[action].label}</button>`;
+        const releaseShield = actionState.kind === 'nuke' && actionState.reservedResources > 0;
+        const canSelectAmount = actionState.kind === 'nuke' && !releaseShield && actionState.currentResources > 0;
+        const studyAmount = studyDraft === '' ? undefined : Number(studyDraft);
+        const availability = actions.map(action => ({ action, reason: combatCommandUnavailableReason(battle, action, studyAmount) }));
+        const actionButtons = availability.map(({ action, reason }) => {
+          const label = action === 'study' && releaseShield ? 'Release Shield' : CLASS_ACTION_DEFINITIONS[action].label;
+          return `<button data-combat-command data-action="${action}" ${reason ? `disabled data-unavailable aria-describedby="${action}-reason"` : ''}>${label}</button>`;
         }).join('');
+        const actionReasons = availability.filter(({ action, reason }) => reason || action === 'study').map(({ action, reason }) =>
+          `<p class="action-reason" id="${action}-reason" ${reason ? '' : 'hidden'}>${reason ?? ''}</p>`,
+        ).join('');
         const pools = getBattlePools(battle);
         root.querySelector('#screen')!.innerHTML = `
         <div class="eyebrow">${slimeLevelLabel}</div><h1>Meadow slime</h1>
         <div class="stats"><span>HERO <strong aria-label="Hero health">${state.battle.heroHp} / ${maxHp} HP</strong></span><span>SLIME <strong aria-label="Slime health">${state.battle.enemyHp} / ${slimeStats(state.battle.slimeLevel).maxHp} HP</strong></span></div>
         ${turnOrderDetails(state.battle)}
         <p class="description combat-result">${battle.lastTurn ? turnSummary(battle.lastTurn) : `${OFFENSIVE_ACTIONS[battle.offense].label} ${pools.attack}d10 vs ${slimeStats(battle.slimeLevel).defense}d10 defense.`}</p>
-        <div class="actions${isCleric ? ' cleric-actions' : ''}"><button class="primary" data-combat-command data-action="${battle.offense}">${OFFENSIVE_ACTIONS[battle.offense].label}</button>
+        <div class="actions four-combat-actions"><button class="primary" data-combat-command data-action="${battle.offense}">${OFFENSIVE_ACTIONS[battle.offense].label}</button>
           ${actionButtons}<button data-combat-command data-action="run">Run</button></div>
-        ${battle.classAction.kind === 'momentum' ? `<p class="battle-pools" aria-label="Battle Melee and Defense">Melee ${pools.attack}d10 · Defense ${pools.defense}d10</p>` : ''}
-        ${unavailable.map(action => `<p class="action-reason" id="${action}-reason">${unavailableReasons[action]}</p>`).join('')}`;
+        ${classBattleDetails(battle)}
+        ${canSelectAmount ? `<label class="study-amount">Resources to reserve <input id="study-amount" type="number" inputmode="numeric" min="1" max="${actionState.currentResources}" step="1"></label>` : ''}
+        ${actionReasons}`;
+        const studyInput = root.querySelector<HTMLInputElement>('#study-amount');
+        if (studyInput) studyInput.value = studyDraft;
       }
       if (state.kind === 'victory' || state.kind === 'defeat') {
         const won = state.kind === 'victory';
